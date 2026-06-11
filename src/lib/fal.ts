@@ -418,7 +418,7 @@ export async function estimateSceneMetadata(
           {
             role: "user",
             content: `Estimate the video production metadata for this movie scene based on its dialogue and description. Return ONLY a valid JSON object with these fields:
-- "videoDuration": estimated shot length in seconds (a number, typically 3-15 seconds based on dialogue pacing)
+- "videoDuration": estimated shot length in seconds (a number between 3 and 15, max 15 seconds, based on dialogue pacing)
 - "videoCamera": a short camera direction (e.g. "Static", "Slow pan", "Dolly in", "Tracking shot", "Handheld", "Low angle push", "Wide crane")
 
 Consider the mood, action, and pacing implied by the dialogue.
@@ -445,5 +445,12 @@ ${dialogueSummary || "(no dialogue)"}`.trim(),
   };
   const text = data.choices[0].message.content;
   const json = text.replace(/```json|```/g, "").trim();
-  return JSON.parse(json);
+  const metadata = JSON.parse(json) as {
+    videoDuration: number;
+    videoCamera: string;
+  };
+  return {
+    videoDuration: Math.min(Math.max(1, metadata.videoDuration), 15),
+    videoCamera: metadata.videoCamera,
+  };
 }
