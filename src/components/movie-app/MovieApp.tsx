@@ -112,6 +112,7 @@ export function MovieApp() {
   const [generatingCharacters, setGeneratingCharacters] = useState(false);
   const [generatingScenes, setGeneratingScenes] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const isGenerating = generatingCharacters || generatingScenes;
   const effectiveStyle = resolveStyle(customArtStyle, artStyle);
@@ -148,14 +149,17 @@ export function MovieApp() {
     if (!hydrated || !folderHandle) return;
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
+    setIsSaving(true);
     debounceRef.current = setTimeout(() => {
       writeMovieJson(folderHandle, {
         story,
         artStyle,
         customArtStyle,
-      }).catch(() => {
-        // file write failed, ignore
-      });
+      })
+        .catch(() => {
+          // file write failed, ignore
+        })
+        .finally(() => setIsSaving(false));
     }, 500);
   }, [story, artStyle, customArtStyle, hydrated, folderHandle]);
 
@@ -263,6 +267,11 @@ export function MovieApp() {
           <p className="text-neutral-400 text-lg max-w-md mx-auto leading-relaxed">
             Bring your story to life with AI-generated characters and scenes
           </p>
+          {isSaving && (
+            <p className="text-neutral-500 text-xs mt-3 animate-pulse">
+              Saving...
+            </p>
+          )}
         </section>
 
         {/* Story Section */}
@@ -343,20 +352,22 @@ export function MovieApp() {
                 "Generate Characters"
               )}
             </button>
-            <button
-              onClick={handleGenerateScenes}
-              disabled={!story.trim() || isGenerating}
-              className="px-6 py-4 bg-white text-black rounded-2xl font-semibold text-base hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-3"
-            >
-              {generatingScenes ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-black/20 border-t-black" />
-                  Generating...
-                </>
-              ) : (
-                "Generate Scenes"
-              )}
-            </button>
+            {characterImages.length > 0 && (
+              <button
+                onClick={handleGenerateScenes}
+                disabled={!story.trim() || isGenerating}
+                className="px-6 py-4 bg-white text-black rounded-2xl font-semibold text-base hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-3"
+              >
+                {generatingScenes ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-black/20 border-t-black" />
+                    Generating...
+                  </>
+                ) : (
+                  "Generate Scenes"
+                )}
+              </button>
+            )}
           </div>
           {error && (
             <p className="text-red-400 text-sm bg-red-400/10 rounded-xl px-4 py-3 max-w-md text-center">
