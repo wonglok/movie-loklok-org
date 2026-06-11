@@ -61,6 +61,30 @@ async function downloadAndSaveImage(
   await writable.close();
 }
 
+async function saveAndLoadLocal(
+  url: string,
+  filename: string,
+  dir: FileSystemDirectoryHandle,
+): Promise<string> {
+  await downloadAndSaveImage(url, filename, dir);
+  const fileHandle = await dir.getFileHandle(filename);
+  const file = await fileHandle.getFile();
+  return URL.createObjectURL(file);
+}
+
+async function loadLocalImage(
+  filename: string,
+  dir: FileSystemDirectoryHandle,
+): Promise<string | null> {
+  try {
+    const fileHandle = await dir.getFileHandle(filename);
+    const file = await fileHandle.getFile();
+    return URL.createObjectURL(file);
+  } catch {
+    return null;
+  }
+}
+
 async function savePromptFile(
   prompt: string,
   filename: string,
@@ -192,9 +216,20 @@ export function MovieApp() {
   const [isSaving, setIsSaving] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [pickerError, setPickerError] = useState<string | null>(null);
+  const [removeIndex, setRemoveIndex] = useState<number | null>(null);
 
   const isGenerating = generatingCharacters || generatingScenes || extracting;
   const effectiveStyle = resolveStyle(customArtStyle, artStyle);
+
+  const handleConfirmRemove = () => {
+    if (removeIndex === null) return;
+    const char = characters[removeIndex];
+    if (char.imageUrl) URL.revokeObjectURL(char.imageUrl);
+    const next = [...characters];
+    next.splice(removeIndex, 1);
+    setCharacters(next);
+    setRemoveIndex(null);
+  };
 
   const handleChangeFolder = async () => {
     setPickerError(null);
@@ -279,6 +314,48 @@ export function MovieApp() {
     }, 500);
   }, [characters, hydrated, folderHandle]);
 
+  // Load local images after hydration
+  useEffect(() => {
+    if (!hydrated || !folderHandle) return;
+
+    (async () => {
+      try {
+        const imagesDir = await folderHandle.getDirectoryHandle("images", {
+          create: true,
+        });
+        const characterDir = await imagesDir.getDirectoryHandle("character", {
+          create: true,
+        });
+
+        for (let i = 0; i < characters.length; i++) {
+          const char = characters[i];
+          if (char.imageFilename && !char.imageUrl) {
+            const localUrl = await loadLocalImage(
+              char.imageFilename,
+              characterDir,
+            );
+            if (localUrl) {
+              updateCharacter(i, { imageUrl: localUrl });
+            }
+          }
+        }
+      } catch {
+        // folder not ready, ignore
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated]);
+
+  // Revoke object URLs on unmount
+  useEffect(() => {
+    return () => {
+      for (const char of characters) {
+        if (char.imageUrl) URL.revokeObjectURL(char.imageUrl);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleExtractCharacters = async () => {
     if (!story.trim() || isGenerating || !apiKey) return;
     setError(null);
@@ -290,6 +367,7 @@ export function MovieApp() {
       const withImageUrls: Character[] = extracted.map((c) => ({
         ...c,
         imageUrl: null,
+        imageFilename: null,
       }));
       setCharacters(withImageUrls);
     } catch (err) {
@@ -323,15 +401,23 @@ export function MovieApp() {
           const prompt = `Character design reference sheet, ${effectiveStyle} animation style. Character name: ${char.name}. ${char.description}. Full body, clean character turnaround, consistent design.`;
 
           const result = await generateImage(prompt, apiKey);
-          updated[i] = { ...char, imageUrl: result.url };
-
           const safeName = char.name
             .replace(/[^a-zA-Z0-9]/g, "-")
             .toLowerCase();
-          await Promise.all([
-            downloadAndSaveImage(result.url, `${safeName}.png`, characterDir),
-            savePromptFile(result.prompt, `${safeName}.txt`, characterDir),
-          ]);
+          const filename = `${safeName}.png`;
+
+          const localUrl = await saveAndLoadLocal(
+            result.url,
+            filename,
+            characterDir,
+          );
+          updated[i] = {
+            ...char,
+            imageUrl: localUrl,
+            imageFilename: filename,
+          };
+
+          await savePromptFile(result.prompt, `${safeName}.txt`, characterDir);
         }
       } else {
         for (let i = 0; i < updated.length; i++) {
@@ -367,7 +453,6 @@ export function MovieApp() {
     try {
       const prompt = `Character design reference sheet, ${effectiveStyle} animation style. Character name: ${char.name}. ${char.description}. Full body, clean character turnaround, consistent design.`;
       const result = await generateImage(prompt, apiKey);
-      updateCharacter(index, { imageUrl: result.url });
 
       if (folderHandle) {
         const imagesDir = await folderHandle.getDirectoryHandle("images", {
@@ -376,13 +461,25 @@ export function MovieApp() {
         const characterDir = await imagesDir.getDirectoryHandle("character", {
           create: true,
         });
-        const safeName = char.name
-          .replace(/[^a-zA-Z0-9]/g, "-")
-          .toLowerCase();
-        await Promise.all([
-          downloadAndSaveImage(result.url, `${safeName}.png`, characterDir),
-          savePromptFile(result.prompt, `${safeName}.txt`, characterDir),
-        ]);
+        const safeName = char.name.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase();
+        const filename = `${safeName}.png`;
+
+        // Revoke old object URL
+        if (char.imageUrl) URL.revokeObjectURL(char.imageUrl);
+
+        const localUrl = await saveAndLoadLocal(
+          result.url,
+          filename,
+          characterDir,
+        );
+        updateCharacter(index, {
+          imageUrl: localUrl,
+          imageFilename: filename,
+        });
+
+        await savePromptFile(result.prompt, `${safeName}.txt`, characterDir);
+      } else {
+        updateCharacter(index, { imageUrl: result.url });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Regeneration failed");
@@ -613,8 +710,27 @@ export function MovieApp() {
               {characters.map((char, i) => (
                 <div
                   key={i}
-                  className="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden"
+                  className="relative bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden group/card"
                 >
+                  <button
+                    onClick={() => setRemoveIndex(i)}
+                    className="absolute top-3 right-3 p-1.5 rounded-lg text-neutral-600 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover/card:opacity-100 transition-all"
+                    title="Remove character"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
                   <div className="flex gap-4 p-4">
                     <div className="flex-none w-28 aspect-3/4 rounded-xl overflow-hidden bg-neutral-800 border border-neutral-700">
                       {char.imageUrl ? (
@@ -688,7 +804,12 @@ export function MovieApp() {
               onClick={() =>
                 setCharacters([
                   ...characters,
-                  { name: "", description: "", imageUrl: null },
+                  {
+                    name: "",
+                    description: "",
+                    imageUrl: null,
+                    imageFilename: null,
+                  },
                 ])
               }
               className="self-start px-4 py-2 border border-dashed border-neutral-700 rounded-xl text-neutral-500 text-sm hover:border-neutral-500 hover:text-neutral-300 transition-colors"
