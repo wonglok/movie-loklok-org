@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { fal } from "@fal-ai/client";
 import {
   useMovieStore,
   ART_STYLES,
@@ -127,27 +128,33 @@ async function extractCharacters(
   story: string,
   apiKey: string,
 ): Promise<{ name: string; description: string }[]> {
-  const res = await fetch("https://fal.run/fal-ai/llama3-8b", {
-    method: "POST",
-    headers: {
-      Authorization: `Key ${apiKey}`,
-      "Content-Type": "application/json",
+  fal.config({ credentials: apiKey });
+
+  const result = await fal.subscribe(
+    "openrouter/router/openai/v1/chat/completions",
+    {
+      input: {
+        model: "openai/gpt-4o-mini",
+        messages: [
+          {
+            role: "user",
+            content: `Extract all characters from this movie story. Return ONLY a valid JSON array of objects with "name" and "description" fields. No other text.\n\nStory: ${story}`,
+          },
+        ],
+      },
+      logs: true,
+      onQueueUpdate: (update) => {
+        if (update.status === "IN_PROGRESS") {
+          update.logs.map((log) => log.message).forEach(console.log);
+        }
+      },
     },
-    body: JSON.stringify({
-      prompt: `Extract all characters from this movie story. Return ONLY a valid JSON array of objects with "name" and "description" fields. No other text.\n\nStory: ${story}`,
-      max_tokens: 1000,
-    }),
-  });
+  );
 
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Character extraction failed ${res.status}: ${body}`);
-  }
-
-  const data = await res.json();
-  // fal.ai text models return output in data.output or data.choices[0].message.content
-  const text = data.output ?? data.choices?.[0]?.message?.content ?? "";
-  // Strip markdown code fences if present
+  const data = result.data as {
+    choices: { message: { content: string } }[];
+  };
+  const text = data.choices[0].message.content;
   const json = text.replace(/```json|```/g, "").trim();
   return JSON.parse(json);
 }
@@ -222,7 +229,8 @@ export function MovieApp() {
           ) {
             setArtStyle(movieData.artStyle as ArtStyle);
           }
-          if (movieData.customArtStyle) setCustomArtStyle(movieData.customArtStyle);
+          if (movieData.customArtStyle)
+            setCustomArtStyle(movieData.customArtStyle);
         }
         if (charData) setCharacters(charData);
       } catch {
@@ -282,7 +290,9 @@ export function MovieApp() {
       }));
       setCharacters(withImageUrls);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Character extraction failed");
+      setError(
+        err instanceof Error ? err.message : "Character extraction failed",
+      );
     } finally {
       setExtracting(false);
     }
@@ -312,7 +322,9 @@ export function MovieApp() {
           const result = await generateImage(prompt, apiKey);
           updated[i] = { ...char, imageUrl: result.url };
 
-          const safeName = char.name.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase();
+          const safeName = char.name
+            .replace(/[^a-zA-Z0-9]/g, "-")
+            .toLowerCase();
           await Promise.all([
             downloadAndSaveImage(result.url, `${safeName}.png`, characterDir),
             savePromptFile(result.prompt, `${safeName}.txt`, characterDir),
@@ -607,6 +619,17 @@ export function MovieApp() {
                 </div>
               ))}
             </div>
+            <button
+              onClick={() =>
+                setCharacters([
+                  ...characters,
+                  { name: "", description: "", imageUrl: null },
+                ])
+              }
+              className="self-start px-4 py-2 border border-dashed border-neutral-700 rounded-xl text-neutral-500 text-sm hover:border-neutral-500 hover:text-neutral-300 transition-colors"
+            >
+              + Add Character
+            </button>
           </section>
         )}
 
