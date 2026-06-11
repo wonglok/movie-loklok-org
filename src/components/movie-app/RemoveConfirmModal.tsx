@@ -1,12 +1,14 @@
 "use client";
 
 interface RemoveConfirmModalProps {
+  type: "character" | "scene";
   name: string;
   onConfirm: () => void;
   onCancel: () => void;
 }
 
 export function RemoveConfirmModal({
+  type,
   name,
   onConfirm,
   onCancel,
@@ -15,7 +17,7 @@ export function RemoveConfirmModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-8 max-w-md w-full mx-4 text-center">
         <p className="text-white text-lg font-semibold mb-2">
-          Remove Character
+          Remove {type === "character" ? "Character" : "Scene"}
         </p>
         <p className="text-neutral-400 text-sm mb-6">
           Are you sure you want to remove{" "}

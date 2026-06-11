@@ -67,7 +67,10 @@ export function MovieApp() {
   const [hydrated, setHydrated] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [pickerError, setPickerError] = useState<string | null>(null);
-  const [removeIndex, setRemoveIndex] = useState<number | null>(null);
+  const [removeTarget, setRemoveTarget] = useState<{
+    index: number;
+    type: "character" | "scene";
+  } | null>(null);
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [previewType, setPreviewType] = useState<"character" | "scene">(
     "character",
@@ -156,24 +159,33 @@ export function MovieApp() {
 
   // Enter key to confirm removal
   useEffect(() => {
-    if (removeIndex === null) return;
+    if (removeTarget === null) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Enter") handleConfirmRemove();
-      if (e.key === "Escape") setRemoveIndex(null);
+      if (e.key === "Escape") setRemoveTarget(null);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [removeIndex]);
+  }, [removeTarget]);
 
   const handleConfirmRemove = () => {
-    if (removeIndex === null) return;
-    const char = characters[removeIndex];
-    if (char.imageUrl) URL.revokeObjectURL(char.imageUrl);
-    const next = [...characters];
-    next.splice(removeIndex, 1);
-    setCharacters(next);
-    setRemoveIndex(null);
+    if (removeTarget === null) return;
+    const { index, type } = removeTarget;
+    if (type === "character") {
+      const char = characters[index];
+      if (char?.imageUrl) URL.revokeObjectURL(char.imageUrl);
+      const next = [...characters];
+      next.splice(index, 1);
+      setCharacters(next);
+    } else {
+      const scene = scenes[index];
+      if (scene?.imageUrl) URL.revokeObjectURL(scene.imageUrl);
+      const next = [...scenes];
+      next.splice(index, 1);
+      setScenes(next);
+    }
+    setRemoveTarget(null);
   };
 
   const handleChangeFolder = async () => {
@@ -209,6 +221,7 @@ export function MovieApp() {
           videoCamera: "Static / Slow pan",
           videoResolution: "720p",
           videoAspect: "9:16",
+          conversations: [],
         })),
       );
     } catch (err) {
@@ -317,6 +330,7 @@ export function MovieApp() {
           videoCamera: "Static / Slow pan",
           videoResolution: "720p",
           videoAspect: "9:16",
+          conversations: s.conversations || [],
         })),
       );
     } catch (err) {
@@ -620,11 +634,16 @@ export function MovieApp() {
           />
         )}
 
-        {removeIndex !== null && (
+        {removeTarget !== null && (
           <RemoveConfirmModal
-            name={characters[removeIndex]?.name || "this character"}
+            type={removeTarget.type}
+            name={
+              removeTarget.type === "character"
+                ? characters[removeTarget.index]?.name || "this character"
+                : scenes[removeTarget.index]?.name || "this scene"
+            }
             onConfirm={handleConfirmRemove}
-            onCancel={() => setRemoveIndex(null)}
+            onCancel={() => setRemoveTarget(null)}
           />
         )}
 
@@ -734,7 +753,7 @@ export function MovieApp() {
                   index={i}
                   regeneratingIndex={regeneratingIndex}
                   onRegenerate={handleRegenerateCharacter}
-                  onRemove={setRemoveIndex}
+                  onRemove={(i) => setRemoveTarget({ index: i, type: "character" })}
                   onPreview={(idx) => {
                     setPreviewIndex(idx);
                     setPreviewType("character");
@@ -760,6 +779,7 @@ export function MovieApp() {
                       videoCamera: "Static / Slow pan",
                       videoResolution: "720p",
                       videoAspect: "9:16",
+                      conversations: [],
                     },
                   ])
                 }
@@ -886,7 +906,7 @@ export function MovieApp() {
                       onToggleSelect={toggleSceneSelect}
                       onRegenerate={handleRegenerateScene}
                       onGenerateVideo={handleGenerateSceneVideo}
-                      onRemove={setRemoveIndex}
+                      onRemove={(i) => setRemoveTarget({ index: i, type: "scene" })}
                       onPreview={(idx) => {
                         setPreviewIndex(idx);
                         setPreviewType("scene");
@@ -912,6 +932,7 @@ export function MovieApp() {
                           videoCamera: "Static / Slow pan",
                           videoResolution: "720p",
                           videoAspect: "9:16",
+                          conversations: [],
                         },
                       ])
                     }

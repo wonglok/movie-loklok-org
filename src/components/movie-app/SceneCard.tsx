@@ -1,6 +1,6 @@
 "use client";
 
-import type { Character } from "@/stores/movie-store";
+import type { Character, Conversation } from "@/stores/movie-store";
 
 interface SceneCardProps {
   scene: Character;
@@ -31,6 +31,29 @@ export function SceneCard({
   folderHandle,
   updateScene,
 }: SceneCardProps) {
+  const conversations = scene.conversations || [];
+
+  const updateConversation = (
+    convIndex: number,
+    updates: Partial<Conversation>,
+  ) => {
+    const next = [...conversations];
+    next[convIndex] = { ...next[convIndex], ...updates };
+    updateScene(index, { conversations: next });
+  };
+
+  const addConversation = () => {
+    updateScene(index, {
+      conversations: [...conversations, { person: "", line: "" }],
+    });
+  };
+
+  const removeConversation = (convIndex: number) => {
+    const next = [...conversations];
+    next.splice(convIndex, 1);
+    updateScene(index, { conversations: next });
+  };
+
   return (
     <div
       className={`relative bg-neutral-900 border rounded-2xl overflow-hidden group/card ${
@@ -104,6 +127,69 @@ export function SceneCard({
             rows={3}
             className="w-full bg-transparent text-neutral-400 text-xs leading-relaxed focus:outline-none placeholder-neutral-600 resize-none blender-scrollbar"
           />
+
+          {/* Conversations */}
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-2">
+              <span className="text-neutral-500 text-xs font-medium">
+                Conversations
+              </span>
+              <span className="text-neutral-600 text-xs">
+                {conversations.length}
+              </span>
+            </div>
+            {conversations.map((conv, ci) => (
+              <div
+                key={ci}
+                className="flex items-start gap-1.5 group/conv"
+              >
+                <input
+                  type="text"
+                  value={conv.person}
+                  onChange={(e) =>
+                    updateConversation(ci, { person: e.target.value })
+                  }
+                  placeholder="Actor / VO"
+                  className="w-24 shrink-0 bg-neutral-800 rounded px-2 py-1 text-neutral-300 text-xs focus:outline-none focus:ring-1 focus:ring-neutral-600 placeholder-neutral-600"
+                />
+                <input
+                  type="text"
+                  value={conv.line}
+                  onChange={(e) =>
+                    updateConversation(ci, { line: e.target.value })
+                  }
+                  placeholder="Line of script..."
+                  className="flex-1 bg-neutral-800 rounded px-2 py-1 text-neutral-300 text-xs focus:outline-none focus:ring-1 focus:ring-neutral-600 placeholder-neutral-600"
+                />
+                <button
+                  onClick={() => removeConversation(ci)}
+                  className="shrink-0 p-1 rounded text-neutral-600 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover/conv:opacity-100 transition-all"
+                  title="Remove line"
+                >
+                  <svg
+                    className="w-3 h-3"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+            ))}
+            <button
+              onClick={addConversation}
+              className="self-start px-2 py-1 border border-dashed border-neutral-700 rounded text-neutral-500 text-xs hover:border-neutral-500 hover:text-neutral-300 transition-colors"
+            >
+              + Add Line
+            </button>
+          </div>
+
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => onRegenerate(index)}

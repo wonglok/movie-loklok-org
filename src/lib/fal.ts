@@ -275,7 +275,13 @@ export async function extractMoments(
 export async function extractScenes(
   story: string,
   apiKey: string,
-): Promise<{ name: string; description: string }[]> {
+): Promise<
+  {
+    name: string;
+    description: string;
+    conversations: { person: string; line: string }[];
+  }[]
+> {
   fal.config({ credentials: apiKey });
 
   const result = await fal.subscribe(
@@ -286,7 +292,12 @@ export async function extractScenes(
         messages: [
           {
             role: "user",
-            content: `Extract all key scenes and locations from this movie story. Return ONLY a valid JSON array of objects with "name" and "description" fields. Include establishing shots, key locations, and pivotal scene settings. No other text.\n\nStory: ${story}`,
+            content: `Extract all key scenes from this movie story. Return ONLY a valid JSON array of objects with these fields:
+- "name": scene name
+- "description": scene description
+- "conversations": an array of objects, each with "person" (the character speaking or voice-over narrator) and "line" (their line of dialogue or narration). Include all scripted dialogue that happens in this scene. If no one speaks, use an empty array.
+
+No other text.\n\nStory: ${story}`,
           },
         ],
       },

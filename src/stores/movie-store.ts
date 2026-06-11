@@ -1,5 +1,10 @@
 import { create } from "zustand";
 
+export interface Conversation {
+  person: string;
+  line: string;
+}
+
 export interface Character {
   name: string;
   description: string;
@@ -11,6 +16,7 @@ export interface Character {
   videoCamera: string;
   videoResolution: "720p" | "1080p";
   videoAspect: "16:9" | "9:16" | "4:3" | "1:1" | "3:4";
+  conversations: Conversation[];
 }
 
 export const RESOLUTION_OPTIONS = ["720p", "1080p"] as const;
