@@ -486,7 +486,12 @@ export function MovieApp() {
       });
       const fileHandle = await sceneDir.getFileHandle(scene.imageFilename);
       const file = await fileHandle.getFile();
-      const prompt = `${scene.name}. ${scene.description}`;
+      const dialogueLines = (scene.conversations || [])
+        .map((c) => `${c.person}: "${c.line}"`)
+        .join("\n");
+      const prompt = `${scene.name}. ${scene.description}${
+        dialogueLines ? `\n\nDialogue:\n${dialogueLines}` : ""
+      }`;
       const videoUrl = await uploadAndGenerateVideo(
         file,
         prompt,
@@ -517,7 +522,12 @@ export function MovieApp() {
         if (!scene.imageFilename || scene.videoUrl) continue;
         const fileHandle = await sceneDir.getFileHandle(scene.imageFilename);
         const file = await fileHandle.getFile();
-        const prompt = `${scene.name}. ${scene.description}`;
+        const dialogueLines = (scene.conversations || [])
+          .map((c) => `${c.person}: "${c.line}"`)
+          .join("\n");
+        const prompt = `${scene.name}. ${scene.description}${
+          dialogueLines ? `\n\nDialogue:\n${dialogueLines}` : ""
+        }`;
         const videoUrl = await uploadAndGenerateVideo(
           file,
           prompt,
@@ -606,7 +616,12 @@ export function MovieApp() {
         if (!scene?.imageFilename) continue;
         const fileHandle = await sceneDir.getFileHandle(scene.imageFilename);
         const file = await fileHandle.getFile();
-        const prompt = `${scene.name}. ${scene.description}`;
+        const dialogueLines = (scene.conversations || [])
+          .map((c) => `${c.person}: "${c.line}"`)
+          .join("\n");
+        const prompt = `${scene.name}. ${scene.description}${
+          dialogueLines ? `\n\nDialogue:\n${dialogueLines}` : ""
+        }`;
         const videoUrl = await uploadAndGenerateVideo(
           file,
           prompt,
