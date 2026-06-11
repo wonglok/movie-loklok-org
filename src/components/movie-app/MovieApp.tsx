@@ -844,13 +844,13 @@ export function MovieApp() {
         )}
 
         {/* Saved Indicator */}
-        {savedPath && (
+        {/* {savedPath && (
           <section className="flex justify-center">
             <p className="text-green-400 text-sm bg-green-400/10 rounded-xl px-4 py-3 text-center">
               Saved to {savedPath}
             </p>
           </section>
-        )}
+        )} */}
 
         {/* Scenes Section */}
         {characters.length > 0 && (
