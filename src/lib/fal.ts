@@ -1,6 +1,40 @@
 import { fal } from "@fal-ai/client";
 
+import type { Character } from "@/stores/movie-store";
+
 export const FAL_TEXT2IMG = "https://fal.run/fal-ai/nano-banana";
+
+export async function resolveCharacterRefs(
+  characters: Character[],
+  folderHandle: FileSystemDirectoryHandle | null,
+  apiKey: string,
+): Promise<string[]> {
+  fal.config({ credentials: apiKey });
+  const urls: string[] = [];
+
+  for (const char of characters) {
+    if (char.sourceUrl) {
+      urls.push(char.sourceUrl);
+    } else if (char.imageFilename && folderHandle) {
+      try {
+        const imagesDir = await folderHandle.getDirectoryHandle("images", {
+          create: true,
+        });
+        const charDir = await imagesDir.getDirectoryHandle("character", {
+          create: true,
+        });
+        const fileHandle = await charDir.getFileHandle(char.imageFilename);
+        const file = await fileHandle.getFile();
+        const uploadedUrl = await fal.storage.upload(file);
+        urls.push(uploadedUrl);
+      } catch {
+        // skip if upload fails
+      }
+    }
+  }
+
+  return urls;
+}
 
 export interface GenerateResult {
   url: string;
@@ -10,24 +44,18 @@ export interface GenerateResult {
 export async function generateImage(
   prompt: string,
   apiKey: string,
-  referenceUrls?: string[],
 ): Promise<GenerateResult> {
-  const body: Record<string, unknown> = {
-    prompt,
-    num_images: 1,
-    image_size: "landscape_4_3",
-  };
-  if (referenceUrls?.length) {
-    body.image_url = referenceUrls;
-  }
-
   const res = await fetch(FAL_TEXT2IMG, {
     method: "POST",
     headers: {
       Authorization: `Key ${apiKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify({
+      prompt,
+      num_images: 1,
+      image_size: "landscape_4_3",
+    }),
   });
 
   if (!res.ok) {
@@ -36,6 +64,34 @@ export async function generateImage(
   }
 
   const data = await res.json();
+  return { url: data.images[0].url, prompt };
+}
+
+export async function generateSceneImage(
+  prompt: string,
+  apiKey: string,
+  imageUrls: string[],
+): Promise<GenerateResult> {
+  fal.config({ credentials: apiKey });
+
+  const result = await fal.subscribe("fal-ai/nano-banana/edit", {
+    input: {
+      prompt,
+      num_images: 1,
+      aspect_ratio: "auto",
+      output_format: "png",
+      safety_tolerance: "4",
+      image_urls: imageUrls,
+    },
+    logs: true,
+    onQueueUpdate: (update) => {
+      if (update.status === "IN_PROGRESS") {
+        update.logs.map((log) => log.message).forEach(console.log);
+      }
+    },
+  });
+
+  const data = result.data as { images: { url: string }[] };
   return { url: data.images[0].url, prompt };
 }
 

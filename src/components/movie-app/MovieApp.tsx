@@ -5,9 +5,11 @@ import { useMovieStore, ART_STYLES, type ArtStyle } from "@/stores/movie-store";
 import { useFolderStore } from "@/stores/folder-store";
 import {
   generateImage,
+  generateSceneImage,
   extractCharacters,
   extractScenes,
   uploadAndGenerateVideo,
+  resolveCharacterRefs,
 } from "@/lib/fal";
 import { resolveStyle } from "@/lib/style";
 import {
@@ -78,6 +80,7 @@ export function MovieApp() {
     extractingScenes ||
     generatingVideoIndex === -1 || generatingVideoIndex === -2;
   const effectiveStyle = resolveStyle(customArtStyle, artStyle);
+  const hasCharacterImages = characters.some((c) => c.sourceUrl || c.imageFilename);
 
   const { isSaving } = useAutoSave(
     folderHandle,
@@ -336,9 +339,7 @@ export function MovieApp() {
       const sceneDir = await imagesDir.getDirectoryHandle("scene", {
         create: true,
       });
-      const charRefs = characters
-        .filter((c) => c.sourceUrl)
-        .map((c) => c.sourceUrl!);
+      const charRefs = await resolveCharacterRefs(characters, folderHandle, apiKey);
       const charNames = characters
         .filter((c) => c.name)
         .map((c) => c.name)
@@ -346,7 +347,7 @@ export function MovieApp() {
       for (let i = 0; i < updated.length; i++) {
         const scene = updated[i];
         const prompt = `Cinematic movie keyframe, ${effectiveStyle} animation style. Featuring characters: ${charNames || "original characters"}. Scene: ${scene.name}. ${scene.description}. Characters must maintain consistent appearance and design. Wide establishing shot, dramatic lighting, film composition.`;
-        const result = await generateImage(prompt, apiKey, charRefs);
+        const result = await generateSceneImage(prompt, apiKey, charRefs);
         const id = crypto.randomUUID();
         const filename = `${id}.png`;
         const localUrl = await saveAndLoadLocal(result.url, filename, sceneDir);
@@ -376,15 +377,13 @@ export function MovieApp() {
     setError(null);
     setSceneRegenIndex(index);
     try {
-      const charRefs = characters
-        .filter((c) => c.sourceUrl)
-        .map((c) => c.sourceUrl!);
+      const charRefs = await resolveCharacterRefs(characters, folderHandle, apiKey);
       const charNames = characters
         .filter((c) => c.name)
         .map((c) => c.name)
         .join(", ");
       const prompt = `Cinematic movie keyframe, ${effectiveStyle} animation style. Featuring characters: ${charNames || "original characters"}. Scene: ${scene.name}. ${scene.description}. Characters must maintain consistent appearance and design. Wide establishing shot, dramatic lighting, film composition.`;
-      const result = await generateImage(prompt, apiKey, charRefs);
+      const result = await generateSceneImage(prompt, apiKey, charRefs);
       if (folderHandle) {
         const imagesDir = await folderHandle.getDirectoryHandle("images", {
           create: true,
@@ -492,9 +491,7 @@ export function MovieApp() {
       const sceneDir = await imagesDir.getDirectoryHandle("scene", {
         create: true,
       });
-      const charRefs = characters
-        .filter((c) => c.sourceUrl)
-        .map((c) => c.sourceUrl!);
+      const charRefs = await resolveCharacterRefs(characters, folderHandle, apiKey);
       const charNames = characters
         .filter((c) => c.name)
         .map((c) => c.name)
@@ -503,7 +500,7 @@ export function MovieApp() {
         const scene = scenes[i];
         if (!scene) continue;
         const prompt = `Cinematic movie keyframe, ${effectiveStyle} animation style. Featuring characters: ${charNames || "original characters"}. Scene: ${scene.name}. ${scene.description}. Characters must maintain consistent appearance and design. Wide establishing shot, dramatic lighting, film composition.`;
-        const result = await generateImage(prompt, apiKey, charRefs);
+        const result = await generateSceneImage(prompt, apiKey, charRefs);
         const id = crypto.randomUUID();
         const filename = `${id}.png`;
         if (scene.imageUrl?.startsWith("blob:"))
@@ -850,7 +847,8 @@ export function MovieApp() {
                     </span>
                     <button
                       onClick={handleGenerateSelectedImages}
-                      disabled={isGenerating}
+                      disabled={isGenerating || !hasCharacterImages}
+                      title={!hasCharacterImages ? "Generate character images first" : undefined}
                       className="px-3 py-1.5 bg-white text-black rounded-lg text-xs font-medium hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                     >
                       {generatingScenes
@@ -923,7 +921,7 @@ export function MovieApp() {
                   </button>
                   <button
                     onClick={handleGenerateSceneImages}
-                    disabled={isGenerating}
+                    disabled={isGenerating || !hasCharacterImages}
                     className="px-6 py-2 bg-white text-black rounded-xl font-semibold text-sm hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-2"
                   >
                     {generatingScenes ? (
@@ -935,6 +933,11 @@ export function MovieApp() {
                       "Generate All Scene Images"
                     )}
                   </button>
+                  {!hasCharacterImages && (
+                    <p className="text-amber-400 text-xs">
+                      Generate character images first to reference them in scenes.
+                    </p>
+                  )}
                   {scenes.some((s) => s.imageFilename) && (
                     <button
                       onClick={handleGenerateAllSceneVideos}
