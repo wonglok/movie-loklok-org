@@ -185,6 +185,9 @@ export function MovieApp() {
   const [generatingCharacters, setGeneratingCharacters] = useState(false);
   const [generatingScenes, setGeneratingScenes] = useState(false);
   const [extracting, setExtracting] = useState(false);
+  const [regeneratingIndex, setRegeneratingIndex] = useState<number | null>(
+    null,
+  );
   const [hydrated, setHydrated] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -352,6 +355,39 @@ export function MovieApp() {
       setError(err instanceof Error ? err.message : "Generation failed");
     } finally {
       setGeneratingCharacters(false);
+    }
+  };
+
+  const handleRegenerateCharacter = async (index: number) => {
+    const char = characters[index];
+    if (!char || !apiKey) return;
+    setError(null);
+    setRegeneratingIndex(index);
+
+    try {
+      const prompt = `Character design reference sheet, ${effectiveStyle} animation style. Character name: ${char.name}. ${char.description}. Full body, clean character turnaround, consistent design.`;
+      const result = await generateImage(prompt, apiKey);
+      updateCharacter(index, { imageUrl: result.url });
+
+      if (folderHandle) {
+        const imagesDir = await folderHandle.getDirectoryHandle("images", {
+          create: true,
+        });
+        const characterDir = await imagesDir.getDirectoryHandle("character", {
+          create: true,
+        });
+        const safeName = char.name
+          .replace(/[^a-zA-Z0-9]/g, "-")
+          .toLowerCase();
+        await Promise.all([
+          downloadAndSaveImage(result.url, `${safeName}.png`, characterDir),
+          savePromptFile(result.prompt, `${safeName}.txt`, characterDir),
+        ]);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Regeneration failed");
+    } finally {
+      setRegeneratingIndex(null);
     }
   };
 
@@ -614,6 +650,35 @@ export function MovieApp() {
                         rows={3}
                         className="w-full bg-transparent text-neutral-400 text-xs leading-relaxed focus:outline-none placeholder-neutral-600 resize-none blender-scrollbar"
                       />
+                      <button
+                        onClick={() => handleRegenerateCharacter(i)}
+                        disabled={regeneratingIndex !== null}
+                        className="self-start px-3 py-1.5 border border-neutral-700 rounded-lg text-neutral-400 text-xs hover:border-neutral-500 hover:text-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+                      >
+                        {regeneratingIndex === i ? (
+                          <>
+                            <div className="animate-spin rounded-full h-3 w-3 border border-neutral-400 border-t-transparent" />
+                            Regenerating...
+                          </>
+                        ) : (
+                          <>
+                            <svg
+                              className="w-3 h-3"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182"
+                              />
+                            </svg>
+                            Regenerate
+                          </>
+                        )}
+                      </button>
                     </div>
                   </div>
                 </div>
