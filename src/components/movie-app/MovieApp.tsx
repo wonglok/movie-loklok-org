@@ -53,9 +53,7 @@ export function MovieApp() {
   const [savedPath, setSavedPath] = useState<string | null>(null);
   const [generatingCharacters, setGeneratingCharacters] = useState(false);
   const [generatingScenes, setGeneratingScenes] = useState(false);
-  const [selectedScenes, setSelectedScenes] = useState<Set<number>>(
-    new Set(),
-  );
+  const [selectedScenes, setSelectedScenes] = useState<Set<number>>(new Set());
   const [extracting, setExtracting] = useState(false);
   const [extractingScenes, setExtractingScenes] = useState(false);
   const [regeneratingIndex, setRegeneratingIndex] = useState<number | null>(
@@ -82,9 +80,12 @@ export function MovieApp() {
     generatingScenes ||
     extracting ||
     extractingScenes ||
-    generatingVideoIndex === -1 || generatingVideoIndex === -2;
+    generatingVideoIndex === -1 ||
+    generatingVideoIndex === -2;
   const effectiveStyle = resolveStyle(customArtStyle, artStyle);
-  const hasCharacterImages = characters.some((c) => c.sourceUrl || c.imageFilename);
+  const hasCharacterImages = characters.some(
+    (c) => c.sourceUrl || c.imageFilename,
+  );
 
   const { isSaving } = useAutoSave(
     folderHandle,
@@ -354,7 +355,11 @@ export function MovieApp() {
       const sceneDir = await imagesDir.getDirectoryHandle("scene", {
         create: true,
       });
-      const charRefs = await resolveCharacterRefs(characters, folderHandle, apiKey);
+      const charRefs = await resolveCharacterRefs(
+        characters,
+        folderHandle,
+        apiKey,
+      );
       const charNames = characters
         .filter((c) => c.name)
         .map((c) => c.name)
@@ -394,12 +399,7 @@ export function MovieApp() {
     try {
       const [charRefs, conversations] = await Promise.all([
         resolveCharacterRefs(characters, folderHandle, apiKey),
-        regenerateSceneConversations(
-          story,
-          scene.name,
-          scene.description,
-          apiKey,
-        ),
+        regenerateSceneConversations(scene.name, scene.description, apiKey),
       ]);
       const charNames = characters
         .filter((c) => c.name)
@@ -522,7 +522,11 @@ export function MovieApp() {
       const sceneDir = await imagesDir.getDirectoryHandle("scene", {
         create: true,
       });
-      const charRefs = await resolveCharacterRefs(characters, folderHandle, apiKey);
+      const charRefs = await resolveCharacterRefs(
+        characters,
+        folderHandle,
+        apiKey,
+      );
       const charNames = characters
         .filter((c) => c.name)
         .map((c) => c.name)
@@ -770,7 +774,9 @@ export function MovieApp() {
                   index={i}
                   regeneratingIndex={regeneratingIndex}
                   onRegenerate={handleRegenerateCharacter}
-                  onRemove={(i) => setRemoveTarget({ index: i, type: "character" })}
+                  onRemove={(i) =>
+                    setRemoveTarget({ index: i, type: "character" })
+                  }
                   onPreview={(idx) => {
                     setPreviewIndex(idx);
                     setPreviewType("character");
@@ -879,13 +885,17 @@ export function MovieApp() {
                 {selectedScenes.size > 0 && (
                   <div className="flex items-center gap-2 px-4 py-2 bg-neutral-900 border border-(--blender-accent) rounded-xl">
                     <span className="text-neutral-400 text-sm flex-1">
-                      {selectedScenes.size} scene{selectedScenes.size > 1 ? "s" : ""}{" "}
-                      selected
+                      {selectedScenes.size} scene
+                      {selectedScenes.size > 1 ? "s" : ""} selected
                     </span>
                     <button
                       onClick={handleGenerateSelectedImages}
                       disabled={isGenerating || !hasCharacterImages}
-                      title={!hasCharacterImages ? "Generate character images first" : undefined}
+                      title={
+                        !hasCharacterImages
+                          ? "Generate character images first"
+                          : undefined
+                      }
                       className="px-3 py-1.5 bg-white text-black rounded-lg text-xs font-medium hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                     >
                       {generatingScenes
@@ -894,9 +904,7 @@ export function MovieApp() {
                     </button>
                     <button
                       onClick={handleGenerateSelectedVideos}
-                      disabled={
-                        isGenerating || generatingVideoIndex !== null
-                      }
+                      disabled={isGenerating || generatingVideoIndex !== null}
                       className="px-3 py-1.5 border border-neutral-600 rounded-lg text-neutral-300 text-xs font-medium hover:border-neutral-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                     >
                       {generatingVideoIndex === -2
@@ -923,7 +931,9 @@ export function MovieApp() {
                       onToggleSelect={toggleSceneSelect}
                       onRegenerate={handleRegenerateScene}
                       onGenerateVideo={handleGenerateSceneVideo}
-                      onRemove={(i) => setRemoveTarget({ index: i, type: "scene" })}
+                      onRemove={(i) =>
+                        setRemoveTarget({ index: i, type: "scene" })
+                      }
                       onPreview={(idx) => {
                         setPreviewIndex(idx);
                         setPreviewType("scene");
@@ -973,7 +983,8 @@ export function MovieApp() {
                   </button>
                   {!hasCharacterImages && (
                     <p className="text-amber-400 text-xs">
-                      Generate character images first to reference them in scenes.
+                      Generate character images first to reference them in
+                      scenes.
                     </p>
                   )}
                   {scenes.some((s) => s.imageFilename) && (

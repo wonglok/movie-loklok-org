@@ -105,7 +105,7 @@ export async function extractCharacters(
     "openrouter/router/openai/v1/chat/completions",
     {
       input: {
-        model: "openai/gpt-4o-mini",
+        model: "google/gemma-4-26b-a4b-it",
         messages: [
           {
             role: "user",
@@ -148,7 +148,7 @@ export async function extractVideoInfo(
     "openrouter/router/openai/v1/chat/completions",
     {
       input: {
-        model: "openai/gpt-4o-mini",
+        model: "google/gemma-4-26b-a4b-it",
         messages: [
           {
             role: "user",
@@ -235,7 +235,14 @@ export async function extractMoments(
   scenes: { name: string; description: string }[],
   apiKey: string,
 ): Promise<
-  { sceneIndex: number; name: string; description: string; duration: number; cameraAngle: string; cameraMovement: string }[]
+  {
+    sceneIndex: number;
+    name: string;
+    description: string;
+    duration: number;
+    cameraAngle: string;
+    cameraMovement: string;
+  }[]
 > {
   fal.config({ credentials: apiKey });
 
@@ -247,7 +254,7 @@ export async function extractMoments(
     "openrouter/router/openai/v1/chat/completions",
     {
       input: {
-        model: "openai/gpt-4o-mini",
+        model: "google/gemma-4-26b-a4b-it",
         messages: [
           {
             role: "user",
@@ -288,7 +295,7 @@ export async function extractScenes(
     "openrouter/router/openai/v1/chat/completions",
     {
       input: {
-        model: "openai/gpt-4o-mini",
+        model: "google/gemma-4-26b-a4b-it",
         messages: [
           {
             role: "user",
@@ -319,7 +326,6 @@ No other text.\n\nStory: ${story}`,
 }
 
 export async function regenerateSceneConversations(
-  story: string,
   sceneName: string,
   sceneDescription: string,
   apiKey: string,
@@ -330,16 +336,18 @@ export async function regenerateSceneConversations(
     "openrouter/router/openai/v1/chat/completions",
     {
       input: {
-        model: "openai/gpt-4o-mini",
+        model: "google/gemma-4-26b-a4b-it",
         messages: [
           {
             role: "user",
-            content: `Write the scripted dialogue for this scene from a movie story. Return ONLY a valid JSON array of objects, each with "person" (the character speaking or voice-over narrator) and "line" (their line of dialogue or narration). Include all dialogue that happens in this scene. If no one speaks, return an empty array. No other text.
+            content: `
+Write the scripted dialogue for this scene from a movie story.
+Return ONLY a valid JSON array of objects, each with "person" (the character speaking or voice-over narrator) and "line" (their line of dialogue or narration).
+Include all dialogue that happens in this scene.
+If no one speaks, return an empty array. No other text.
 
 Scene: ${sceneName}
-Description: ${sceneDescription}
-
-Full story context: ${story}`,
+Description: ${sceneDescription}`.trim(),
           },
         ],
       },
