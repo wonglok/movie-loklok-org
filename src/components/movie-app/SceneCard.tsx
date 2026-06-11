@@ -6,7 +6,9 @@ interface SceneCardProps {
   scene: Character;
   index: number;
   sceneRegenIndex: number | null;
+  generatingVideoIndex: number | null;
   onRegenerate: (index: number) => void;
+  onGenerateVideo: (index: number) => void;
   onRemove: (index: number) => void;
   onPreview: (index: number) => void;
   folderHandle: FileSystemDirectoryHandle | null;
@@ -17,7 +19,9 @@ export function SceneCard({
   scene,
   index,
   sceneRegenIndex,
+  generatingVideoIndex,
   onRegenerate,
+  onGenerateVideo,
   onRemove,
   onPreview,
   folderHandle,
@@ -27,7 +31,7 @@ export function SceneCard({
     <div className="relative bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden group/card">
       <button
         onClick={() => onRemove(index)}
-        className="absolute top-3 right-3 p-1.5 rounded-lg text-neutral-600 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover/card:opacity-100 transition-all"
+        className="absolute top-3 right-3 p-1.5 rounded-lg text-neutral-600 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover/card:opacity-100 transition-all z-10"
         title="Remove scene"
       >
         <svg
@@ -178,6 +182,64 @@ export function SceneCard({
           </div>
         </div>
       </div>
+
+      {/* Footer: Video generation */}
+      {scene.imageFilename && (
+        <div className="border-t border-neutral-800 px-4 py-3 flex items-center gap-3">
+          <div className="flex items-center gap-2 flex-1">
+            <span className="text-neutral-500 text-xs shrink-0">Duration</span>
+            <input
+              type="number"
+              value={scene.videoDuration}
+              onChange={(e) =>
+                updateScene(index, {
+                  videoDuration: Number(e.target.value) || 0,
+                })
+              }
+              className="w-16 bg-neutral-800 rounded px-2 py-1 text-neutral-300 text-xs focus:outline-none focus:ring-1 focus:ring-neutral-600"
+              min={1}
+            />
+            <span className="text-neutral-600 text-xs">s</span>
+          </div>
+          <div className="flex items-center gap-2 flex-1">
+            <span className="text-neutral-500 text-xs shrink-0">Camera</span>
+            <input
+              type="text"
+              value={scene.videoCamera}
+              onChange={(e) =>
+                updateScene(index, { videoCamera: e.target.value })
+              }
+              className="w-full bg-neutral-800 rounded px-2 py-1 text-neutral-300 text-xs focus:outline-none focus:ring-1 focus:ring-neutral-600"
+              placeholder="Slow pan"
+            />
+          </div>
+          {scene.videoUrl ? (
+            <a
+              href={scene.videoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="shrink-0 px-3 py-1.5 border border-green-700 rounded-lg text-green-400 text-xs hover:bg-green-400/10 transition-colors"
+            >
+              View Video
+            </a>
+          ) : (
+            <button
+              onClick={() => onGenerateVideo(index)}
+              disabled={generatingVideoIndex !== null}
+              className="shrink-0 px-3 py-1.5 border border-neutral-700 rounded-lg text-neutral-400 text-xs hover:border-neutral-500 hover:text-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+            >
+              {generatingVideoIndex === index ? (
+                <>
+                  <div className="animate-spin rounded-full h-3 w-3 border border-neutral-400 border-t-transparent" />
+                  Generating...
+                </>
+              ) : (
+                "Generate Video"
+              )}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

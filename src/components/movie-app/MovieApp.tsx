@@ -3,7 +3,12 @@
 import { useState, useEffect } from "react";
 import { useMovieStore, ART_STYLES, type ArtStyle } from "@/stores/movie-store";
 import { useFolderStore } from "@/stores/folder-store";
-import { generateImage, extractCharacters, extractScenes } from "@/lib/fal";
+import {
+  generateImage,
+  extractCharacters,
+  extractScenes,
+  uploadAndGenerateVideo,
+} from "@/lib/fal";
 import { resolveStyle } from "@/lib/style";
 import {
   readMovieJson,
@@ -51,6 +56,9 @@ export function MovieApp() {
     null,
   );
   const [sceneRegenIndex, setSceneRegenIndex] = useState<number | null>(null);
+  const [generatingVideoIndex, setGeneratingVideoIndex] = useState<
+    number | null
+  >(null);
   const [hydrated, setHydrated] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [pickerError, setPickerError] = useState<string | null>(null);
@@ -61,7 +69,11 @@ export function MovieApp() {
   );
 
   const isGenerating =
-    generatingCharacters || generatingScenes || extracting || extractingScenes;
+    generatingCharacters ||
+    generatingScenes ||
+    extracting ||
+    extractingScenes ||
+    generatingVideoIndex === -1;
   const effectiveStyle = resolveStyle(customArtStyle, artStyle);
 
   const { isSaving } = useAutoSave(
@@ -379,6 +391,69 @@ export function MovieApp() {
     }
   };
 
+  const handleGenerateSceneVideo = async (index: number) => {
+    const scene = scenes[index];
+    if (!scene?.imageFilename || !folderHandle || !apiKey) return;
+    setError(null);
+    setGeneratingVideoIndex(index);
+    try {
+      const imagesDir = await folderHandle.getDirectoryHandle("images", {
+        create: true,
+      });
+      const sceneDir = await imagesDir.getDirectoryHandle("scene", {
+        create: true,
+      });
+      const fileHandle = await sceneDir.getFileHandle(scene.imageFilename);
+      const file = await fileHandle.getFile();
+      const prompt = `${scene.name}. ${scene.description}`;
+      const videoUrl = await uploadAndGenerateVideo(
+        file,
+        prompt,
+        apiKey,
+        scene.videoResolution,
+        scene.videoAspect,
+      );
+      updateScene(index, { videoUrl });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Video generation failed");
+    } finally {
+      setGeneratingVideoIndex(null);
+    }
+  };
+
+  const handleGenerateAllSceneVideos = async () => {
+    if (!folderHandle || !apiKey) return;
+    setError(null);
+    setGeneratingVideoIndex(-1);
+    try {
+      const imagesDir = await folderHandle.getDirectoryHandle("images", {
+        create: true,
+      });
+      const sceneDir = await imagesDir.getDirectoryHandle("scene", {
+        create: true,
+      });
+      for (let i = 0; i < scenes.length; i++) {
+        const scene = scenes[i];
+        if (!scene.imageFilename || scene.videoUrl) continue;
+        const fileHandle = await sceneDir.getFileHandle(scene.imageFilename);
+        const file = await fileHandle.getFile();
+        const prompt = `${scene.name}. ${scene.description}`;
+        const videoUrl = await uploadAndGenerateVideo(
+          file,
+          prompt,
+          apiKey,
+          scene.videoResolution,
+          scene.videoAspect,
+        );
+        updateScene(i, { videoUrl });
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Video generation failed");
+    } finally {
+      setGeneratingVideoIndex(null);
+    }
+  };
+
   const previewChar =
     previewType === "character" && previewIndex !== null
       ? characters[previewIndex]
@@ -669,7 +744,9 @@ export function MovieApp() {
                       scene={scene}
                       index={i}
                       sceneRegenIndex={sceneRegenIndex}
+                      generatingVideoIndex={generatingVideoIndex}
                       onRegenerate={handleRegenerateScene}
+                      onGenerateVideo={handleGenerateSceneVideo}
                       onRemove={setRemoveIndex}
                       onPreview={(idx) => {
                         setPreviewIndex(idx);
@@ -717,6 +794,22 @@ export function MovieApp() {
                       "Generate All Scene Images"
                     )}
                   </button>
+                  {scenes.some((s) => s.imageFilename) && (
+                    <button
+                      onClick={handleGenerateAllSceneVideos}
+                      disabled={isGenerating || generatingVideoIndex !== null}
+                      className="px-5 py-2 border border-neutral-700 rounded-xl text-neutral-400 text-sm hover:border-neutral-500 hover:text-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                    >
+                      {generatingVideoIndex === -1 ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-neutral-400 border-t-transparent" />{" "}
+                          Generating All...
+                        </>
+                      ) : (
+                        "Generate All Videos"
+                      )}
+                    </button>
+                  )}
                 </div>
               </>
             )}
