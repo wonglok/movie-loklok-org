@@ -1,6 +1,7 @@
 import { create } from "zustand";
 
 export interface Conversation {
+  id: string;
   person: string;
   line: string;
 }

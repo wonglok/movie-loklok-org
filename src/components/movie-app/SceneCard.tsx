@@ -36,24 +36,29 @@ export function SceneCard({
   const conversations = scene.conversations || [];
 
   const updateConversation = (
-    convIndex: number,
+    convId: string,
     updates: Partial<Conversation>,
   ) => {
-    const next = [...conversations];
-    next[convIndex] = { ...next[convIndex], ...updates };
-    updateScene(scene.id, { conversations: next });
+    updateScene(scene.id, {
+      conversations: conversations.map((c) =>
+        c.id === convId ? { ...c, ...updates } : c,
+      ),
+    });
   };
 
   const addConversation = () => {
     updateScene(scene.id, {
-      conversations: [...conversations, { person: "", line: "" }],
+      conversations: [
+        ...conversations,
+        { id: crypto.randomUUID(), person: "", line: "" },
+      ],
     });
   };
 
-  const removeConversation = (convIndex: number) => {
-    const next = [...conversations];
-    next.splice(convIndex, 1);
-    updateScene(scene.id, { conversations: next });
+  const removeConversation = (convId: string) => {
+    updateScene(scene.id, {
+      conversations: conversations.filter((c) => c.id !== convId),
+    });
   };
 
   return (
@@ -140,16 +145,16 @@ export function SceneCard({
                 {conversations.length}
               </span>
             </div>
-            {conversations.map((conv, ci) => (
+            {conversations.map((conv) => (
               <div
-                key={ci}
+                key={conv.id}
                 className="flex items-start gap-1.5 group/conv"
               >
                 <input
                   type="text"
                   value={conv.person}
                   onChange={(e) =>
-                    updateConversation(ci, { person: e.target.value })
+                    updateConversation(conv.id, { person: e.target.value })
                   }
                   placeholder="Actor / VO"
                   className="w-24 shrink-0 bg-neutral-800 rounded px-2 py-1 text-neutral-300 text-xs focus:outline-none focus:ring-1 focus:ring-neutral-600 placeholder-neutral-600"
@@ -158,13 +163,13 @@ export function SceneCard({
                   type="text"
                   value={conv.line}
                   onChange={(e) =>
-                    updateConversation(ci, { line: e.target.value })
+                    updateConversation(conv.id, { line: e.target.value })
                   }
                   placeholder="Line of script..."
                   className="flex-1 bg-neutral-800 rounded px-2 py-1 text-neutral-300 text-xs focus:outline-none focus:ring-1 focus:ring-neutral-600 placeholder-neutral-600"
                 />
                 <button
-                  onClick={() => removeConversation(ci)}
+                  onClick={() => removeConversation(conv.id)}
                   className="shrink-0 p-1 rounded text-neutral-600 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover/conv:opacity-100 transition-all"
                   title="Remove line"
                 >

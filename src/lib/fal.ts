@@ -105,7 +105,7 @@ export async function extractCharacters(
     "openrouter/router/openai/v1/chat/completions",
     {
       input: {
-        model: "google/gemma-4-26b-a4b-it",
+        model: "deepseek/deepseek-v4-flash",
         messages: [
           {
             role: "user",
@@ -148,7 +148,7 @@ export async function extractVideoInfo(
     "openrouter/router/openai/v1/chat/completions",
     {
       input: {
-        model: "google/gemma-4-26b-a4b-it",
+        model: "deepseek/deepseek-v4-flash",
         messages: [
           {
             role: "user",
@@ -255,7 +255,7 @@ export async function extractMoments(
     "openrouter/router/openai/v1/chat/completions",
     {
       input: {
-        model: "google/gemma-4-26b-a4b-it",
+        model: "deepseek/deepseek-v4-flash",
         messages: [
           {
             role: "user",
@@ -303,7 +303,7 @@ export async function extractScenes(
   {
     name: string;
     description: string;
-    conversations: { person: string; line: string }[];
+    conversations: { id: string; person: string; line: string }[];
   }[]
 > {
   fal.config({ credentials: apiKey });
@@ -312,7 +312,7 @@ export async function extractScenes(
     "openrouter/router/openai/v1/chat/completions",
     {
       input: {
-        model: "google/gemma-4-26b-a4b-it",
+        model: "deepseek/deepseek-v4-flash",
         messages: [
           {
             role: "user",
@@ -339,21 +339,32 @@ No other text.\n\nStory: ${story}`,
   };
   const text = data.choices[0].message.content;
   const json = text.replace(/```json|```/g, "").trim();
-  return JSON.parse(json);
+  const raw = JSON.parse(json) as {
+    name: string;
+    description: string;
+    conversations: { person: string; line: string }[];
+  }[];
+  return raw.map((s) => ({
+    ...s,
+    conversations: (s.conversations || []).map((c) => ({
+      id: crypto.randomUUID(),
+      ...c,
+    })),
+  }));
 }
 
 export async function regenerateSceneConversations(
   sceneName: string,
   sceneDescription: string,
   apiKey: string,
-): Promise<{ person: string; line: string }[]> {
+): Promise<{ id: string; person: string; line: string }[]> {
   fal.config({ credentials: apiKey });
 
   const result = await fal.subscribe(
     "openrouter/router/openai/v1/chat/completions",
     {
       input: {
-        model: "google/gemma-4-26b-a4b-it",
+        model: "deepseek/deepseek-v4-flash",
         messages: [
           {
             role: "user",
@@ -382,5 +393,6 @@ Description: ${sceneDescription}`.trim(),
   };
   const text = data.choices[0].message.content;
   const json = text.replace(/```json|```/g, "").trim();
-  return JSON.parse(json);
+  const raw = JSON.parse(json) as { person: string; line: string }[];
+  return raw.map((c) => ({ id: crypto.randomUUID(), ...c }));
 }

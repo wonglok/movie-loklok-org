@@ -59,9 +59,12 @@ export function MovieApp() {
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [sceneRegenId, setSceneRegenId] = useState<string | null>(null);
   const [scriptRegenId, setScriptRegenId] = useState<string | null>(null);
-  const [generatingVideoId, setGeneratingVideoId] = useState<string | null>(null);
+  const [generatingVideoId, setGeneratingVideoId] = useState<string | null>(
+    null,
+  );
   const [generatingAllVideos, setGeneratingAllVideos] = useState(false);
-  const [generatingSelectedVideos, setGeneratingSelectedVideos] = useState(false);
+  const [generatingSelectedVideos, setGeneratingSelectedVideos] =
+    useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [pickerError, setPickerError] = useState<string | null>(null);
@@ -70,7 +73,9 @@ export function MovieApp() {
     type: "character" | "scene";
   } | null>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
-  const [previewType, setPreviewType] = useState<"character" | "scene">("character");
+  const [previewType, setPreviewType] = useState<"character" | "scene">(
+    "character",
+  );
 
   const isGenerating =
     generatingCharacters ||
@@ -345,7 +350,11 @@ export function MovieApp() {
       const sceneDir = await imagesDir.getDirectoryHandle("scene", {
         create: true,
       });
-      const charRefs = await resolveCharacterRefs(characters, folderHandle, apiKey);
+      const charRefs = await resolveCharacterRefs(
+        characters,
+        folderHandle,
+        apiKey,
+      );
       const charNames = characters
         .filter((c) => c.name)
         .map((c) => c.name)
@@ -363,9 +372,7 @@ export function MovieApp() {
         });
         await savePromptFile(result.prompt, `${imageId}.txt`, sceneDir);
       }
-      setSceneImages(
-        scenes.map((s) => s.imageUrl).filter(Boolean) as string[],
-      );
+      setSceneImages(scenes.map((s) => s.imageUrl).filter(Boolean) as string[]);
       setSavedPath(`${folderName}/images/scene`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Generation failed");
@@ -434,7 +441,9 @@ export function MovieApp() {
       );
       updateScene(id, { conversations });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Script regeneration failed");
+      setError(
+        err instanceof Error ? err.message : "Script regeneration failed",
+      );
     } finally {
       setScriptRegenId(null);
     }
@@ -523,7 +532,11 @@ export function MovieApp() {
       const sceneDir = await imagesDir.getDirectoryHandle("scene", {
         create: true,
       });
-      const charRefs = await resolveCharacterRefs(characters, folderHandle, apiKey);
+      const charRefs = await resolveCharacterRefs(
+        characters,
+        folderHandle,
+        apiKey,
+      );
       const charNames = characters
         .filter((c) => c.name)
         .map((c) => c.name)
@@ -591,8 +604,8 @@ export function MovieApp() {
   const previewItem =
     previewId !== null
       ? previewType === "character"
-        ? characters.find((c) => c.id === previewId) ?? null
-        : scenes.find((s) => s.id === previewId) ?? null
+        ? (characters.find((c) => c.id === previewId) ?? null)
+        : (scenes.find((s) => s.id === previewId) ?? null)
       : null;
 
   return (
@@ -654,8 +667,10 @@ export function MovieApp() {
             type={removeTarget.type}
             name={
               removeTarget.type === "character"
-                ? characters.find((c) => c.id === removeTarget.id)?.name || "this character"
-                : scenes.find((s) => s.id === removeTarget.id)?.name || "this scene"
+                ? characters.find((c) => c.id === removeTarget.id)?.name ||
+                  "this character"
+                : scenes.find((s) => s.id === removeTarget.id)?.name ||
+                  "this scene"
             }
             onConfirm={handleConfirmRemove}
             onCancel={() => setRemoveTarget(null)}
@@ -896,7 +911,11 @@ export function MovieApp() {
                     </button>
                     <button
                       onClick={handleGenerateSelectedVideos}
-                      disabled={isGenerating || generatingAllVideos || generatingSelectedVideos}
+                      disabled={
+                        isGenerating ||
+                        generatingAllVideos ||
+                        generatingSelectedVideos
+                      }
                       className="px-3 py-1.5 border border-neutral-600 rounded-lg text-neutral-300 text-xs font-medium hover:border-neutral-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                     >
                       {generatingSelectedVideos
@@ -975,13 +994,18 @@ export function MovieApp() {
                   </button>
                   {!hasCharacterImages && (
                     <p className="text-amber-400 text-xs">
-                      Generate character images first to reference them in scenes.
+                      Generate character images first to reference them in
+                      scenes.
                     </p>
                   )}
                   {scenes.some((s) => s.imageFilename) && (
                     <button
                       onClick={handleGenerateAllSceneVideos}
-                      disabled={isGenerating || generatingVideoId !== null || generatingAllVideos}
+                      disabled={
+                        isGenerating ||
+                        generatingVideoId !== null ||
+                        generatingAllVideos
+                      }
                       className="px-5 py-2 border border-neutral-700 rounded-xl text-neutral-400 text-sm hover:border-neutral-500 hover:text-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-2"
                     >
                       {generatingAllVideos ? (
