@@ -222,6 +222,18 @@ export function MovieApp() {
   const isGenerating = generatingCharacters || generatingScenes || extracting;
   const effectiveStyle = resolveStyle(customArtStyle, artStyle);
 
+  // Enter key to confirm removal
+  useEffect(() => {
+    if (removeIndex === null) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Enter") handleConfirmRemove();
+      if (e.key === "Escape") setRemoveIndex(null);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [removeIndex]);
+
   const handleConfirmRemove = () => {
     if (removeIndex === null) return;
     const char = characters[removeIndex];
