@@ -16,7 +16,7 @@ export type ArtStyle =
   | "noir";
 
 export const ART_STYLES: { key: ArtStyle; label: string; emoji: string }[] = [
-  { key: "cartoon-3d", label: "Cartoon 3D", emoji: "🧸" },
+  { key: "cartoon-3d", label: "Cartoon 3D movie, 3D model style", emoji: "🧸" },
   { key: "anime", label: "Anime", emoji: "🌸" },
   { key: "realistic", label: "Realistic", emoji: "🎬" },
   { key: "oil-painting", label: "Oil Painting", emoji: "🖌️" },

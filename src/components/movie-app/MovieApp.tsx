@@ -411,7 +411,7 @@ export function MovieApp() {
 
         for (let i = 0; i < updated.length; i++) {
           const char = updated[i];
-          const prompt = `Character design reference sheet, ${effectiveStyle} animation style. Character name: ${char.name}. ${char.description}. Full body, clean character turnaround, consistent design.`;
+          const prompt = `Character design reference image, ${effectiveStyle} animation style. Character name: ${char.name}. ${char.description}. zoom to show the character's face. grey background. clean character turnaround, consistent design.`;
 
           const result = await generateImage(prompt, apiKey);
           const safeName = char.name
@@ -435,7 +435,7 @@ export function MovieApp() {
       } else {
         for (let i = 0; i < updated.length; i++) {
           const char = updated[i];
-          const prompt = `Character design reference sheet, ${effectiveStyle} animation style. Character name: ${char.name}. ${char.description}. Full body, clean character turnaround, consistent design.`;
+          const prompt = `Character design reference image, ${effectiveStyle} animation style. Character name: ${char.name}. ${char.description}. zoom to show the character's face. grey background. clean character turnaround, consistent design.`;
 
           const result = await generateImage(prompt, apiKey);
           updated[i] = { ...char, imageUrl: result.url };
