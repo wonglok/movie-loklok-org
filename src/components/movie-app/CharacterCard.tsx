@@ -57,7 +57,7 @@ export function CharacterCard({
             <img
               src={char.imageUrl}
               alt={char.name}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover aspect-square"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
@@ -127,15 +127,20 @@ export function CharacterCard({
                     "images",
                     { create: true },
                   );
-                  const characterDir =
-                    await imagesDir.getDirectoryHandle("character", {
+                  const characterDir = await imagesDir.getDirectoryHandle(
+                    "character",
+                    {
                       create: true,
-                    });
+                    },
+                  );
                   const uploadId = crypto.randomUUID();
                   const filename = `${uploadId}.png`;
-                  const fileHandle = await characterDir.getFileHandle(filename, {
-                    create: true,
-                  });
+                  const fileHandle = await characterDir.getFileHandle(
+                    filename,
+                    {
+                      create: true,
+                    },
+                  );
                   const writable = await fileHandle.createWritable();
                   await writable.write(file);
                   await writable.close();

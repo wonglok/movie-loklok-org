@@ -396,3 +396,54 @@ Description: ${sceneDescription}`.trim(),
   const raw = JSON.parse(json) as { person: string; line: string }[];
   return raw.map((c) => ({ id: crypto.randomUUID(), ...c }));
 }
+
+export async function estimateSceneMetadata(
+  sceneName: string,
+  sceneDescription: string,
+  conversations: { person: string; line: string }[],
+  apiKey: string,
+): Promise<{ videoDuration: number; videoCamera: string }> {
+  fal.config({ credentials: apiKey });
+
+  const dialogueSummary = conversations
+    .map((c) => `${c.person}: "${c.line}"`)
+    .join("\n");
+
+  const result = await fal.subscribe(
+    "openrouter/router/openai/v1/chat/completions",
+    {
+      input: {
+        model: "google/gemma-4-26b-a4b-it",
+        messages: [
+          {
+            role: "user",
+            content: `Estimate the video production metadata for this movie scene based on its dialogue and description. Return ONLY a valid JSON object with these fields:
+- "videoDuration": estimated shot length in seconds (a number, typically 3-15 seconds based on dialogue pacing)
+- "videoCamera": a short camera direction (e.g. "Static", "Slow pan", "Dolly in", "Tracking shot", "Handheld", "Low angle push", "Wide crane")
+
+Consider the mood, action, and pacing implied by the dialogue.
+
+Scene: ${sceneName}
+Description: ${sceneDescription}
+
+Dialogue:
+${dialogueSummary || "(no dialogue)"}`.trim(),
+          },
+        ],
+      },
+      logs: true,
+      onQueueUpdate: (update) => {
+        if (update.status === "IN_PROGRESS") {
+          update.logs.map((log) => log.message).forEach(console.log);
+        }
+      },
+    },
+  );
+
+  const data = result.data as {
+    choices: { message: { content: string } }[];
+  };
+  const text = data.choices[0].message.content;
+  const json = text.replace(/```json|```/g, "").trim();
+  return JSON.parse(json);
+}

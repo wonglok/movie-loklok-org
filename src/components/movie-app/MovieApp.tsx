@@ -11,6 +11,7 @@ import {
   uploadAndGenerateVideo,
   resolveCharacterRefs,
   regenerateSceneConversations,
+  estimateSceneMetadata,
 } from "@/lib/fal";
 import { resolveStyle } from "@/lib/style";
 import {
@@ -395,8 +396,16 @@ export function MovieApp() {
         .filter((c) => c.name)
         .map((c) => c.name)
         .join(", ");
-      const prompt = `Cinematic movie keyframe, ${effectiveStyle} animation style. Featuring characters: ${charNames || "original characters"}. Scene: ${scene.name}. ${scene.description}. Characters must maintain consistent appearance and design. Wide establishing shot, dramatic lighting, film composition.`;
-      const result = await generateSceneImage(prompt, apiKey, charRefs);
+      const imagePrompt = `Cinematic movie keyframe, ${effectiveStyle} animation style. Featuring characters: ${charNames || "original characters"}. Scene: ${scene.name}. ${scene.description}. Characters must maintain consistent appearance and design. Wide establishing shot, dramatic lighting, film composition.`;
+      const [metadata, result] = await Promise.all([
+        estimateSceneMetadata(
+          scene.name,
+          scene.description,
+          conversations,
+          apiKey,
+        ),
+        generateSceneImage(imagePrompt, apiKey, charRefs),
+      ]);
       if (folderHandle) {
         const imagesDir = await folderHandle.getDirectoryHandle("images", {
           create: true,
@@ -412,6 +421,8 @@ export function MovieApp() {
           imageUrl: localUrl,
           imageFilename: filename,
           conversations,
+          videoDuration: metadata.videoDuration,
+          videoCamera: metadata.videoCamera,
         });
         await savePromptFile(result.prompt, `${imageId}.txt`, sceneDir);
       } else {
@@ -419,6 +430,8 @@ export function MovieApp() {
           imageUrl: result.url,
           sourceUrl: result.url,
           conversations,
+          videoDuration: metadata.videoDuration,
+          videoCamera: metadata.videoCamera,
         });
       }
     } catch (err) {
@@ -439,7 +452,17 @@ export function MovieApp() {
         scene.description,
         apiKey,
       );
-      updateScene(id, { conversations });
+      const metadata = await estimateSceneMetadata(
+        scene.name,
+        scene.description,
+        conversations,
+        apiKey,
+      );
+      updateScene(id, {
+        conversations,
+        videoDuration: metadata.videoDuration,
+        videoCamera: metadata.videoCamera,
+      });
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Script regeneration failed",
