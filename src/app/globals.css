@@ -64,3 +64,8 @@ body {
 .blender-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #505050;
 }
+
+button,
+a {
+  cursor: pointer;
+}
