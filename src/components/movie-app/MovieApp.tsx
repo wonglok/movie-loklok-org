@@ -1,27 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  useMovieStore,
-  ART_STYLES,
-  RESOLUTION_OPTIONS,
-  ASPECT_OPTIONS,
-  type ArtStyle,
-} from "@/stores/movie-store";
+import { useMovieStore, ART_STYLES, type ArtStyle } from "@/stores/movie-store";
 import { useFolderStore } from "@/stores/folder-store";
 import {
   generateImage,
   extractCharacters,
   extractScenes,
-  extractVideoInfo,
-  uploadAndGenerateVideo,
 } from "@/lib/fal";
 import { resolveStyle } from "@/lib/style";
 import {
   readMovieJson,
   readCharactersJson,
   readScenesJson,
-  readVideoJson,
   saveAndLoadLocal,
   savePromptFile,
 } from "@/lib/fs-helpers";
