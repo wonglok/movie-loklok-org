@@ -3,6 +3,20 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  --blender-bg: #1a1a1a;
+  --blender-panel: #232323;
+  --blender-header: #2d2d2d;
+  --blender-input: #181818;
+  --blender-border: #3a3a3a;
+  --blender-border-active: #505050;
+  --blender-text: #e6e6e6;
+  --blender-text-secondary: #969696;
+  --blender-accent: #e8812b;
+  --blender-accent-hover: #f59a44;
+  --blender-button: #383838;
+  --blender-button-hover: #4a4a4a;
+  --blender-tab-active: #2d2d2d;
 }
 
 @theme inline {
@@ -22,5 +36,31 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Blender-style viewport grid */
+.blender-viewport {
+  background-color: #1a1a1a;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-position: center center;
+}
+
+/* Blender-style scrollbar */
+.blender-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.blender-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.blender-scrollbar::-webkit-scrollbar-thumb {
+  background: #3a3a3a;
+  border-radius: 3px;
+}
+.blender-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #505050;
 }
