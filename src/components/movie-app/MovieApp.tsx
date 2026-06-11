@@ -858,8 +858,17 @@ export function MovieApp() {
                       return (
                         <div
                           key={sceneIndex}
-                          className="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden"
+                          className="relative bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden group/card"
                         >
+                          <button
+                            onClick={() => updateScene(sceneIndex, { videoUrl: null })}
+                            className="absolute top-3 right-3 p-1.5 rounded-lg text-neutral-600 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover/card:opacity-100 transition-all z-10"
+                            title="Remove video"
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
                           <div className="flex gap-4 p-4">
                             <div className="flex-none w-32 aspect-9/16 rounded-xl overflow-hidden bg-neutral-800 border border-neutral-700">
                               {scene.imageUrl ? (
