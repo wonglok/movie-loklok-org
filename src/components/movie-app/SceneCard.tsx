@@ -134,69 +134,6 @@ export function SceneCard({
             rows={3}
             className="w-full bg-transparent text-neutral-400 text-xs leading-relaxed focus:outline-none placeholder-neutral-600 resize-none blender-scrollbar"
           />
-
-          {/* Conversations */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center gap-2">
-              <span className="text-neutral-500 text-xs font-medium">
-                Conversations
-              </span>
-              <span className="text-neutral-600 text-xs">
-                {conversations.length}
-              </span>
-            </div>
-            {conversations.map((conv) => (
-              <div
-                key={conv.id}
-                className="flex items-start gap-1.5 group/conv"
-              >
-                <input
-                  type="text"
-                  value={conv.person}
-                  onChange={(e) =>
-                    updateConversation(conv.id, { person: e.target.value })
-                  }
-                  placeholder="Actor / VO"
-                  className="w-24 shrink-0 bg-neutral-800 rounded px-2 py-1 text-neutral-300 text-xs focus:outline-none focus:ring-1 focus:ring-neutral-600 placeholder-neutral-600"
-                />
-                <input
-                  type="text"
-                  value={conv.line}
-                  onChange={(e) =>
-                    updateConversation(conv.id, { line: e.target.value })
-                  }
-                  placeholder="Line of script..."
-                  className="flex-1 bg-neutral-800 rounded px-2 py-1 text-neutral-300 text-xs focus:outline-none focus:ring-1 focus:ring-neutral-600 placeholder-neutral-600"
-                />
-                <button
-                  onClick={() => removeConversation(conv.id)}
-                  className="shrink-0 p-1 rounded text-neutral-600 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover/conv:opacity-100 transition-all"
-                  title="Remove line"
-                >
-                  <svg
-                    className="w-3 h-3"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              </div>
-            ))}
-            <button
-              onClick={addConversation}
-              className="self-start px-2 py-1 border border-dashed border-neutral-700 rounded text-neutral-500 text-xs hover:border-neutral-500 hover:text-neutral-300 transition-colors"
-            >
-              + Add Line
-            </button>
-          </div>
-
           <div className="flex items-center gap-1.5 flex-wrap">
             <button
               onClick={() => onRegenerate(scene.id)}
@@ -256,17 +193,13 @@ export function SceneCard({
                   );
                   const sceneDirHandle = await imagesDir.getDirectoryHandle(
                     "scene",
-                    {
-                      create: true,
-                    },
+                    { create: true },
                   );
                   const uploadId = crypto.randomUUID();
                   const filename = `${uploadId}.png`;
                   const fileHandle = await sceneDirHandle.getFileHandle(
                     filename,
-                    {
-                      create: true,
-                    },
+                    { create: true },
                   );
                   const writable = await fileHandle.createWritable();
                   await writable.write(file);
@@ -328,18 +261,6 @@ export function SceneCard({
             />
             <span className="text-neutral-600 text-xs">s</span>
           </div>
-          <div className="flex items-center gap-2 flex-1">
-            <span className="text-neutral-500 text-xs shrink-0">Camera</span>
-            <input
-              type="text"
-              value={scene.videoCamera}
-              onChange={(e) =>
-                updateScene(scene.id, { videoCamera: e.target.value })
-              }
-              className="w-full bg-neutral-800 rounded px-2 py-1 text-neutral-300 text-xs focus:outline-none focus:ring-1 focus:ring-neutral-600"
-              placeholder="Slow pan"
-            />
-          </div>
           {scene.videoUrl ? (
             <a
               href={scene.videoUrl}
@@ -367,6 +288,77 @@ export function SceneCard({
           )}
         </div>
       )}
+
+      {/* Footer: Conversations */}
+      <div className="border-t border-neutral-800 px-4 py-3 flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-neutral-500 text-xs font-medium">
+            Conversations
+          </span>
+          <span className="text-neutral-600 text-xs">
+            {conversations.length}
+          </span>
+        </div>
+        {conversations.map((conv) => (
+          <div key={conv.id} className="flex items-start gap-1.5 group/conv">
+            <input
+              type="text"
+              value={conv.person}
+              onChange={(e) =>
+                updateConversation(conv.id, { person: e.target.value })
+              }
+              placeholder="Actor / VO"
+              className="w-24 shrink-0 bg-neutral-800 rounded px-2 py-1 text-neutral-300 text-xs focus:outline-none focus:ring-1 focus:ring-neutral-600 placeholder-neutral-600"
+            />
+            <input
+              type="text"
+              value={conv.line}
+              onChange={(e) =>
+                updateConversation(conv.id, { line: e.target.value })
+              }
+              placeholder="Line of script..."
+              className="flex-1 bg-neutral-800 rounded px-2 py-1 text-neutral-300 text-xs focus:outline-none focus:ring-1 focus:ring-neutral-600 placeholder-neutral-600"
+            />
+            <button
+              onClick={() => removeConversation(conv.id)}
+              className="shrink-0 p-1 rounded text-neutral-600 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover/conv:opacity-100 transition-all"
+              title="Remove line"
+            >
+              <svg
+                className="w-3 h-3"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        ))}
+        <button
+          onClick={addConversation}
+          className="self-start px-2 py-1 border border-dashed border-neutral-700 rounded text-neutral-500 text-xs hover:border-neutral-500 hover:text-neutral-300 transition-colors"
+        >
+          + Add Line
+        </button>
+        <div className="flex items-center gap-2 pt-1">
+          <span className="text-neutral-500 text-xs shrink-0">Camera</span>
+          <input
+            type="text"
+            value={scene.videoCamera}
+            onChange={(e) =>
+              updateScene(scene.id, { videoCamera: e.target.value })
+            }
+            className="flex-1 bg-neutral-800 rounded px-2 py-1 text-neutral-300 text-xs focus:outline-none focus:ring-1 focus:ring-neutral-600"
+            placeholder="Slow pan"
+          />
+        </div>
+      </div>
     </div>
   );
 }
