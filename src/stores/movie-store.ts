@@ -1,0 +1,48 @@
+import { create } from "zustand";
+
+export type ArtStyle =
+  | "cartoon-3d"
+  | "anime"
+  | "realistic"
+  | "oil-painting"
+  | "stop-motion"
+  | "noir";
+
+export const ART_STYLES: { key: ArtStyle; label: string; emoji: string }[] = [
+  { key: "cartoon-3d", label: "Cartoon 3D", emoji: "🧸" },
+  { key: "anime", label: "Anime", emoji: "🌸" },
+  { key: "realistic", label: "Realistic", emoji: "🎬" },
+  { key: "oil-painting", label: "Oil Painting", emoji: "🖌️" },
+  { key: "stop-motion", label: "Stop Motion", emoji: "📸" },
+  { key: "noir", label: "Noir", emoji: "🕶️" },
+];
+
+interface MovieState {
+  story: string;
+  artStyle: ArtStyle;
+  isGenerating: boolean;
+  characterImages: string[];
+  sceneImages: string[];
+  activeTab: "characters" | "scenes";
+  setStory: (story: string) => void;
+  setArtStyle: (style: ArtStyle) => void;
+  setCharacterImages: (images: string[]) => void;
+  setSceneImages: (images: string[]) => void;
+  setIsGenerating: (generating: boolean) => void;
+  setActiveTab: (tab: "characters" | "scenes") => void;
+}
+
+export const useMovieStore = create<MovieState>((set) => ({
+  story: "",
+  artStyle: "cartoon-3d",
+  isGenerating: false,
+  characterImages: [],
+  sceneImages: [],
+  activeTab: "characters",
+  setStory: (story) => set({ story }),
+  setArtStyle: (artStyle) => set({ artStyle }),
+  setCharacterImages: (characterImages) => set({ characterImages }),
+  setSceneImages: (sceneImages) => set({ sceneImages }),
+  setIsGenerating: (isGenerating) => set({ isGenerating }),
+  setActiveTab: (activeTab) => set({ activeTab }),
+}));
