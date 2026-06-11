@@ -569,22 +569,6 @@ export function MovieApp() {
                   "Generate All Character Images"
                 )}
               </button>
-              {scenes.length === 0 && (
-                <button
-                  onClick={handleExtractScenes}
-                  disabled={isGenerating}
-                  className="px-6 py-2 bg-white text-black rounded-xl font-semibold text-sm hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-2"
-                >
-                  {extractingScenes ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-black/20 border-t-black" />{" "}
-                      Extracting...
-                    </>
-                  ) : (
-                    "Extract Scenes"
-                  )}
-                </button>
-              )}
             </div>
           </section>
         )}
@@ -606,75 +590,95 @@ export function MovieApp() {
           </section>
         )}
 
-        {/* Section Divider */}
-        {scenes.length > 0 && (
-          <div className="flex items-center gap-4">
-            <div className="flex-1 h-px bg-neutral-800" />
-            <span className="text-neutral-600 text-sm">Scenes</span>
-            <div className="flex-1 h-px bg-neutral-800" />
-          </div>
-        )}
-
-        {/* Scene Cards */}
-        {scenes.length > 0 && (
+        {/* Scenes Section */}
+        {characters.length > 0 && (
           <section className="flex flex-col gap-4">
             <div className="flex items-center gap-3">
               <span className="text-2xl">&#x1F3AC;</span>
               <h2 className="text-xl font-semibold text-white">Scenes</h2>
-              <span className="text-sm text-neutral-500">
-                {scenes.length} {scenes.length === 1 ? "scene" : "scenes"}
-              </span>
+              {scenes.length > 0 && (
+                <span className="text-sm text-neutral-500">
+                  {scenes.length} {scenes.length === 1 ? "scene" : "scenes"}
+                </span>
+              )}
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              {scenes.map((scene, i) => (
-                <SceneCard
-                  key={i}
-                  scene={scene}
-                  index={i}
-                  sceneRegenIndex={sceneRegenIndex}
-                  onRegenerate={handleRegenerateScene}
-                  onRemove={setRemoveIndex}
-                  onPreview={(idx) => {
-                    setPreviewIndex(idx);
-                    setPreviewType("scene");
-                  }}
-                  folderHandle={folderHandle}
-                  updateScene={updateScene}
-                />
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() =>
-                  setScenes([
-                    ...scenes,
-                    {
-                      name: "",
-                      description: "",
-                      imageUrl: null,
-                      imageFilename: null,
-                    },
-                  ])
-                }
-                className="px-4 py-2 border border-dashed border-neutral-700 rounded-xl text-neutral-500 text-sm hover:border-neutral-500 hover:text-neutral-300 transition-colors"
-              >
-                + Add Scene
-              </button>
-              <button
-                onClick={handleGenerateSceneImages}
-                disabled={isGenerating}
-                className="px-6 py-2 bg-white text-black rounded-xl font-semibold text-sm hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-2"
-              >
-                {generatingScenes ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-black/20 border-t-black" />{" "}
-                    Generating...
-                  </>
-                ) : (
-                  "Generate All Scene Images"
-                )}
-              </button>
-            </div>
+
+            {scenes.length === 0 && (
+              <div className="flex flex-col items-center gap-4 py-8">
+                <p className="text-neutral-500 text-sm">
+                  Extract scenes from your story to get started.
+                </p>
+                <button
+                  onClick={handleExtractScenes}
+                  disabled={isGenerating}
+                  className="px-6 py-4 bg-white text-black rounded-2xl font-semibold text-base hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-3"
+                >
+                  {extractingScenes ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-black/20 border-t-black" />{" "}
+                      Extracting Scenes...
+                    </>
+                  ) : (
+                    "Extract Scenes"
+                  )}
+                </button>
+              </div>
+            )}
+
+            {scenes.length > 0 && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  {scenes.map((scene, i) => (
+                    <SceneCard
+                      key={i}
+                      scene={scene}
+                      index={i}
+                      sceneRegenIndex={sceneRegenIndex}
+                      onRegenerate={handleRegenerateScene}
+                      onRemove={setRemoveIndex}
+                      onPreview={(idx) => {
+                        setPreviewIndex(idx);
+                        setPreviewType("scene");
+                      }}
+                      folderHandle={folderHandle}
+                      updateScene={updateScene}
+                    />
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() =>
+                      setScenes([
+                        ...scenes,
+                        {
+                          name: "",
+                          description: "",
+                          imageUrl: null,
+                          imageFilename: null,
+                        },
+                      ])
+                    }
+                    className="px-4 py-2 border border-dashed border-neutral-700 rounded-xl text-neutral-500 text-sm hover:border-neutral-500 hover:text-neutral-300 transition-colors"
+                  >
+                    + Add Scene
+                  </button>
+                  <button
+                    onClick={handleGenerateSceneImages}
+                    disabled={isGenerating}
+                    className="px-6 py-2 bg-white text-black rounded-xl font-semibold text-sm hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                  >
+                    {generatingScenes ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-black/20 border-t-black" />{" "}
+                        Generating...
+                      </>
+                    ) : (
+                      "Generate All Scene Images"
+                    )}
+                  </button>
+                </div>
+              </>
+            )}
           </section>
         )}
       </div>
