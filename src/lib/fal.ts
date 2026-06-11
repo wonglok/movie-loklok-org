@@ -317,3 +317,45 @@ No other text.\n\nStory: ${story}`,
   const json = text.replace(/```json|```/g, "").trim();
   return JSON.parse(json);
 }
+
+export async function regenerateSceneConversations(
+  story: string,
+  sceneName: string,
+  sceneDescription: string,
+  apiKey: string,
+): Promise<{ person: string; line: string }[]> {
+  fal.config({ credentials: apiKey });
+
+  const result = await fal.subscribe(
+    "openrouter/router/openai/v1/chat/completions",
+    {
+      input: {
+        model: "openai/gpt-4o-mini",
+        messages: [
+          {
+            role: "user",
+            content: `Write the scripted dialogue for this scene from a movie story. Return ONLY a valid JSON array of objects, each with "person" (the character speaking or voice-over narrator) and "line" (their line of dialogue or narration). Include all dialogue that happens in this scene. If no one speaks, return an empty array. No other text.
+
+Scene: ${sceneName}
+Description: ${sceneDescription}
+
+Full story context: ${story}`,
+          },
+        ],
+      },
+      logs: true,
+      onQueueUpdate: (update) => {
+        if (update.status === "IN_PROGRESS") {
+          update.logs.map((log) => log.message).forEach(console.log);
+        }
+      },
+    },
+  );
+
+  const data = result.data as {
+    choices: { message: { content: string } }[];
+  };
+  const text = data.choices[0].message.content;
+  const json = text.replace(/```json|```/g, "").trim();
+  return JSON.parse(json);
+}

@@ -10,6 +10,7 @@ import {
   extractScenes,
   uploadAndGenerateVideo,
   resolveCharacterRefs,
+  regenerateSceneConversations,
 } from "@/lib/fal";
 import { resolveStyle } from "@/lib/style";
 import {
@@ -391,7 +392,15 @@ export function MovieApp() {
     setError(null);
     setSceneRegenIndex(index);
     try {
-      const charRefs = await resolveCharacterRefs(characters, folderHandle, apiKey);
+      const [charRefs, conversations] = await Promise.all([
+        resolveCharacterRefs(characters, folderHandle, apiKey),
+        regenerateSceneConversations(
+          story,
+          scene.name,
+          scene.description,
+          apiKey,
+        ),
+      ]);
       const charNames = characters
         .filter((c) => c.name)
         .map((c) => c.name)
@@ -409,10 +418,18 @@ export function MovieApp() {
         const filename = `${id}.png`;
         if (scene.imageUrl) URL.revokeObjectURL(scene.imageUrl);
         const localUrl = await saveAndLoadLocal(result.url, filename, sceneDir);
-        updateScene(index, { imageUrl: localUrl, imageFilename: filename });
+        updateScene(index, {
+          imageUrl: localUrl,
+          imageFilename: filename,
+          conversations,
+        });
         await savePromptFile(result.prompt, `${id}.txt`, sceneDir);
       } else {
-        updateScene(index, { imageUrl: result.url, sourceUrl: result.url });
+        updateScene(index, {
+          imageUrl: result.url,
+          sourceUrl: result.url,
+          conversations,
+        });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Regeneration failed");
