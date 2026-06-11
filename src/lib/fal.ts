@@ -168,6 +168,48 @@ export async function uploadAndGenerateVideo(
   return data.video?.url ?? data.url ?? "";
 }
 
+export async function extractMoments(
+  story: string,
+  scenes: { name: string; description: string }[],
+  apiKey: string,
+): Promise<
+  { sceneIndex: number; name: string; description: string; duration: number; cameraAngle: string; cameraMovement: string }[]
+> {
+  fal.config({ credentials: apiKey });
+
+  const scenesContext = scenes
+    .map((s, i) => `Scene ${i}: ${s.name} - ${s.description}`)
+    .join("\n");
+
+  const result = await fal.subscribe(
+    "openrouter/router/openai/v1/chat/completions",
+    {
+      input: {
+        model: "openai/gpt-4o-mini",
+        messages: [
+          {
+            role: "user",
+            content: `Extract key moments/shots from each scene of this movie story. Return ONLY a valid JSON array of objects with these fields: "sceneIndex" (number matching the scene number below), "name" (shot name), "description" (what happens in this moment), "duration" (shot length in seconds, a number like 5), "cameraAngle" (e.g. "Eye level", "Low angle", "High angle", "Dutch angle", "Overhead"), "cameraMovement" (e.g. "Static", "Slow pan", "Dolly in", "Tracking shot", "Handheld"). No other text.\n\nStory: ${story}\n\nScenes:\n${scenesContext}`,
+          },
+        ],
+      },
+      logs: true,
+      onQueueUpdate: (update) => {
+        if (update.status === "IN_PROGRESS") {
+          update.logs.map((log) => log.message).forEach(console.log);
+        }
+      },
+    },
+  );
+
+  const data = result.data as {
+    choices: { message: { content: string } }[];
+  };
+  const text = data.choices[0].message.content;
+  const json = text.replace(/```json|```/g, "").trim();
+  return JSON.parse(json);
+}
+
 export async function extractScenes(
   story: string,
   apiKey: string,

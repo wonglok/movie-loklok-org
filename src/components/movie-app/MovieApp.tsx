@@ -7,12 +7,14 @@ import {
   generateImage,
   extractCharacters,
   extractScenes,
+  extractMoments,
 } from "@/lib/fal";
 import { resolveStyle } from "@/lib/style";
 import {
   readMovieJson,
   readCharactersJson,
   readScenesJson,
+  readMomentsJson,
   saveAndLoadLocal,
   savePromptFile,
 } from "@/lib/fs-helpers";
@@ -39,6 +41,9 @@ export function MovieApp() {
   const updateCharacter = useMovieStore((s) => s.updateCharacter);
   const setScenes = useMovieStore((s) => s.setScenes);
   const updateScene = useMovieStore((s) => s.updateScene);
+  const moments = useMovieStore((s) => s.moments);
+  const setMoments = useMovieStore((s) => s.setMoments);
+  const updateMoment = useMovieStore((s) => s.updateMoment);
   const apiKey = useFolderStore((s) => s.apiKey);
   const folderHandle = useFolderStore((s) => s.folderHandle);
   const folderName = useFolderStore((s) => s.folderName);
@@ -51,6 +56,7 @@ export function MovieApp() {
   const [generatingScenes, setGeneratingScenes] = useState(false);
   const [extracting, setExtracting] = useState(false);
   const [extractingScenes, setExtractingScenes] = useState(false);
+  const [extractingMoments, setExtractingMoments] = useState(false);
   const [regeneratingIndex, setRegeneratingIndex] = useState<number | null>(
     null,
   );
@@ -68,7 +74,8 @@ export function MovieApp() {
     generatingCharacters ||
     generatingScenes ||
     extracting ||
-    extractingScenes;
+    extractingScenes ||
+    extractingMoments;
   const effectiveStyle = resolveStyle(customArtStyle, artStyle);
 
   const { isSaving } = useAutoSave(
@@ -79,6 +86,7 @@ export function MovieApp() {
     customArtStyle,
     characters,
     scenes,
+    moments,
   );
 
   useLocalImages(
@@ -111,10 +119,11 @@ export function MovieApp() {
     }
     (async () => {
       try {
-        const [movieData, charData, sceneData] = await Promise.all([
+        const [movieData, charData, sceneData, momentData] = await Promise.all([
           readMovieJson(folderHandle),
           readCharactersJson(folderHandle),
           readScenesJson(folderHandle),
+          readMomentsJson(folderHandle),
         ]);
         if (movieData) {
           if (movieData.story) setStory(movieData.story);
@@ -128,6 +137,7 @@ export function MovieApp() {
         }
         if (charData) setCharacters(charData);
         if (sceneData) setScenes(sceneData);
+        if (momentData) setMoments(momentData);
       } catch {
         /* use defaults */
       } finally {
@@ -383,6 +393,25 @@ export function MovieApp() {
       setError(err instanceof Error ? err.message : "Regeneration failed");
     } finally {
       setSceneRegenIndex(null);
+    }
+  };
+
+  const handleExtractMoments = async () => {
+    if (!story.trim() || !scenes.length || isGenerating || !apiKey) return;
+    setError(null);
+    setSavedPath(null);
+    setExtractingMoments(true);
+    try {
+      const extracted = await extractMoments(
+        story,
+        scenes.map((s) => ({ name: s.name, description: s.description })),
+        apiKey,
+      );
+      setMoments(extracted);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Moment extraction failed");
+    } finally {
+      setExtractingMoments(false);
     }
   };
 
@@ -726,6 +755,128 @@ export function MovieApp() {
                   </button>
                 </div>
               </>
+            )}
+          </section>
+        )}
+
+        {/* Moments Section */}
+        {scenes.length > 0 && (
+          <section className="flex flex-col gap-4">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">&#x1F39E;&#xFE0F;</span>
+              <h2 className="text-xl font-semibold text-white">Moments</h2>
+              {moments.length > 0 && (
+                <span className="text-sm text-neutral-500">
+                  {moments.length} {moments.length === 1 ? "moment" : "moments"}
+                </span>
+              )}
+            </div>
+
+            {moments.length === 0 && (
+              <div className="flex flex-col items-center gap-4 py-8">
+                <p className="text-neutral-500 text-sm">
+                  Extract individual moments and camera setups from each scene.
+                </p>
+                <button
+                  onClick={handleExtractMoments}
+                  disabled={isGenerating}
+                  className="px-6 py-4 bg-white text-black rounded-2xl font-semibold text-base hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-3"
+                >
+                  {extractingMoments ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-black/20 border-t-black" />{" "}
+                      Extracting Moments...
+                    </>
+                  ) : (
+                    "Extract All Moments"
+                  )}
+                </button>
+              </div>
+            )}
+
+            {moments.length > 0 && (
+              <div className="grid grid-cols-2 gap-4">
+                {moments.map((moment, i) => {
+                  const scene = scenes[moment.sceneIndex];
+                  return (
+                    <div
+                      key={i}
+                      className="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden"
+                    >
+                      <div className="flex gap-4 p-4">
+                        <div className="flex-none w-32 aspect-video rounded-xl overflow-hidden bg-neutral-800 border border-neutral-700">
+                          {scene?.imageUrl ? (
+                            <img src={scene.imageUrl} alt={moment.name} className="w-full h-full object-cover opacity-60" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <span className="text-xl text-neutral-600">{moment.name.charAt(0)}</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 flex flex-col gap-2 min-w-0">
+                          <input
+                            type="text"
+                            value={moment.name}
+                            onChange={(e) => updateMoment(i, { name: e.target.value })}
+                            placeholder="Moment name"
+                            className="w-full bg-transparent text-white font-semibold text-sm focus:outline-none placeholder-neutral-600"
+                          />
+                          <textarea
+                            value={moment.description}
+                            onChange={(e) => updateMoment(i, { description: e.target.value })}
+                            placeholder="Moment description"
+                            rows={2}
+                            className="w-full bg-transparent text-neutral-400 text-xs leading-relaxed focus:outline-none placeholder-neutral-600 resize-none blender-scrollbar"
+                          />
+                          <div className="text-neutral-500 text-xs space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="w-20 shrink-0">Duration</span>
+                              <input
+                                type="number"
+                                value={moment.duration}
+                                onChange={(e) => updateMoment(i, { duration: Number(e.target.value) || 0 })}
+                                className="w-full bg-neutral-800 rounded px-2 py-1 text-neutral-300 focus:outline-none focus:ring-1 focus:ring-neutral-600"
+                                min={1}
+                              />
+                              <span className="shrink-0">s</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="w-20 shrink-0">Angle</span>
+                              <input
+                                type="text"
+                                value={moment.cameraAngle}
+                                onChange={(e) => updateMoment(i, { cameraAngle: e.target.value })}
+                                className="w-full bg-neutral-800 rounded px-2 py-1 text-neutral-300 focus:outline-none focus:ring-1 focus:ring-neutral-600"
+                                placeholder="Eye level"
+                              />
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="w-20 shrink-0">Movement</span>
+                              <input
+                                type="text"
+                                value={moment.cameraMovement}
+                                onChange={(e) => updateMoment(i, { cameraMovement: e.target.value })}
+                                className="w-full bg-neutral-800 rounded px-2 py-1 text-neutral-300 focus:outline-none focus:ring-1 focus:ring-neutral-600"
+                                placeholder="Static"
+                              />
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => {
+                              const next = [...moments];
+                              next.splice(i, 1);
+                              setMoments(next);
+                            }}
+                            className="self-start px-3 py-1.5 border border-neutral-700 rounded-lg text-neutral-500 text-xs hover:text-red-400 hover:bg-red-400/10 transition-colors"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </section>
         )}

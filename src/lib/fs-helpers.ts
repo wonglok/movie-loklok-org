@@ -1,4 +1,4 @@
-import type { Character, VideoInfo } from "@/stores/movie-store";
+import type { Character, Moment, VideoInfo } from "@/stores/movie-store";
 
 export async function downloadAndSaveImage(
   url: string,
@@ -152,5 +152,30 @@ export async function writeVideoJson(
   });
   const writable = await fileHandle.createWritable();
   await writable.write(JSON.stringify(videoInfo, null, 2));
+  await writable.close();
+}
+
+export async function readMomentsJson(
+  folderHandle: FileSystemDirectoryHandle,
+): Promise<Moment[] | null> {
+  try {
+    const fileHandle = await folderHandle.getFileHandle("moments.json");
+    const file = await fileHandle.getFile();
+    const text = await file.text();
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+export async function writeMomentsJson(
+  folderHandle: FileSystemDirectoryHandle,
+  moments: Moment[],
+): Promise<void> {
+  const fileHandle = await folderHandle.getFileHandle("moments.json", {
+    create: true,
+  });
+  const writable = await fileHandle.createWritable();
+  await writable.write(JSON.stringify(moments, null, 2));
   await writable.close();
 }

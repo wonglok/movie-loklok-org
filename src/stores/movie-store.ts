@@ -16,6 +16,15 @@ export interface Character {
 export const RESOLUTION_OPTIONS = ["720p", "1080p"] as const;
 export const ASPECT_OPTIONS = ["16:9", "9:16", "4:3", "1:1", "3:4"] as const;
 
+export interface Moment {
+  sceneIndex: number;
+  name: string;
+  description: string;
+  duration: number;
+  cameraAngle: string;
+  cameraMovement: string;
+}
+
 export interface VideoInfo {
   title: string;
   genre: string;
@@ -52,6 +61,7 @@ interface MovieState {
   sceneImages: string[];
   characters: Character[];
   scenes: Character[];
+  moments: Moment[];
   videoInfo: VideoInfo | null;
   activeTab: "characters" | "scenes";
   setStory: (story: string) => void;
@@ -63,6 +73,8 @@ interface MovieState {
   updateCharacter: (index: number, updates: Partial<Character>) => void;
   setScenes: (scenes: Character[]) => void;
   updateScene: (index: number, updates: Partial<Character>) => void;
+  setMoments: (moments: Moment[]) => void;
+  updateMoment: (index: number, updates: Partial<Moment>) => void;
   setVideoInfo: (info: VideoInfo | null) => void;
   setIsGenerating: (generating: boolean) => void;
   setActiveTab: (tab: "characters" | "scenes") => void;
@@ -77,6 +89,7 @@ export const useMovieStore = create<MovieState>((set) => ({
   sceneImages: [],
   characters: [],
   scenes: [],
+  moments: [],
   videoInfo: null,
   activeTab: "characters",
   setStory: (story) => set({ story }),
@@ -97,6 +110,13 @@ export const useMovieStore = create<MovieState>((set) => ({
       const scenes = [...state.scenes];
       scenes[index] = { ...scenes[index], ...updates };
       return { scenes };
+    }),
+  setMoments: (moments) => set({ moments }),
+  updateMoment: (index, updates) =>
+    set((state) => {
+      const moments = [...state.moments];
+      moments[index] = { ...moments[index], ...updates };
+      return { moments };
     }),
   setVideoInfo: (videoInfo) => set({ videoInfo }),
   setIsGenerating: (isGenerating) => set({ isGenerating }),
