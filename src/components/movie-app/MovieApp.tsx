@@ -217,6 +217,7 @@ export function MovieApp() {
   const [showSettings, setShowSettings] = useState(false);
   const [pickerError, setPickerError] = useState<string | null>(null);
   const [removeIndex, setRemoveIndex] = useState<number | null>(null);
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
 
   const isGenerating = generatingCharacters || generatingScenes || extracting;
   const effectiveStyle = resolveStyle(customArtStyle, artStyle);
@@ -614,6 +615,71 @@ export function MovieApp() {
         )}
         {/* End Settings Modal */}
 
+        {/* Remove Confirmation Modal */}
+        {removeIndex !== null && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-8 max-w-md w-full mx-4 text-center">
+              <p className="text-white text-lg font-semibold mb-2">
+                Remove Character
+              </p>
+              <p className="text-neutral-400 text-sm mb-6">
+                Are you sure you want to remove{" "}
+                <span className="text-white font-medium">
+                  {characters[removeIndex]?.name || "this character"}
+                </span>
+                ?
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setRemoveIndex(null)}
+                  className="flex-1 px-4 py-3 text-neutral-400 hover:text-white rounded-xl font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmRemove}
+                  className="flex-1 px-4 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-500 transition-colors"
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Image Preview Modal */}
+        {previewIndex !== null && characters[previewIndex]?.imageUrl && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+            onClick={() => setPreviewIndex(null)}
+          >
+            <button
+              onClick={() => setPreviewIndex(null)}
+              className="absolute top-4 right-4 p-2 text-white/60 hover:text-white transition-colors"
+            >
+              <svg
+                className="w-8 h-8"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+            <img
+              src={characters[previewIndex].imageUrl!}
+              alt={characters[previewIndex].name}
+              className="max-w-[90vw] max-h-[90vh] object-contain rounded-xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        )}
+
         {/* Story Section */}
         <section className="flex flex-col gap-4">
           <div className="flex items-center gap-3">
@@ -732,7 +798,16 @@ export function MovieApp() {
                     </svg>
                   </button>
                   <div className="flex gap-4 p-4">
-                    <div className="flex-none w-28 aspect-3/4 rounded-xl overflow-hidden bg-neutral-800 border border-neutral-700">
+                    <div
+                      className={`flex-none w-28 aspect-3/4 rounded-xl overflow-hidden bg-neutral-800 border border-neutral-700 ${
+                        char.imageUrl
+                          ? "cursor-zoom-in hover:border-neutral-500 transition-colors"
+                          : ""
+                      }`}
+                      onClick={() => {
+                        if (char.imageUrl) setPreviewIndex(i);
+                      }}
+                    >
                       {char.imageUrl ? (
                         <img
                           src={char.imageUrl}
