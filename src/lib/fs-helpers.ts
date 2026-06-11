@@ -1,4 +1,4 @@
-import type { Character } from "@/stores/movie-store";
+import type { Character, VideoInfo } from "@/stores/movie-store";
 
 export async function downloadAndSaveImage(
   url: string,
@@ -94,7 +94,7 @@ export async function writeCharactersJson(
   folderHandle: FileSystemDirectoryHandle,
   characters: Character[],
 ): Promise<void> {
-  const toSave = characters.map((c) => ({ ...c, imageUrl: null }));
+  const toSave = characters.map((c) => ({ ...c, imageUrl: null, videoUrl: null }));
   const fileHandle = await folderHandle.getFileHandle("character.json", {
     create: true,
   });
@@ -120,11 +120,37 @@ export async function writeScenesJson(
   folderHandle: FileSystemDirectoryHandle,
   scenes: Character[],
 ): Promise<void> {
-  const toSave = scenes.map((c) => ({ ...c, imageUrl: null }));
+  const toSave = scenes.map((c) => ({ ...c, imageUrl: null, videoUrl: null }));
   const fileHandle = await folderHandle.getFileHandle("scene.json", {
     create: true,
   });
   const writable = await fileHandle.createWritable();
   await writable.write(JSON.stringify(toSave, null, 2));
+  await writable.close();
+}
+
+export async function readVideoJson(
+  folderHandle: FileSystemDirectoryHandle,
+): Promise<VideoInfo | null> {
+  try {
+    const fileHandle = await folderHandle.getFileHandle("video.json");
+    const file = await fileHandle.getFile();
+    const text = await file.text();
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+export async function writeVideoJson(
+  folderHandle: FileSystemDirectoryHandle,
+  videoInfo: VideoInfo | null,
+): Promise<void> {
+  if (!videoInfo) return;
+  const fileHandle = await folderHandle.getFileHandle("video.json", {
+    create: true,
+  });
+  const writable = await fileHandle.createWritable();
+  await writable.write(JSON.stringify(videoInfo, null, 2));
   await writable.close();
 }

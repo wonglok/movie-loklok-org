@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import type { Character } from "@/stores/movie-store";
+import type { Character, VideoInfo } from "@/stores/movie-store";
 import {
   writeMovieJson,
   writeCharactersJson,
   writeScenesJson,
+  writeVideoJson,
 } from "@/lib/fs-helpers";
 
 export function useAutoSave(
@@ -14,12 +15,14 @@ export function useAutoSave(
   customArtStyle: string,
   characters: Character[],
   scenes: Character[],
+  videoInfo: VideoInfo | null,
 ) {
   const [isSaving, setIsSaving] = useState(false);
 
   const movieDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const charDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sceneDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const videoDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!hydrated || !folderHandle) return;
@@ -54,6 +57,15 @@ export function useAutoSave(
       writeScenesJson(folderHandle, scenes).catch(() => {});
     }, 500);
   }, [scenes, hydrated, folderHandle]);
+
+  useEffect(() => {
+    if (!hydrated || !folderHandle) return;
+
+    if (videoDebounceRef.current) clearTimeout(videoDebounceRef.current);
+    videoDebounceRef.current = setTimeout(() => {
+      writeVideoJson(folderHandle, videoInfo).catch(() => {});
+    }, 500);
+  }, [videoInfo, hydrated, folderHandle]);
 
   return { isSaving };
 }

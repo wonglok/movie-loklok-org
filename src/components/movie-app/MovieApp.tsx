@@ -3,12 +3,19 @@
 import { useState, useEffect } from "react";
 import { useMovieStore, ART_STYLES, type ArtStyle } from "@/stores/movie-store";
 import { useFolderStore } from "@/stores/folder-store";
-import { generateImage, extractCharacters, extractScenes } from "@/lib/fal";
+import {
+  generateImage,
+  extractCharacters,
+  extractScenes,
+  extractVideoInfo,
+  uploadAndGenerateVideo,
+} from "@/lib/fal";
 import { resolveStyle } from "@/lib/style";
 import {
   readMovieJson,
   readCharactersJson,
   readScenesJson,
+  readVideoJson,
   saveAndLoadLocal,
   savePromptFile,
 } from "@/lib/fs-helpers";
@@ -35,6 +42,8 @@ export function MovieApp() {
   const updateCharacter = useMovieStore((s) => s.updateCharacter);
   const setScenes = useMovieStore((s) => s.setScenes);
   const updateScene = useMovieStore((s) => s.updateScene);
+  const videoInfo = useMovieStore((s) => s.videoInfo);
+  const setVideoInfo = useMovieStore((s) => s.setVideoInfo);
 
   const apiKey = useFolderStore((s) => s.apiKey);
   const folderHandle = useFolderStore((s) => s.folderHandle);
@@ -48,6 +57,8 @@ export function MovieApp() {
   const [generatingScenes, setGeneratingScenes] = useState(false);
   const [extracting, setExtracting] = useState(false);
   const [extractingScenes, setExtractingScenes] = useState(false);
+  const [extractingVideo, setExtractingVideo] = useState(false);
+  const [generatingVideoIndex, setGeneratingVideoIndex] = useState<number | null>(null);
   const [regeneratingIndex, setRegeneratingIndex] = useState<number | null>(
     null,
   );
@@ -62,7 +73,7 @@ export function MovieApp() {
   );
 
   const isGenerating =
-    generatingCharacters || generatingScenes || extracting || extractingScenes;
+    generatingCharacters || generatingScenes || extracting || extractingScenes || extractingVideo || generatingVideoIndex === -1;
   const effectiveStyle = resolveStyle(customArtStyle, artStyle);
 
   const { isSaving } = useAutoSave(
@@ -73,6 +84,7 @@ export function MovieApp() {
     customArtStyle,
     characters,
     scenes,
+    videoInfo,
   );
 
   useLocalImages(
@@ -105,10 +117,11 @@ export function MovieApp() {
     }
     (async () => {
       try {
-        const [movieData, charData, sceneData] = await Promise.all([
+        const [movieData, charData, sceneData, videoData] = await Promise.all([
           readMovieJson(folderHandle),
           readCharactersJson(folderHandle),
           readScenesJson(folderHandle),
+          readVideoJson(folderHandle),
         ]);
         if (movieData) {
           if (movieData.story) setStory(movieData.story);
@@ -122,6 +135,7 @@ export function MovieApp() {
         }
         if (charData) setCharacters(charData);
         if (sceneData) setScenes(sceneData);
+        if (videoData) setVideoInfo(videoData);
       } catch {
         /* use defaults */
       } finally {
@@ -182,7 +196,7 @@ export function MovieApp() {
     try {
       const extracted = await extractCharacters(story, apiKey);
       setCharacters(
-        extracted.map((c) => ({ ...c, imageUrl: null, imageFilename: null })),
+        extracted.map((c) => ({ ...c, imageUrl: null, imageFilename: null, sourceUrl: null, videoUrl: null, videoDuration: "~5s", videoCamera: "Static / Slow pan", videoResolution: "720p", videoAspect: "9:16" })),
       );
     } catch (err) {
       setError(
@@ -217,7 +231,7 @@ export function MovieApp() {
           filename,
           characterDir,
         );
-        updated[i] = { ...char, imageUrl: localUrl, imageFilename: filename };
+        updated[i] = { ...char, imageUrl: localUrl, imageFilename: filename, sourceUrl: result.url };
         await savePromptFile(result.prompt, `${id}.txt`, characterDir);
       }
       setCharacters(updated);
@@ -258,7 +272,7 @@ export function MovieApp() {
         updateCharacter(index, { imageUrl: localUrl, imageFilename: filename });
         await savePromptFile(result.prompt, `${id}.txt`, characterDir);
       } else {
-        updateCharacter(index, { imageUrl: result.url });
+        updateCharacter(index, { imageUrl: result.url, sourceUrl: result.url });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Regeneration failed");
@@ -275,7 +289,7 @@ export function MovieApp() {
     try {
       const extracted = await extractScenes(story, apiKey);
       setScenes(
-        extracted.map((s) => ({ ...s, imageUrl: null, imageFilename: null })),
+        extracted.map((s) => ({ ...s, imageUrl: null, imageFilename: null, sourceUrl: null, videoUrl: null, videoDuration: "~5s", videoCamera: "Static / Slow pan", videoResolution: "720p", videoAspect: "9:16" })),
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Scene extraction failed");
@@ -304,7 +318,7 @@ export function MovieApp() {
         const id = crypto.randomUUID();
         const filename = `${id}.png`;
         const localUrl = await saveAndLoadLocal(result.url, filename, sceneDir);
-        updated[i] = { ...scene, imageUrl: localUrl, imageFilename: filename };
+        updated[i] = { ...scene, imageUrl: localUrl, imageFilename: filename, sourceUrl: result.url };
         await savePromptFile(result.prompt, `${id}.txt`, sceneDir);
       }
       setScenes(updated);
@@ -341,12 +355,69 @@ export function MovieApp() {
         updateScene(index, { imageUrl: localUrl, imageFilename: filename });
         await savePromptFile(result.prompt, `${id}.txt`, sceneDir);
       } else {
-        updateScene(index, { imageUrl: result.url });
+        updateScene(index, { imageUrl: result.url, sourceUrl: result.url });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Regeneration failed");
     } finally {
       setSceneRegenIndex(null);
+    }
+  };
+
+  const handleExtractVideoInfo = async () => {
+    if (!story.trim() || isGenerating || !apiKey) return;
+    setError(null);
+    setExtractingVideo(true);
+    try {
+      const info = await extractVideoInfo(story, apiKey);
+      setVideoInfo(info);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Video extraction failed");
+    } finally {
+      setExtractingVideo(false);
+    }
+  };
+
+  const handleGenerateAllSceneVideos = async () => {
+    if (!folderHandle || !apiKey) return;
+    setError(null);
+    setGeneratingVideoIndex(-1); // -1 means "all"
+    try {
+      const imagesDir = await folderHandle.getDirectoryHandle("images", { create: true });
+      const sceneDir = await imagesDir.getDirectoryHandle("scene", { create: true });
+      for (let i = 0; i < scenes.length; i++) {
+        const scene = scenes[i];
+        if (!scene.imageFilename || scene.videoUrl) continue;
+        const fileHandle = await sceneDir.getFileHandle(scene.imageFilename);
+        const file = await fileHandle.getFile();
+        const prompt = `${scene.name}. ${scene.description}`;
+        const videoUrl = await uploadAndGenerateVideo(file, prompt, apiKey);
+        updateScene(i, { videoUrl });
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Video generation failed");
+    } finally {
+      setGeneratingVideoIndex(null);
+    }
+  };
+
+  const handleGenerateSceneVideo = async (index: number) => {
+    const scene = scenes[index];
+    if (!scene?.imageFilename || !folderHandle || !apiKey) return;
+    setError(null);
+    setGeneratingVideoIndex(index);
+    try {
+      const imagesDir = await folderHandle.getDirectoryHandle("images", { create: true });
+      const sceneDir = await imagesDir.getDirectoryHandle("scene", { create: true });
+      const fileHandle = await sceneDir.getFileHandle(scene.imageFilename);
+      const file = await fileHandle.getFile();
+      const prompt = `${scene.name}. ${scene.description}`;
+      const videoUrl = await uploadAndGenerateVideo(file, prompt, apiKey);
+      updateScene(index, { videoUrl });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Video generation failed");
+    } finally {
+      setGeneratingVideoIndex(null);
     }
   };
 
@@ -548,6 +619,12 @@ export function MovieApp() {
                       description: "",
                       imageUrl: null,
                       imageFilename: null,
+                      sourceUrl: null,
+                      videoUrl: null,
+                      videoDuration: "~5s",
+                      videoCamera: "Static / Slow pan",
+                      videoResolution: "720p",
+                      videoAspect: "9:16",
                     },
                   ])
                 }
@@ -655,6 +732,12 @@ export function MovieApp() {
                           description: "",
                           imageUrl: null,
                           imageFilename: null,
+                          sourceUrl: null,
+                          videoUrl: null,
+                          videoDuration: "~5s",
+                          videoCamera: "Static / Slow pan",
+                          videoResolution: "720p",
+                          videoAspect: "9:16",
                         },
                       ])
                     }
@@ -678,6 +761,201 @@ export function MovieApp() {
                   </button>
                 </div>
               </>
+            )}
+          </section>
+        )}
+
+        {/* Video Section */}
+        {characters.length > 0 && (
+          <section className="flex flex-col gap-4">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">&#x1F3A5;</span>
+              <h2 className="text-xl font-semibold text-white">Video</h2>
+            </div>
+
+            {!videoInfo && (
+              <div className="flex flex-col items-center gap-4 py-8">
+                <p className="text-neutral-500 text-sm">
+                  Extract video production metadata from your story.
+                </p>
+                <button
+                  onClick={handleExtractVideoInfo}
+                  disabled={isGenerating}
+                  className="px-6 py-4 bg-white text-black rounded-2xl font-semibold text-base hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-3"
+                >
+                  {extractingVideo ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-black/20 border-t-black" />{" "}
+                      Extracting Video Info...
+                    </>
+                  ) : (
+                    "Extract Video Info"
+                  )}
+                </button>
+              </div>
+            )}
+
+            {videoInfo && (
+              <div className="space-y-4">
+                <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
+                  <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+                    <div>
+                      <span className="text-neutral-500 text-xs">Title</span>
+                      <p className="text-white text-sm font-medium">{videoInfo.title}</p>
+                    </div>
+                    <div>
+                      <span className="text-neutral-500 text-xs">Genre</span>
+                      <p className="text-white text-sm font-medium">{videoInfo.genre}</p>
+                    </div>
+                    <div>
+                      <span className="text-neutral-500 text-xs">Duration</span>
+                      <p className="text-white text-sm font-medium">{videoInfo.duration}</p>
+                    </div>
+                    <div>
+                      <span className="text-neutral-500 text-xs">Format</span>
+                      <p className="text-white text-sm font-medium">{videoInfo.format}</p>
+                    </div>
+                    <div>
+                      <span className="text-neutral-500 text-xs">Resolution</span>
+                      <p className="text-white text-sm font-medium">{videoInfo.resolution}</p>
+                    </div>
+                    <div>
+                      <span className="text-neutral-500 text-xs">Framerate</span>
+                      <p className="text-white text-sm font-medium">{videoInfo.framerate}</p>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="text-neutral-500 text-xs">Logline</span>
+                      <p className="text-white text-sm">{videoInfo.description}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleExtractVideoInfo}
+                    disabled={isGenerating}
+                    className="mt-4 px-4 py-2 border border-neutral-700 rounded-lg text-neutral-400 text-xs hover:border-neutral-500 hover:text-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+                  >
+                    {extractingVideo ? (
+                      <>
+                        <div className="animate-spin rounded-full h-3 w-3 border border-neutral-400 border-t-transparent" />
+                        Re-extracting...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
+                        </svg>
+                        Re-extract
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Per-Scene Video Generation */}
+                <div className="grid grid-cols-2 gap-4">
+                  {scenes
+                    .filter((s) => s.imageFilename)
+                    .map((scene) => {
+                      const sceneIndex = scenes.indexOf(scene);
+                      return (
+                        <div
+                          key={sceneIndex}
+                          className="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden"
+                        >
+                          <div className="flex gap-4 p-4">
+                            <div className="flex-none w-32 aspect-9/16 rounded-xl overflow-hidden bg-neutral-800 border border-neutral-700">
+                              {scene.imageUrl ? (
+                                <img src={scene.imageUrl} alt={scene.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <span className="text-xl text-neutral-600">{scene.name.charAt(0)}</span>
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1 flex flex-col gap-2 min-w-0">
+                              <p className="text-white text-sm font-medium truncate">{scene.name}</p>
+                              <p className="text-neutral-400 text-xs line-clamp-2">{scene.description}</p>
+                              <div className="text-neutral-500 text-xs space-y-1">
+                                <input
+                                  type="text"
+                                  value={scene.videoDuration}
+                                  onChange={(e) => updateScene(sceneIndex, { videoDuration: e.target.value })}
+                                  className="w-full bg-transparent focus:outline-none placeholder-neutral-600"
+                                  placeholder="Duration"
+                                />
+                                <input
+                                  type="text"
+                                  value={scene.videoCamera}
+                                  onChange={(e) => updateScene(sceneIndex, { videoCamera: e.target.value })}
+                                  className="w-full bg-transparent focus:outline-none placeholder-neutral-600"
+                                  placeholder="Camera"
+                                />
+                                <input
+                                  type="text"
+                                  value={scene.videoResolution}
+                                  onChange={(e) => updateScene(sceneIndex, { videoResolution: e.target.value })}
+                                  className="w-full bg-transparent focus:outline-none placeholder-neutral-600"
+                                  placeholder="Resolution"
+                                />
+                                <input
+                                  type="text"
+                                  value={scene.videoAspect}
+                                  onChange={(e) => updateScene(sceneIndex, { videoAspect: e.target.value })}
+                                  className="w-full bg-transparent focus:outline-none placeholder-neutral-600"
+                                  placeholder="Aspect"
+                                />
+                              </div>
+                              {scene.videoUrl ? (
+                                <a
+                                  href={scene.videoUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="self-start px-3 py-1.5 border border-green-700 rounded-lg text-green-400 text-xs hover:bg-green-400/10 transition-colors"
+                                >
+                                  View Video
+                                </a>
+                              ) : (
+                                <button
+                                  onClick={() => handleGenerateSceneVideo(sceneIndex)}
+                                  disabled={generatingVideoIndex !== null}
+                                  className="self-start px-3 py-1.5 border border-neutral-700 rounded-lg text-neutral-400 text-xs hover:border-neutral-500 hover:text-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+                                >
+                                  {generatingVideoIndex === sceneIndex ? (
+                                    <>
+                                      <div className="animate-spin rounded-full h-3 w-3 border border-neutral-400 border-t-transparent" />
+                                      Generating...
+                                    </>
+                                  ) : (
+                                    "Generate Video"
+                                  )}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+                {scenes.filter((s) => s.imageFilename).length > 0 && (
+                  <button
+                    onClick={handleGenerateAllSceneVideos}
+                    disabled={isGenerating || generatingVideoIndex !== null}
+                    className="self-start px-6 py-2 bg-white text-black rounded-xl font-semibold text-sm hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                  >
+                    {generatingVideoIndex === -1 ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-black/20 border-t-black" />{" "}
+                        Generating All...
+                      </>
+                    ) : (
+                      "Generate All Videos"
+                    )}
+                  </button>
+                )}
+                {scenes.filter((s) => s.imageFilename).length === 0 && (
+                  <p className="text-neutral-500 text-sm text-center py-4">
+                    Generate scene images first to enable video generation.
+                  </p>
+                )}
+              </div>
             )}
           </section>
         )}

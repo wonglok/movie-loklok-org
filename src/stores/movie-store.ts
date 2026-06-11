@@ -5,6 +5,22 @@ export interface Character {
   description: string;
   imageUrl: string | null;
   imageFilename: string | null;
+  sourceUrl: string | null;
+  videoUrl: string | null;
+  videoDuration: string;
+  videoCamera: string;
+  videoResolution: string;
+  videoAspect: string;
+}
+
+export interface VideoInfo {
+  title: string;
+  genre: string;
+  duration: string;
+  format: string;
+  resolution: string;
+  framerate: string;
+  description: string;
 }
 
 export type ArtStyle =
@@ -33,6 +49,7 @@ interface MovieState {
   sceneImages: string[];
   characters: Character[];
   scenes: Character[];
+  videoInfo: VideoInfo | null;
   activeTab: "characters" | "scenes";
   setStory: (story: string) => void;
   setArtStyle: (style: ArtStyle) => void;
@@ -43,6 +60,7 @@ interface MovieState {
   updateCharacter: (index: number, updates: Partial<Character>) => void;
   setScenes: (scenes: Character[]) => void;
   updateScene: (index: number, updates: Partial<Character>) => void;
+  setVideoInfo: (info: VideoInfo | null) => void;
   setIsGenerating: (generating: boolean) => void;
   setActiveTab: (tab: "characters" | "scenes") => void;
 }
@@ -56,6 +74,7 @@ export const useMovieStore = create<MovieState>((set) => ({
   sceneImages: [],
   characters: [],
   scenes: [],
+  videoInfo: null,
   activeTab: "characters",
   setStory: (story) => set({ story }),
   setArtStyle: (artStyle) => set({ artStyle }),
@@ -76,6 +95,7 @@ export const useMovieStore = create<MovieState>((set) => ({
       scenes[index] = { ...scenes[index], ...updates };
       return { scenes };
     }),
+  setVideoInfo: (videoInfo) => set({ videoInfo }),
   setIsGenerating: (isGenerating) => set({ isGenerating }),
   setActiveTab: (activeTab) => set({ activeTab }),
 }));
