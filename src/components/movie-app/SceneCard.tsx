@@ -107,7 +107,7 @@ export function SceneCard({
             <img
               src={scene.imageUrl}
               alt={scene.name}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain object-top"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
@@ -254,14 +254,20 @@ export function SceneCard({
                     "images",
                     { create: true },
                   );
-                  const sceneDirHandle = await imagesDir.getDirectoryHandle("scene", {
-                    create: true,
-                  });
+                  const sceneDirHandle = await imagesDir.getDirectoryHandle(
+                    "scene",
+                    {
+                      create: true,
+                    },
+                  );
                   const uploadId = crypto.randomUUID();
                   const filename = `${uploadId}.png`;
-                  const fileHandle = await sceneDirHandle.getFileHandle(filename, {
-                    create: true,
-                  });
+                  const fileHandle = await sceneDirHandle.getFileHandle(
+                    filename,
+                    {
+                      create: true,
+                    },
+                  );
                   const writable = await fileHandle.createWritable();
                   await writable.write(file);
                   await writable.close();
