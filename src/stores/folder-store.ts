@@ -2,11 +2,12 @@ import { create } from "zustand";
 import localforage from "localforage";
 
 const FOLDER_HANDLE_KEY = "fal-folder-handle";
-const KEY_FILENAME = "api-keys.json";
+const API_KEY_STORAGE_KEY = "fal-api-key";
 
 interface FolderState {
   folderHandle: FileSystemDirectoryHandle | null;
   folderName: string | null;
+  apiKey: string | null;
   isConfigured: boolean;
   isLoading: boolean;
   error: string | null;
@@ -19,6 +20,7 @@ interface FolderState {
 export const useFolderStore = create<FolderState>((set, get) => ({
   folderHandle: null,
   folderName: null,
+  apiKey: null,
   isConfigured: false,
   isLoading: true,
   error: null,
@@ -39,28 +41,22 @@ export const useFolderStore = create<FolderState>((set, get) => ({
     }
 
     try {
-      const fileHandle = await handle.getFileHandle(KEY_FILENAME, {
-        create: true,
-      });
-      const writable = await fileHandle.createWritable();
-      await writable.write(
-        JSON.stringify({ fal: { apiKey: key.trim() } }, null, 2),
-      );
-      await writable.close();
-
+      await localforage.setItem(API_KEY_STORAGE_KEY, key.trim());
       await localforage.setItem(FOLDER_HANDLE_KEY, handle);
-      set({ isConfigured: true, error: null });
+      set({ apiKey: key.trim(), isConfigured: true, error: null });
     } catch {
-      set({ error: "Failed to save API key to folder" });
+      set({ error: "Failed to save API key" });
     }
   },
 
   loadFromStorage: async () => {
     try {
-      const handle =
-        await localforage.getItem<FileSystemDirectoryHandle>(FOLDER_HANDLE_KEY);
+      const [handle, storedKey] = await Promise.all([
+        localforage.getItem<FileSystemDirectoryHandle>(FOLDER_HANDLE_KEY),
+        localforage.getItem<string>(API_KEY_STORAGE_KEY),
+      ]);
 
-      if (!handle) {
+      if (!handle || !storedKey) {
         set({ isLoading: false });
         return;
       }
@@ -71,6 +67,7 @@ export const useFolderStore = create<FolderState>((set, get) => ({
         set({
           folderHandle: handle,
           folderName: handle.name,
+          apiKey: storedKey,
           isConfigured: true,
           isLoading: false,
         });
@@ -85,6 +82,7 @@ export const useFolderStore = create<FolderState>((set, get) => ({
           set({
             folderHandle: handle,
             folderName: handle.name,
+            apiKey: storedKey,
             isConfigured: true,
             isLoading: false,
           });
@@ -92,19 +90,26 @@ export const useFolderStore = create<FolderState>((set, get) => ({
         }
       }
 
-      // Permission denied — clear stale handle
-      await localforage.removeItem(FOLDER_HANDLE_KEY);
+      // Permission denied — clear stale data
+      await Promise.all([
+        localforage.removeItem(FOLDER_HANDLE_KEY),
+        localforage.removeItem(API_KEY_STORAGE_KEY),
+      ]);
       set({ isLoading: false });
     } catch {
-      set({ isLoading: false, error: "Failed to load stored folder" });
+      set({ isLoading: false, error: "Failed to load stored data" });
     }
   },
 
   clearFolder: async () => {
-    await localforage.removeItem(FOLDER_HANDLE_KEY);
+    await Promise.all([
+      localforage.removeItem(FOLDER_HANDLE_KEY),
+      localforage.removeItem(API_KEY_STORAGE_KEY),
+    ]);
     set({
       folderHandle: null,
       folderName: null,
+      apiKey: null,
       isConfigured: false,
       error: null,
     });

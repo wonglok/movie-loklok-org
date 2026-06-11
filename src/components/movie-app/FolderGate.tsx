@@ -92,11 +92,10 @@ export function FolderGate({ children }: { children: ReactNode }) {
             <h1 className="text-xl font-semibold text-white mb-2">
               Enter your API Key
             </h1>
-            <p className="text-neutral-400 text-sm mb-2">
-              Your fal.ai API key will be saved to
-            </p>
-            <p className="text-neutral-300 text-sm font-mono bg-neutral-800 rounded-lg px-3 py-1.5 mb-6 inline-block">
-              {folderName}
+            <p className="text-neutral-400 text-sm mb-6 leading-relaxed">
+              Your fal.ai API key will be stored securely in your browser and
+              linked to the folder{" "}
+              <span className="text-neutral-300 font-mono">{folderName}</span>.
             </p>
 
             <input
