@@ -232,11 +232,12 @@ export async function uploadAndGenerateVideo(
 
 export async function extractMoments(
   story: string,
-  scenes: { name: string; description: string }[],
+  scenes: { id: string; name: string; description: string }[],
   apiKey: string,
 ): Promise<
   {
-    sceneIndex: number;
+    id: string;
+    sceneId: string;
     name: string;
     description: string;
     duration: number;
@@ -276,7 +277,23 @@ export async function extractMoments(
   };
   const text = data.choices[0].message.content;
   const json = text.replace(/```json|```/g, "").trim();
-  return JSON.parse(json);
+  const raw = JSON.parse(json) as {
+    sceneIndex: number;
+    name: string;
+    description: string;
+    duration: number;
+    cameraAngle: string;
+    cameraMovement: string;
+  }[];
+  return raw.map((m) => ({
+    id: crypto.randomUUID(),
+    sceneId: scenes[m.sceneIndex]?.id ?? "",
+    name: m.name,
+    description: m.description,
+    duration: m.duration,
+    cameraAngle: m.cameraAngle,
+    cameraMovement: m.cameraMovement,
+  }));
 }
 
 export async function extractScenes(

@@ -7,8 +7,8 @@ export function useLocalImages(
   hydrated: boolean,
   characters: Character[],
   scenes: Character[],
-  updateCharacter: (i: number, u: Partial<Character>) => void,
-  updateScene: (i: number, u: Partial<Character>) => void,
+  updateCharacter: (id: string, u: Partial<Character>) => void,
+  updateScene: (id: string, u: Partial<Character>) => void,
 ) {
   useEffect(() => {
     if (!hydrated || !folderHandle) return;
@@ -25,8 +25,7 @@ export function useLocalImages(
           create: true,
         });
 
-        for (let i = 0; i < characters.length; i++) {
-          const char = characters[i];
+        for (const char of characters) {
           if (char.imageFilename) {
             const localUrl = await loadLocalImage(
               char.imageFilename,
@@ -36,13 +35,12 @@ export function useLocalImages(
               if (char.imageUrl?.startsWith("blob:")) {
                 URL.revokeObjectURL(char.imageUrl);
               }
-              updateCharacter(i, { imageUrl: localUrl });
+              updateCharacter(char.id, { imageUrl: localUrl });
             }
           }
         }
 
-        for (let i = 0; i < scenes.length; i++) {
-          const scene = scenes[i];
+        for (const scene of scenes) {
           if (scene.imageFilename) {
             const localUrl = await loadLocalImage(
               scene.imageFilename,
@@ -52,7 +50,7 @@ export function useLocalImages(
               if (scene.imageUrl?.startsWith("blob:")) {
                 URL.revokeObjectURL(scene.imageUrl);
               }
-              updateScene(i, { imageUrl: localUrl });
+              updateScene(scene.id, { imageUrl: localUrl });
             }
           }
         }

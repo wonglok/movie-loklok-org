@@ -4,19 +4,17 @@ import type { Character } from "@/stores/movie-store";
 
 interface CharacterCardProps {
   char: Character;
-  index: number;
-  regeneratingIndex: number | null;
-  onRegenerate: (index: number) => void;
-  onRemove: (index: number) => void;
-  onPreview: (index: number) => void;
+  regeneratingId: string | null;
+  onRegenerate: (id: string) => void;
+  onRemove: (id: string) => void;
+  onPreview: (id: string) => void;
   folderHandle: FileSystemDirectoryHandle | null;
-  updateCharacter: (index: number, updates: Partial<Character>) => void;
+  updateCharacter: (id: string, updates: Partial<Character>) => void;
 }
 
 export function CharacterCard({
   char,
-  index,
-  regeneratingIndex,
+  regeneratingId,
   onRegenerate,
   onRemove,
   onPreview,
@@ -26,7 +24,7 @@ export function CharacterCard({
   return (
     <div className="relative bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden group/card">
       <button
-        onClick={() => onRemove(index)}
+        onClick={() => onRemove(char.id)}
         className="absolute top-3 right-3 p-1.5 rounded-lg text-neutral-600 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover/card:opacity-100 transition-all"
         title="Remove character"
       >
@@ -52,7 +50,7 @@ export function CharacterCard({
               : ""
           }`}
           onClick={() => {
-            if (char.imageUrl) onPreview(index);
+            if (char.imageUrl) onPreview(char.id);
           }}
         >
           {char.imageUrl ? (
@@ -73,14 +71,14 @@ export function CharacterCard({
           <input
             type="text"
             value={char.name}
-            onChange={(e) => updateCharacter(index, { name: e.target.value })}
+            onChange={(e) => updateCharacter(char.id, { name: e.target.value })}
             placeholder="Character name"
             className="w-full bg-transparent text-white font-semibold text-sm focus:outline-none placeholder-neutral-600"
           />
           <textarea
             value={char.description}
             onChange={(e) =>
-              updateCharacter(index, { description: e.target.value })
+              updateCharacter(char.id, { description: e.target.value })
             }
             placeholder="Character description"
             rows={3}
@@ -88,11 +86,11 @@ export function CharacterCard({
           />
           <div className="flex items-center gap-1.5">
             <button
-              onClick={() => onRegenerate(index)}
-              disabled={regeneratingIndex !== null}
+              onClick={() => onRegenerate(char.id)}
+              disabled={regeneratingId !== null}
               className="px-3 py-1.5 border border-neutral-700 rounded-lg text-neutral-400 text-xs hover:border-neutral-500 hover:text-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
             >
-              {regeneratingIndex === index ? (
+              {regeneratingId === char.id ? (
                 <>
                   <div className="animate-spin rounded-full h-3 w-3 border border-neutral-400 border-t-transparent" />
                   Regenerating...
@@ -119,7 +117,7 @@ export function CharacterCard({
             <input
               type="file"
               accept="image/*"
-              id={`char-upload-${index}`}
+              id={`char-upload-${char.id}`}
               className="hidden"
               onChange={async (e) => {
                 const file = e.target.files?.[0];
@@ -133,8 +131,8 @@ export function CharacterCard({
                     await imagesDir.getDirectoryHandle("character", {
                       create: true,
                     });
-                  const id = crypto.randomUUID();
-                  const filename = `${id}.png`;
+                  const uploadId = crypto.randomUUID();
+                  const filename = `${uploadId}.png`;
                   const fileHandle = await characterDir.getFileHandle(filename, {
                     create: true,
                   });
@@ -145,7 +143,7 @@ export function CharacterCard({
                     URL.revokeObjectURL(char.imageUrl);
                   }
                   const localUrl = URL.createObjectURL(file);
-                  updateCharacter(index, {
+                  updateCharacter(char.id, {
                     imageUrl: localUrl,
                     imageFilename: filename,
                   });
@@ -157,7 +155,7 @@ export function CharacterCard({
             />
             <button
               onClick={() =>
-                document.getElementById(`char-upload-${index}`)?.click()
+                document.getElementById(`char-upload-${char.id}`)?.click()
               }
               className="px-2 py-1.5 border border-neutral-700 rounded-lg text-neutral-500 text-xs hover:border-neutral-500 hover:text-neutral-300 transition-colors"
               title="Upload image"

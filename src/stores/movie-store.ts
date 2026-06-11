@@ -6,6 +6,7 @@ export interface Conversation {
 }
 
 export interface Character {
+  id: string;
   name: string;
   description: string;
   imageUrl: string | null;
@@ -23,7 +24,8 @@ export const RESOLUTION_OPTIONS = ["720p", "1080p"] as const;
 export const ASPECT_OPTIONS = ["16:9", "9:16", "4:3", "1:1", "3:4"] as const;
 
 export interface Moment {
-  sceneIndex: number;
+  id: string;
+  sceneId: string;
   name: string;
   description: string;
   duration: number;
@@ -76,11 +78,11 @@ interface MovieState {
   setCharacterImages: (images: string[]) => void;
   setSceneImages: (images: string[]) => void;
   setCharacters: (characters: Character[]) => void;
-  updateCharacter: (index: number, updates: Partial<Character>) => void;
+  updateCharacter: (id: string, updates: Partial<Character>) => void;
   setScenes: (scenes: Character[]) => void;
-  updateScene: (index: number, updates: Partial<Character>) => void;
+  updateScene: (id: string, updates: Partial<Character>) => void;
   setMoments: (moments: Moment[]) => void;
-  updateMoment: (index: number, updates: Partial<Moment>) => void;
+  updateMoment: (id: string, updates: Partial<Moment>) => void;
   setVideoInfo: (info: VideoInfo | null) => void;
   setIsGenerating: (generating: boolean) => void;
   setActiveTab: (tab: "characters" | "scenes") => void;
@@ -104,26 +106,26 @@ export const useMovieStore = create<MovieState>((set) => ({
   setCharacterImages: (characterImages) => set({ characterImages }),
   setSceneImages: (sceneImages) => set({ sceneImages }),
   setCharacters: (characters) => set({ characters }),
-  updateCharacter: (index, updates) =>
-    set((state) => {
-      const characters = [...state.characters];
-      characters[index] = { ...characters[index], ...updates };
-      return { characters };
-    }),
+  updateCharacter: (id, updates) =>
+    set((state) => ({
+      characters: state.characters.map((c) =>
+        c.id === id ? { ...c, ...updates } : c,
+      ),
+    })),
   setScenes: (scenes) => set({ scenes }),
-  updateScene: (index, updates) =>
-    set((state) => {
-      const scenes = [...state.scenes];
-      scenes[index] = { ...scenes[index], ...updates };
-      return { scenes };
-    }),
+  updateScene: (id, updates) =>
+    set((state) => ({
+      scenes: state.scenes.map((s) =>
+        s.id === id ? { ...s, ...updates } : s,
+      ),
+    })),
   setMoments: (moments) => set({ moments }),
-  updateMoment: (index, updates) =>
-    set((state) => {
-      const moments = [...state.moments];
-      moments[index] = { ...moments[index], ...updates };
-      return { moments };
-    }),
+  updateMoment: (id, updates) =>
+    set((state) => ({
+      moments: state.moments.map((m) =>
+        m.id === id ? { ...m, ...updates } : m,
+      ),
+    })),
   setVideoInfo: (videoInfo) => set({ videoInfo }),
   setIsGenerating: (isGenerating) => set({ isGenerating }),
   setActiveTab: (activeTab) => set({ activeTab }),

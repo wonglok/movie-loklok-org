@@ -4,27 +4,25 @@ import type { Character, Conversation } from "@/stores/movie-store";
 
 interface SceneCardProps {
   scene: Character;
-  index: number;
-  sceneRegenIndex: number | null;
-  scriptRegenIndex: number | null;
-  generatingVideoIndex: number | null;
+  sceneRegenId: string | null;
+  scriptRegenId: string | null;
+  generatingVideoId: string | null;
   selected: boolean;
-  onToggleSelect: (index: number) => void;
-  onRegenerate: (index: number) => void;
-  onRegenerateScript: (index: number) => void;
-  onGenerateVideo: (index: number) => void;
-  onRemove: (index: number) => void;
-  onPreview: (index: number) => void;
+  onToggleSelect: (id: string) => void;
+  onRegenerate: (id: string) => void;
+  onRegenerateScript: (id: string) => void;
+  onGenerateVideo: (id: string) => void;
+  onRemove: (id: string) => void;
+  onPreview: (id: string) => void;
   folderHandle: FileSystemDirectoryHandle | null;
-  updateScene: (index: number, updates: Partial<Character>) => void;
+  updateScene: (id: string, updates: Partial<Character>) => void;
 }
 
 export function SceneCard({
   scene,
-  index,
-  sceneRegenIndex,
-  scriptRegenIndex,
-  generatingVideoIndex,
+  sceneRegenId,
+  scriptRegenId,
+  generatingVideoId,
   selected,
   onToggleSelect,
   onRegenerate,
@@ -43,11 +41,11 @@ export function SceneCard({
   ) => {
     const next = [...conversations];
     next[convIndex] = { ...next[convIndex], ...updates };
-    updateScene(index, { conversations: next });
+    updateScene(scene.id, { conversations: next });
   };
 
   const addConversation = () => {
-    updateScene(index, {
+    updateScene(scene.id, {
       conversations: [...conversations, { person: "", line: "" }],
     });
   };
@@ -55,7 +53,7 @@ export function SceneCard({
   const removeConversation = (convIndex: number) => {
     const next = [...conversations];
     next.splice(convIndex, 1);
-    updateScene(index, { conversations: next });
+    updateScene(scene.id, { conversations: next });
   };
 
   return (
@@ -67,11 +65,11 @@ export function SceneCard({
       <input
         type="checkbox"
         checked={selected}
-        onChange={() => onToggleSelect(index)}
+        onChange={() => onToggleSelect(scene.id)}
         className="absolute top-3 left-3 w-4 h-4 rounded border-neutral-600 bg-neutral-800 accent-(--blender-accent) cursor-pointer z-10 opacity-0 group-hover/card:opacity-100 transition-opacity"
       />
       <button
-        onClick={() => onRemove(index)}
+        onClick={() => onRemove(scene.id)}
         className="absolute top-3 right-3 p-1.5 rounded-lg text-neutral-600 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover/card:opacity-100 transition-all z-10"
         title="Remove scene"
       >
@@ -97,7 +95,7 @@ export function SceneCard({
               : ""
           }`}
           onClick={() => {
-            if (scene.imageUrl) onPreview(index);
+            if (scene.imageUrl) onPreview(scene.id);
           }}
         >
           {scene.imageUrl ? (
@@ -118,14 +116,14 @@ export function SceneCard({
           <input
             type="text"
             value={scene.name}
-            onChange={(e) => updateScene(index, { name: e.target.value })}
+            onChange={(e) => updateScene(scene.id, { name: e.target.value })}
             placeholder="Scene name"
             className="w-full bg-transparent text-white font-semibold text-sm focus:outline-none placeholder-neutral-600"
           />
           <textarea
             value={scene.description}
             onChange={(e) =>
-              updateScene(index, { description: e.target.value })
+              updateScene(scene.id, { description: e.target.value })
             }
             placeholder="Scene description"
             rows={3}
@@ -143,7 +141,28 @@ export function SceneCard({
               </span>
             </div>
             {conversations.map((conv, ci) => (
-              <div key={ci} className="flex items-start gap-1.5 group/conv">
+              <div
+                key={ci}
+                className="flex items-start gap-1.5 group/conv"
+              >
+                <input
+                  type="text"
+                  value={conv.person}
+                  onChange={(e) =>
+                    updateConversation(ci, { person: e.target.value })
+                  }
+                  placeholder="Actor / VO"
+                  className="w-24 shrink-0 bg-neutral-800 rounded px-2 py-1 text-neutral-300 text-xs focus:outline-none focus:ring-1 focus:ring-neutral-600 placeholder-neutral-600"
+                />
+                <input
+                  type="text"
+                  value={conv.line}
+                  onChange={(e) =>
+                    updateConversation(ci, { line: e.target.value })
+                  }
+                  placeholder="Line of script..."
+                  className="flex-1 bg-neutral-800 rounded px-2 py-1 text-neutral-300 text-xs focus:outline-none focus:ring-1 focus:ring-neutral-600 placeholder-neutral-600"
+                />
                 <button
                   onClick={() => removeConversation(ci)}
                   className="shrink-0 p-1 rounded text-neutral-600 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover/conv:opacity-100 transition-all"
@@ -163,24 +182,6 @@ export function SceneCard({
                     />
                   </svg>
                 </button>
-                <input
-                  type="text"
-                  value={conv.person}
-                  onChange={(e) =>
-                    updateConversation(ci, { person: e.target.value })
-                  }
-                  placeholder="Actor / VO"
-                  className="w-24 shrink-0 bg-neutral-800 rounded px-2 py-1 text-neutral-300 text-xs focus:outline-none focus:ring-1 focus:ring-neutral-600 placeholder-neutral-600"
-                />
-                <input
-                  type="text"
-                  value={conv.line}
-                  onChange={(e) =>
-                    updateConversation(ci, { line: e.target.value })
-                  }
-                  placeholder="Line of script..."
-                  className="flex-1 w-full bg-neutral-800 rounded px-2 py-1 text-neutral-300 text-xs focus:outline-none focus:ring-1 focus:ring-neutral-600 placeholder-neutral-600"
-                />
               </div>
             ))}
             <button
@@ -193,11 +194,11 @@ export function SceneCard({
 
           <div className="flex items-center gap-1.5 flex-wrap">
             <button
-              onClick={() => onRegenerate(index)}
-              disabled={sceneRegenIndex !== null || scriptRegenIndex !== null}
+              onClick={() => onRegenerate(scene.id)}
+              disabled={sceneRegenId !== null || scriptRegenId !== null}
               className="px-3 py-1.5 border border-neutral-700 rounded-lg text-neutral-400 text-xs hover:border-neutral-500 hover:text-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
             >
-              {sceneRegenIndex === index ? (
+              {sceneRegenId === scene.id ? (
                 <>
                   <div className="animate-spin rounded-full h-3 w-3 border border-neutral-400 border-t-transparent" />
                   Regenerating...
@@ -222,11 +223,11 @@ export function SceneCard({
               )}
             </button>
             <button
-              onClick={() => onRegenerateScript(index)}
-              disabled={sceneRegenIndex !== null || scriptRegenIndex !== null}
+              onClick={() => onRegenerateScript(scene.id)}
+              disabled={sceneRegenId !== null || scriptRegenId !== null}
               className="px-3 py-1.5 border border-neutral-700 rounded-lg text-neutral-400 text-xs hover:border-neutral-500 hover:text-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
             >
-              {scriptRegenIndex === index ? (
+              {scriptRegenId === scene.id ? (
                 <>
                   <div className="animate-spin rounded-full h-3 w-3 border border-neutral-400 border-t-transparent" />
                   Generating...
@@ -238,7 +239,7 @@ export function SceneCard({
             <input
               type="file"
               accept="image/*"
-              id={`scene-upload-${index}`}
+              id={`scene-upload-${scene.id}`}
               className="hidden"
               onChange={async (e) => {
                 const file = e.target.files?.[0];
@@ -248,12 +249,12 @@ export function SceneCard({
                     "images",
                     { create: true },
                   );
-                  const sceneDir = await imagesDir.getDirectoryHandle("scene", {
+                  const sceneDirHandle = await imagesDir.getDirectoryHandle("scene", {
                     create: true,
                   });
-                  const id = crypto.randomUUID();
-                  const filename = `${id}.png`;
-                  const fileHandle = await sceneDir.getFileHandle(filename, {
+                  const uploadId = crypto.randomUUID();
+                  const filename = `${uploadId}.png`;
+                  const fileHandle = await sceneDirHandle.getFileHandle(filename, {
                     create: true,
                   });
                   const writable = await fileHandle.createWritable();
@@ -263,7 +264,7 @@ export function SceneCard({
                     URL.revokeObjectURL(scene.imageUrl);
                   }
                   const localUrl = URL.createObjectURL(file);
-                  updateScene(index, {
+                  updateScene(scene.id, {
                     imageUrl: localUrl,
                     imageFilename: filename,
                   });
@@ -275,7 +276,7 @@ export function SceneCard({
             />
             <button
               onClick={() =>
-                document.getElementById(`scene-upload-${index}`)?.click()
+                document.getElementById(`scene-upload-${scene.id}`)?.click()
               }
               className="px-2 py-1.5 border border-neutral-700 rounded-lg text-neutral-500 text-xs hover:border-neutral-500 hover:text-neutral-300 transition-colors"
               title="Upload image"
@@ -307,7 +308,7 @@ export function SceneCard({
               type="number"
               value={scene.videoDuration}
               onChange={(e) =>
-                updateScene(index, {
+                updateScene(scene.id, {
                   videoDuration: Number(e.target.value) || 0,
                 })
               }
@@ -322,7 +323,7 @@ export function SceneCard({
               type="text"
               value={scene.videoCamera}
               onChange={(e) =>
-                updateScene(index, { videoCamera: e.target.value })
+                updateScene(scene.id, { videoCamera: e.target.value })
               }
               className="w-full bg-neutral-800 rounded px-2 py-1 text-neutral-300 text-xs focus:outline-none focus:ring-1 focus:ring-neutral-600"
               placeholder="Slow pan"
@@ -339,11 +340,11 @@ export function SceneCard({
             </a>
           ) : (
             <button
-              onClick={() => onGenerateVideo(index)}
-              disabled={generatingVideoIndex !== null}
+              onClick={() => onGenerateVideo(scene.id)}
+              disabled={generatingVideoId !== null}
               className="shrink-0 px-3 py-1.5 border border-neutral-700 rounded-lg text-neutral-400 text-xs hover:border-neutral-500 hover:text-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
             >
-              {generatingVideoIndex === index ? (
+              {generatingVideoId === scene.id ? (
                 <>
                   <div className="animate-spin rounded-full h-3 w-3 border border-neutral-400 border-t-transparent" />
                   Generating...
