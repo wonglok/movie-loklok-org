@@ -139,28 +139,7 @@ export function SceneCard({
               </span>
             </div>
             {conversations.map((conv, ci) => (
-              <div
-                key={ci}
-                className="flex items-start gap-1.5 group/conv"
-              >
-                <input
-                  type="text"
-                  value={conv.person}
-                  onChange={(e) =>
-                    updateConversation(ci, { person: e.target.value })
-                  }
-                  placeholder="Actor / VO"
-                  className="w-24 shrink-0 bg-neutral-800 rounded px-2 py-1 text-neutral-300 text-xs focus:outline-none focus:ring-1 focus:ring-neutral-600 placeholder-neutral-600"
-                />
-                <input
-                  type="text"
-                  value={conv.line}
-                  onChange={(e) =>
-                    updateConversation(ci, { line: e.target.value })
-                  }
-                  placeholder="Line of script..."
-                  className="flex-1 bg-neutral-800 rounded px-2 py-1 text-neutral-300 text-xs focus:outline-none focus:ring-1 focus:ring-neutral-600 placeholder-neutral-600"
-                />
+              <div key={ci} className="flex items-start gap-1.5 group/conv">
                 <button
                   onClick={() => removeConversation(ci)}
                   className="shrink-0 p-1 rounded text-neutral-600 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover/conv:opacity-100 transition-all"
@@ -180,6 +159,24 @@ export function SceneCard({
                     />
                   </svg>
                 </button>
+                <input
+                  type="text"
+                  value={conv.person}
+                  onChange={(e) =>
+                    updateConversation(ci, { person: e.target.value })
+                  }
+                  placeholder="Actor / VO"
+                  className="w-24 shrink-0 bg-neutral-800 rounded px-2 py-1 text-neutral-300 text-xs focus:outline-none focus:ring-1 focus:ring-neutral-600 placeholder-neutral-600"
+                />
+                <input
+                  type="text"
+                  value={conv.line}
+                  onChange={(e) =>
+                    updateConversation(ci, { line: e.target.value })
+                  }
+                  placeholder="Line of script..."
+                  className="flex-1 w-full bg-neutral-800 rounded px-2 py-1 text-neutral-300 text-xs focus:outline-none focus:ring-1 focus:ring-neutral-600 placeholder-neutral-600"
+                />
               </div>
             ))}
             <button
