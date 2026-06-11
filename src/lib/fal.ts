@@ -10,18 +10,24 @@ export interface GenerateResult {
 export async function generateImage(
   prompt: string,
   apiKey: string,
+  referenceUrls?: string[],
 ): Promise<GenerateResult> {
+  const body: Record<string, unknown> = {
+    prompt,
+    num_images: 1,
+    image_size: "landscape_4_3",
+  };
+  if (referenceUrls?.length) {
+    body.image_url = referenceUrls;
+  }
+
   const res = await fetch(FAL_TEXT2IMG, {
     method: "POST",
     headers: {
       Authorization: `Key ${apiKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      prompt,
-      num_images: 1,
-      image_size: "landscape_4_3",
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {

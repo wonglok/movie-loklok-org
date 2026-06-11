@@ -333,10 +333,17 @@ export function MovieApp() {
       const sceneDir = await imagesDir.getDirectoryHandle("scene", {
         create: true,
       });
+      const charRefs = characters
+        .filter((c) => c.sourceUrl)
+        .map((c) => c.sourceUrl!);
+      const charNames = characters
+        .filter((c) => c.name)
+        .map((c) => c.name)
+        .join(", ");
       for (let i = 0; i < updated.length; i++) {
         const scene = updated[i];
-        const prompt = `Cinematic movie keyframe, ${effectiveStyle} animation style. Scene: ${scene.name}. ${scene.description}. Wide establishing shot, dramatic lighting, film composition.`;
-        const result = await generateImage(prompt, apiKey);
+        const prompt = `Cinematic movie keyframe, ${effectiveStyle} animation style. Featuring characters: ${charNames || "original characters"}. Scene: ${scene.name}. ${scene.description}. Characters must maintain consistent appearance and design. Wide establishing shot, dramatic lighting, film composition.`;
+        const result = await generateImage(prompt, apiKey, charRefs);
         const id = crypto.randomUUID();
         const filename = `${id}.png`;
         const localUrl = await saveAndLoadLocal(result.url, filename, sceneDir);
@@ -366,8 +373,15 @@ export function MovieApp() {
     setError(null);
     setSceneRegenIndex(index);
     try {
-      const prompt = `Cinematic movie keyframe, ${effectiveStyle} animation style. Scene: ${scene.name}. ${scene.description}. Wide establishing shot, dramatic lighting, film composition.`;
-      const result = await generateImage(prompt, apiKey);
+      const charRefs = characters
+        .filter((c) => c.sourceUrl)
+        .map((c) => c.sourceUrl!);
+      const charNames = characters
+        .filter((c) => c.name)
+        .map((c) => c.name)
+        .join(", ");
+      const prompt = `Cinematic movie keyframe, ${effectiveStyle} animation style. Featuring characters: ${charNames || "original characters"}. Scene: ${scene.name}. ${scene.description}. Characters must maintain consistent appearance and design. Wide establishing shot, dramatic lighting, film composition.`;
+      const result = await generateImage(prompt, apiKey, charRefs);
       if (folderHandle) {
         const imagesDir = await folderHandle.getDirectoryHandle("images", {
           create: true,
