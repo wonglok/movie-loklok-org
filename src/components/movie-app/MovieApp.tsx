@@ -106,6 +106,8 @@ export function MovieApp() {
   const apiKey = useFolderStore((s) => s.apiKey);
   const folderHandle = useFolderStore((s) => s.folderHandle);
   const folderName = useFolderStore((s) => s.folderName);
+  const setFolder = useFolderStore((s) => s.setFolder);
+  const saveApiKey = useFolderStore((s) => s.saveApiKey);
 
   const [error, setError] = useState<string | null>(null);
   const [savedPath, setSavedPath] = useState<string | null>(null);
@@ -113,9 +115,26 @@ export function MovieApp() {
   const [generatingScenes, setGeneratingScenes] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [pickerError, setPickerError] = useState<string | null>(null);
 
   const isGenerating = generatingCharacters || generatingScenes;
   const effectiveStyle = resolveStyle(customArtStyle, artStyle);
+
+  const handleChangeFolder = async () => {
+    setPickerError(null);
+    try {
+      const handle = await window.showDirectoryPicker();
+      setFolder(handle);
+      await saveApiKey(apiKey ?? "");
+      setShowSettings(false);
+    } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      setPickerError(
+        err instanceof Error ? err.message : "Failed to select folder",
+      );
+    }
+  };
 
   // Load persisted state from movie.json on mount
   useEffect(() => {
