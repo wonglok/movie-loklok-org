@@ -60,6 +60,7 @@ export function MovieApp() {
     null,
   );
   const [sceneRegenIndex, setSceneRegenIndex] = useState<number | null>(null);
+  const [scriptRegenIndex, setScriptRegenIndex] = useState<number | null>(null);
   const [generatingVideoIndex, setGeneratingVideoIndex] = useState<
     number | null
   >(null);
@@ -435,6 +436,25 @@ export function MovieApp() {
       setError(err instanceof Error ? err.message : "Regeneration failed");
     } finally {
       setSceneRegenIndex(null);
+    }
+  };
+
+  const handleRegenerateSceneScript = async (index: number) => {
+    const scene = scenes[index];
+    if (!scene || !apiKey) return;
+    setError(null);
+    setScriptRegenIndex(index);
+    try {
+      const conversations = await regenerateSceneConversations(
+        scene.name,
+        scene.description,
+        apiKey,
+      );
+      updateScene(index, { conversations });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Script regeneration failed");
+    } finally {
+      setScriptRegenIndex(null);
     }
   };
 
@@ -926,10 +946,12 @@ export function MovieApp() {
                       scene={scene}
                       index={i}
                       sceneRegenIndex={sceneRegenIndex}
+                      scriptRegenIndex={scriptRegenIndex}
                       generatingVideoIndex={generatingVideoIndex}
                       selected={selectedScenes.has(i)}
                       onToggleSelect={toggleSceneSelect}
                       onRegenerate={handleRegenerateScene}
+                      onRegenerateScript={handleRegenerateSceneScript}
                       onGenerateVideo={handleGenerateSceneVideo}
                       onRemove={(i) =>
                         setRemoveTarget({ index: i, type: "scene" })

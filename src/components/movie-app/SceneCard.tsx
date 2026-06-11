@@ -6,10 +6,12 @@ interface SceneCardProps {
   scene: Character;
   index: number;
   sceneRegenIndex: number | null;
+  scriptRegenIndex: number | null;
   generatingVideoIndex: number | null;
   selected: boolean;
   onToggleSelect: (index: number) => void;
   onRegenerate: (index: number) => void;
+  onRegenerateScript: (index: number) => void;
   onGenerateVideo: (index: number) => void;
   onRemove: (index: number) => void;
   onPreview: (index: number) => void;
@@ -21,10 +23,12 @@ export function SceneCard({
   scene,
   index,
   sceneRegenIndex,
+  scriptRegenIndex,
   generatingVideoIndex,
   selected,
   onToggleSelect,
   onRegenerate,
+  onRegenerateScript,
   onGenerateVideo,
   onRemove,
   onPreview,
@@ -187,10 +191,10 @@ export function SceneCard({
             </button>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <button
               onClick={() => onRegenerate(index)}
-              disabled={sceneRegenIndex !== null}
+              disabled={sceneRegenIndex !== null || scriptRegenIndex !== null}
               className="px-3 py-1.5 border border-neutral-700 rounded-lg text-neutral-400 text-xs hover:border-neutral-500 hover:text-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
             >
               {sceneRegenIndex === index ? (
@@ -213,8 +217,22 @@ export function SceneCard({
                       d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182"
                     />
                   </svg>
-                  Regenerate
+                  Image &amp; Script
                 </>
+              )}
+            </button>
+            <button
+              onClick={() => onRegenerateScript(index)}
+              disabled={sceneRegenIndex !== null || scriptRegenIndex !== null}
+              className="px-3 py-1.5 border border-neutral-700 rounded-lg text-neutral-400 text-xs hover:border-neutral-500 hover:text-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+            >
+              {scriptRegenIndex === index ? (
+                <>
+                  <div className="animate-spin rounded-full h-3 w-3 border border-neutral-400 border-t-transparent" />
+                  Generating...
+                </>
+              ) : (
+                "Script Only"
               )}
             </button>
             <input
