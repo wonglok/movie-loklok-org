@@ -7,11 +7,14 @@ export interface Character {
   imageFilename: string | null;
   sourceUrl: string | null;
   videoUrl: string | null;
-  videoDuration: string;
+  videoDuration: number;
   videoCamera: string;
-  videoResolution: string;
-  videoAspect: string;
+  videoResolution: "720p" | "1080p";
+  videoAspect: "16:9" | "9:16" | "4:3" | "1:1" | "3:4";
 }
+
+export const RESOLUTION_OPTIONS = ["720p", "1080p"] as const;
+export const ASPECT_OPTIONS = ["16:9", "9:16", "4:3", "1:1", "3:4"] as const;
 
 export interface VideoInfo {
   title: string;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useMovieStore, ART_STYLES, type ArtStyle } from "@/stores/movie-store";
+import { useMovieStore, ART_STYLES, RESOLUTION_OPTIONS, ASPECT_OPTIONS, type ArtStyle } from "@/stores/movie-store";
 import { useFolderStore } from "@/stores/folder-store";
 import {
   generateImage,
@@ -196,7 +196,7 @@ export function MovieApp() {
     try {
       const extracted = await extractCharacters(story, apiKey);
       setCharacters(
-        extracted.map((c) => ({ ...c, imageUrl: null, imageFilename: null, sourceUrl: null, videoUrl: null, videoDuration: "~5s", videoCamera: "Static / Slow pan", videoResolution: "720p", videoAspect: "9:16" })),
+        extracted.map((c) => ({ ...c, imageUrl: null, imageFilename: null, sourceUrl: null, videoUrl: null, videoDuration: 5, videoCamera: "Static / Slow pan", videoResolution: "720p", videoAspect: "9:16" })),
       );
     } catch (err) {
       setError(
@@ -289,7 +289,7 @@ export function MovieApp() {
     try {
       const extracted = await extractScenes(story, apiKey);
       setScenes(
-        extracted.map((s) => ({ ...s, imageUrl: null, imageFilename: null, sourceUrl: null, videoUrl: null, videoDuration: "~5s", videoCamera: "Static / Slow pan", videoResolution: "720p", videoAspect: "9:16" })),
+        extracted.map((s) => ({ ...s, imageUrl: null, imageFilename: null, sourceUrl: null, videoUrl: null, videoDuration: 5, videoCamera: "Static / Slow pan", videoResolution: "720p", videoAspect: "9:16" })),
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Scene extraction failed");
@@ -391,7 +391,7 @@ export function MovieApp() {
         const fileHandle = await sceneDir.getFileHandle(scene.imageFilename);
         const file = await fileHandle.getFile();
         const prompt = `${scene.name}. ${scene.description}`;
-        const videoUrl = await uploadAndGenerateVideo(file, prompt, apiKey);
+        const videoUrl = await uploadAndGenerateVideo(file, prompt, apiKey, scene.videoResolution, scene.videoAspect);
         updateScene(i, { videoUrl });
       }
     } catch (err) {
@@ -412,7 +412,7 @@ export function MovieApp() {
       const fileHandle = await sceneDir.getFileHandle(scene.imageFilename);
       const file = await fileHandle.getFile();
       const prompt = `${scene.name}. ${scene.description}`;
-      const videoUrl = await uploadAndGenerateVideo(file, prompt, apiKey);
+      const videoUrl = await uploadAndGenerateVideo(file, prompt, apiKey, scene.videoResolution, scene.videoAspect);
       updateScene(index, { videoUrl });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Video generation failed");
@@ -621,7 +621,7 @@ export function MovieApp() {
                       imageFilename: null,
                       sourceUrl: null,
                       videoUrl: null,
-                      videoDuration: "~5s",
+                      videoDuration: 5,
                       videoCamera: "Static / Slow pan",
                       videoResolution: "720p",
                       videoAspect: "9:16",
@@ -734,7 +734,7 @@ export function MovieApp() {
                           imageFilename: null,
                           sourceUrl: null,
                           videoUrl: null,
-                          videoDuration: "~5s",
+                          videoDuration: 5,
                           videoCamera: "Static / Slow pan",
                           videoResolution: "720p",
                           videoAspect: "9:16",
@@ -874,34 +874,51 @@ export function MovieApp() {
                               <p className="text-white text-sm font-medium truncate">{scene.name}</p>
                               <p className="text-neutral-400 text-xs line-clamp-2">{scene.description}</p>
                               <div className="text-neutral-500 text-xs space-y-1">
-                                <input
-                                  type="text"
-                                  value={scene.videoDuration}
-                                  onChange={(e) => updateScene(sceneIndex, { videoDuration: e.target.value })}
-                                  className="w-full bg-transparent focus:outline-none placeholder-neutral-600"
-                                  placeholder="Duration"
-                                />
-                                <input
-                                  type="text"
-                                  value={scene.videoCamera}
-                                  onChange={(e) => updateScene(sceneIndex, { videoCamera: e.target.value })}
-                                  className="w-full bg-transparent focus:outline-none placeholder-neutral-600"
-                                  placeholder="Camera"
-                                />
-                                <input
-                                  type="text"
-                                  value={scene.videoResolution}
-                                  onChange={(e) => updateScene(sceneIndex, { videoResolution: e.target.value })}
-                                  className="w-full bg-transparent focus:outline-none placeholder-neutral-600"
-                                  placeholder="Resolution"
-                                />
-                                <input
-                                  type="text"
-                                  value={scene.videoAspect}
-                                  onChange={(e) => updateScene(sceneIndex, { videoAspect: e.target.value })}
-                                  className="w-full bg-transparent focus:outline-none placeholder-neutral-600"
-                                  placeholder="Aspect"
-                                />
+                                <div className="flex items-center gap-2">
+                                  <span className="w-16 shrink-0">Duration</span>
+                                  <input
+                                    type="number"
+                                    value={scene.videoDuration}
+                                    onChange={(e) => updateScene(sceneIndex, { videoDuration: Number(e.target.value) || 0 })}
+                                    className="w-full bg-neutral-800 rounded px-2 py-1 text-neutral-300 focus:outline-none focus:ring-1 focus:ring-neutral-600"
+                                    min={1}
+                                  />
+                                  <span className="shrink-0">s</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="w-16 shrink-0">Camera</span>
+                                  <input
+                                    type="text"
+                                    value={scene.videoCamera}
+                                    onChange={(e) => updateScene(sceneIndex, { videoCamera: e.target.value })}
+                                    className="w-full bg-neutral-800 rounded px-2 py-1 text-neutral-300 focus:outline-none focus:ring-1 focus:ring-neutral-600"
+                                    placeholder="Static / Slow pan"
+                                  />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="w-16 shrink-0">Res.</span>
+                                  <select
+                                    value={scene.videoResolution}
+                                    onChange={(e) => updateScene(sceneIndex, { videoResolution: e.target.value as "720p" | "1080p" })}
+                                    className="w-full bg-neutral-800 rounded px-2 py-1 text-neutral-300 focus:outline-none focus:ring-1 focus:ring-neutral-600"
+                                  >
+                                    {RESOLUTION_OPTIONS.map((r) => (
+                                      <option key={r} value={r}>{r}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="w-16 shrink-0">Aspect</span>
+                                  <select
+                                    value={scene.videoAspect}
+                                    onChange={(e) => updateScene(sceneIndex, { videoAspect: e.target.value as typeof scene.videoAspect })}
+                                    className="w-full bg-neutral-800 rounded px-2 py-1 text-neutral-300 focus:outline-none focus:ring-1 focus:ring-neutral-600"
+                                  >
+                                    {ASPECT_OPTIONS.map((a) => (
+                                      <option key={a} value={a}>{a}</option>
+                                    ))}
+                                  </select>
+                                </div>
                               </div>
                               {scene.videoUrl ? (
                                 <a

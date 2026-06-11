@@ -143,10 +143,29 @@ export async function uploadAndGenerateVideo(
   file: File,
   prompt: string,
   apiKey: string,
+  resolution?: string,
+  aspectRatio?: string,
 ): Promise<string> {
   fal.config({ credentials: apiKey });
   const fileUrl = await fal.storage.upload(file);
-  return generateVideo(fileUrl, prompt, apiKey);
+
+  const result = await fal.subscribe(FAL_VIDEO, {
+    input: {
+      prompt,
+      image_url: fileUrl,
+      aspect_ratio: aspectRatio ?? "9:16",
+      resolution: resolution ?? "720p",
+    },
+    logs: true,
+    onQueueUpdate: (update) => {
+      if (update.status === "IN_PROGRESS") {
+        update.logs.map((log) => log.message).forEach(console.log);
+      }
+    },
+  });
+
+  const data = result.data as { video?: { url: string }; url?: string };
+  return data.video?.url ?? data.url ?? "";
 }
 
 export async function extractScenes(
