@@ -1,7 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useMovieStore, ART_STYLES, type ArtStyle } from "@/stores/movie-store";
+import {
+  useMovieStore,
+  ART_STYLES,
+  type ArtStyle,
+  type Character,
+} from "@/stores/movie-store";
 import { useFolderStore } from "@/stores/folder-store";
 
 const FAL_TEXT2IMG = "https://fal.run/fal-ai/nano-banana";
@@ -66,9 +71,11 @@ async function savePromptFile(
   await writable.close();
 }
 
-async function readMovieJson(
-  folderHandle: FileSystemDirectoryHandle,
-): Promise<{ story?: string; artStyle?: string; customArtStyle?: string } | null> {
+async function readMovieJson(folderHandle: FileSystemDirectoryHandle): Promise<{
+  story?: string;
+  artStyle?: string;
+  customArtStyle?: string;
+} | null> {
   try {
     const fileHandle = await folderHandle.getFileHandle("movie.json");
     const file = await fileHandle.getFile();
@@ -91,17 +98,74 @@ async function writeMovieJson(
   await writable.close();
 }
 
+async function readCharactersJson(
+  folderHandle: FileSystemDirectoryHandle,
+): Promise<Character[] | null> {
+  try {
+    const fileHandle = await folderHandle.getFileHandle("character.json");
+    const file = await fileHandle.getFile();
+    const text = await file.text();
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+async function writeCharactersJson(
+  folderHandle: FileSystemDirectoryHandle,
+  characters: Character[],
+): Promise<void> {
+  const fileHandle = await folderHandle.getFileHandle("character.json", {
+    create: true,
+  });
+  const writable = await fileHandle.createWritable();
+  await writable.write(JSON.stringify(characters, null, 2));
+  await writable.close();
+}
+
+async function extractCharacters(
+  story: string,
+  apiKey: string,
+): Promise<{ name: string; description: string }[]> {
+  const res = await fetch("https://fal.run/fal-ai/llama3-8b", {
+    method: "POST",
+    headers: {
+      Authorization: `Key ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      prompt: `Extract all characters from this movie story. Return ONLY a valid JSON array of objects with "name" and "description" fields. No other text.\n\nStory: ${story}`,
+      max_tokens: 1000,
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Character extraction failed ${res.status}: ${body}`);
+  }
+
+  const data = await res.json();
+  // fal.ai text models return output in data.output or data.choices[0].message.content
+  const text = data.output ?? data.choices?.[0]?.message?.content ?? "";
+  // Strip markdown code fences if present
+  const json = text.replace(/```json|```/g, "").trim();
+  return JSON.parse(json);
+}
+
 export function MovieApp() {
   const story = useMovieStore((s) => s.story);
   const artStyle = useMovieStore((s) => s.artStyle);
   const customArtStyle = useMovieStore((s) => s.customArtStyle);
   const characterImages = useMovieStore((s) => s.characterImages);
   const sceneImages = useMovieStore((s) => s.sceneImages);
+  const characters = useMovieStore((s) => s.characters);
   const setStory = useMovieStore((s) => s.setStory);
   const setArtStyle = useMovieStore((s) => s.setArtStyle);
   const setCustomArtStyle = useMovieStore((s) => s.setCustomArtStyle);
   const setCharacterImages = useMovieStore((s) => s.setCharacterImages);
   const setSceneImages = useMovieStore((s) => s.setSceneImages);
+  const setCharacters = useMovieStore((s) => s.setCharacters);
+  const updateCharacter = useMovieStore((s) => s.updateCharacter);
 
   const apiKey = useFolderStore((s) => s.apiKey);
   const folderHandle = useFolderStore((s) => s.folderHandle);
@@ -113,12 +177,13 @@ export function MovieApp() {
   const [savedPath, setSavedPath] = useState<string | null>(null);
   const [generatingCharacters, setGeneratingCharacters] = useState(false);
   const [generatingScenes, setGeneratingScenes] = useState(false);
+  const [extracting, setExtracting] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [pickerError, setPickerError] = useState<string | null>(null);
 
-  const isGenerating = generatingCharacters || generatingScenes;
+  const isGenerating = generatingCharacters || generatingScenes || extracting;
   const effectiveStyle = resolveStyle(customArtStyle, artStyle);
 
   const handleChangeFolder = async () => {
@@ -145,21 +210,28 @@ export function MovieApp() {
 
     (async () => {
       try {
-        const data = await readMovieJson(folderHandle);
-        if (data) {
-          if (data.story) setStory(data.story);
-          if (data.artStyle && ART_STYLES.some((s) => s.key === data.artStyle)) {
-            setArtStyle(data.artStyle as ArtStyle);
+        const [movieData, charData] = await Promise.all([
+          readMovieJson(folderHandle),
+          readCharactersJson(folderHandle),
+        ]);
+        if (movieData) {
+          if (movieData.story) setStory(movieData.story);
+          if (
+            movieData.artStyle &&
+            ART_STYLES.some((s) => s.key === movieData.artStyle)
+          ) {
+            setArtStyle(movieData.artStyle as ArtStyle);
           }
-          if (data.customArtStyle) setCustomArtStyle(data.customArtStyle);
+          if (movieData.customArtStyle) setCustomArtStyle(movieData.customArtStyle);
         }
+        if (charData) setCharacters(charData);
       } catch {
         // file doesn't exist yet or can't be read, use defaults
       } finally {
         setHydrated(true);
       }
     })();
-  }, [folderHandle, setStory, setArtStyle, setCustomArtStyle]);
+  }, [folderHandle, setStory, setArtStyle, setCustomArtStyle, setCharacters]);
 
   // Auto-save to movie.json
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -182,27 +254,48 @@ export function MovieApp() {
     }, 500);
   }, [story, artStyle, customArtStyle, hydrated, folderHandle]);
 
-  const handleGenerateCharacters = async () => {
+  // Auto-save characters to character.json
+  const charDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!hydrated || !folderHandle) return;
+
+    if (charDebounceRef.current) clearTimeout(charDebounceRef.current);
+    charDebounceRef.current = setTimeout(() => {
+      writeCharactersJson(folderHandle, characters).catch(() => {
+        // file write failed, ignore
+      });
+    }, 500);
+  }, [characters, hydrated, folderHandle]);
+
+  const handleExtractCharacters = async () => {
     if (!story.trim() || isGenerating || !apiKey) return;
+    setError(null);
+    setSavedPath(null);
+    setExtracting(true);
+
+    try {
+      const extracted = await extractCharacters(story, apiKey);
+      const withImageUrls: Character[] = extracted.map((c) => ({
+        ...c,
+        imageUrl: null,
+      }));
+      setCharacters(withImageUrls);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Character extraction failed");
+    } finally {
+      setExtracting(false);
+    }
+  };
+
+  const handleGenerateCharacterImages = async () => {
+    if (!characters.length || isGenerating || !apiKey) return;
     setError(null);
     setSavedPath(null);
     setGeneratingCharacters(true);
 
     try {
-      const context = story.substring(0, 800);
-      const characterPrompt = `Character design reference sheet, ${effectiveStyle} animation style. Clean character turnaround, full body, consistent character design. Based on this story: ${context}`;
-
-      const [result1, result2] = await Promise.all([
-        generateImage(characterPrompt, apiKey),
-        generateImage(
-          characterPrompt +
-            " Different character, different design variation.",
-          apiKey,
-        ),
-      ]);
-
-      const urls = [result1.url, result2.url];
-      setCharacterImages(urls);
+      const updated = [...characters];
 
       if (folderHandle) {
         const imagesDir = await folderHandle.getDirectoryHandle("images", {
@@ -212,13 +305,35 @@ export function MovieApp() {
           create: true,
         });
 
-        await Promise.all([
-          downloadAndSaveImage(result1.url, "character-1.png", characterDir),
-          downloadAndSaveImage(result2.url, "character-2.png", characterDir),
-          savePromptFile(result1.prompt, "character-1.txt", characterDir),
-          savePromptFile(result2.prompt, "character-2.txt", characterDir),
-        ]);
+        for (let i = 0; i < updated.length; i++) {
+          const char = updated[i];
+          const prompt = `Character design reference sheet, ${effectiveStyle} animation style. Character name: ${char.name}. ${char.description}. Full body, clean character turnaround, consistent design.`;
 
+          const result = await generateImage(prompt, apiKey);
+          updated[i] = { ...char, imageUrl: result.url };
+
+          const safeName = char.name.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase();
+          await Promise.all([
+            downloadAndSaveImage(result.url, `${safeName}.png`, characterDir),
+            savePromptFile(result.prompt, `${safeName}.txt`, characterDir),
+          ]);
+        }
+      } else {
+        for (let i = 0; i < updated.length; i++) {
+          const char = updated[i];
+          const prompt = `Character design reference sheet, ${effectiveStyle} animation style. Character name: ${char.name}. ${char.description}. Full body, clean character turnaround, consistent design.`;
+
+          const result = await generateImage(prompt, apiKey);
+          updated[i] = { ...char, imageUrl: result.url };
+        }
+      }
+
+      setCharacters(updated);
+      setCharacterImages(
+        updated.map((c) => c.imageUrl).filter(Boolean) as string[],
+      );
+
+      if (folderHandle) {
         setSavedPath(`${folderName}/images/character`);
       }
     } catch (err) {
@@ -272,8 +387,6 @@ export function MovieApp() {
       setGeneratingScenes(false);
     }
   };
-
-  const hasResults = characterImages.length > 0 || sceneImages.length > 0;
 
   return (
     <div className="h-full overflow-y-auto blender-scrollbar">
@@ -417,27 +530,109 @@ export function MovieApp() {
           </div>
         </section>
 
-        {/* Generate Buttons */}
-        <section className="flex flex-col items-center gap-4">
-          <div className="flex gap-4">
+        {/* Extract Characters Button */}
+        {characters.length === 0 && (
+          <section className="flex flex-col items-center gap-4">
             <button
-              onClick={handleGenerateCharacters}
+              onClick={handleExtractCharacters}
               disabled={!story.trim() || isGenerating}
               className="px-6 py-4 bg-white text-black rounded-2xl font-semibold text-base hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-3"
             >
-              {generatingCharacters ? (
+              {extracting ? (
                 <>
                   <div className="animate-spin rounded-full h-5 w-5 border-2 border-black/20 border-t-black" />
-                  Generating...
+                  Extracting Characters...
                 </>
               ) : (
-                "Generate Characters"
+                "Extract Characters"
               )}
             </button>
+          </section>
+        )}
+
+        {/* Character Cards */}
+        {characters.length > 0 && (
+          <section className="flex flex-col gap-4">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">&#x1F9D1;&#x200D;&#x1F3A4;</span>
+              <h2 className="text-xl font-semibold text-white">Characters</h2>
+              <span className="text-sm text-neutral-500">
+                {characters.length}{" "}
+                {characters.length === 1 ? "character" : "characters"}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              {characters.map((char, i) => (
+                <div
+                  key={i}
+                  className="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden"
+                >
+                  <div className="flex gap-4 p-4">
+                    <div className="flex-none w-28 aspect-3/4 rounded-xl overflow-hidden bg-neutral-800 border border-neutral-700">
+                      {char.imageUrl ? (
+                        <img
+                          src={char.imageUrl}
+                          alt={char.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <span className="text-3xl text-neutral-600">
+                            {char.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 flex flex-col gap-2 min-w-0">
+                      <input
+                        type="text"
+                        value={char.name}
+                        onChange={(e) =>
+                          updateCharacter(i, { name: e.target.value })
+                        }
+                        placeholder="Character name"
+                        className="w-full bg-transparent text-white font-semibold text-sm focus:outline-none placeholder-neutral-600"
+                      />
+                      <textarea
+                        value={char.description}
+                        onChange={(e) =>
+                          updateCharacter(i, { description: e.target.value })
+                        }
+                        placeholder="Character description"
+                        rows={3}
+                        className="w-full bg-transparent text-neutral-400 text-xs leading-relaxed focus:outline-none placeholder-neutral-600 resize-none blender-scrollbar"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Generate Buttons */}
+        <section className="flex flex-col items-center gap-4">
+          <div className="flex gap-4">
+            {characters.length > 0 && (
+              <button
+                onClick={handleGenerateCharacterImages}
+                disabled={isGenerating}
+                className="px-6 py-4 bg-white text-black rounded-2xl font-semibold text-base hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-3"
+              >
+                {generatingCharacters ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-black/20 border-t-black" />
+                    Generating...
+                  </>
+                ) : (
+                  "Generate All Character Images"
+                )}
+              </button>
+            )}
             {characterImages.length > 0 && (
               <button
                 onClick={handleGenerateScenes}
-                disabled={!story.trim() || isGenerating}
+                disabled={isGenerating}
                 className="px-6 py-4 bg-white text-black rounded-2xl font-semibold text-base hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-3"
               >
                 {generatingScenes ? (
@@ -467,73 +662,35 @@ export function MovieApp() {
           </section>
         )}
 
-        {/* Results */}
-        {hasResults && (
-          <>
-            {/* Character Images */}
-            {characterImages.length > 0 && (
-              <section className="flex flex-col gap-4">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">&#x1F9D1;&#x200D;&#x1F3A4;</span>
-                  <h2 className="text-xl font-semibold text-white">
-                    Characters
-                  </h2>
-                  <span className="text-sm text-neutral-500">
-                    {characterImages.length}{" "}
-                    {characterImages.length === 1 ? "image" : "images"}
-                  </span>
-                </div>
-                <div className="flex gap-4 overflow-x-auto pb-2 blender-scrollbar">
-                  {characterImages.map((url, i) => (
-                    <a
-                      key={i}
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-none w-72 aspect-4/3 rounded-2xl overflow-hidden border border-neutral-800 bg-neutral-900 hover:border-neutral-600 transition-colors group"
-                    >
-                      <img
-                        src={url}
-                        alt={`Character ${i + 1}`}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    </a>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Scene Images */}
-            {sceneImages.length > 0 && (
-              <section className="flex flex-col gap-4">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">&#x1F3AC;</span>
-                  <h2 className="text-xl font-semibold text-white">Scenes</h2>
-                  <span className="text-sm text-neutral-500">
-                    {sceneImages.length}{" "}
-                    {sceneImages.length === 1 ? "image" : "images"}
-                  </span>
-                </div>
-                <div className="flex gap-4 overflow-x-auto pb-2 blender-scrollbar">
-                  {sceneImages.map((url, i) => (
-                    <a
-                      key={i}
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-none w-96 aspect-video rounded-2xl overflow-hidden border border-neutral-800 bg-neutral-900 hover:border-neutral-600 transition-colors group"
-                    >
-                      <img
-                        src={url}
-                        alt={`Scene ${i + 1}`}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    </a>
-                  ))}
-                </div>
-              </section>
-            )}
-          </>
+        {/* Scene Images */}
+        {sceneImages.length > 0 && (
+          <section className="flex flex-col gap-4">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">&#x1F3AC;</span>
+              <h2 className="text-xl font-semibold text-white">Scenes</h2>
+              <span className="text-sm text-neutral-500">
+                {sceneImages.length}{" "}
+                {sceneImages.length === 1 ? "image" : "images"}
+              </span>
+            </div>
+            <div className="flex gap-4 overflow-x-auto pb-2 blender-scrollbar">
+              {sceneImages.map((url, i) => (
+                <a
+                  key={i}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-none w-96 aspect-video rounded-2xl overflow-hidden border border-neutral-800 bg-neutral-900 hover:border-neutral-600 transition-colors group"
+                >
+                  <img
+                    src={url}
+                    alt={`Scene ${i + 1}`}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                </a>
+              ))}
+            </div>
+          </section>
         )}
       </div>
     </div>
