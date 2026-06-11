@@ -94,7 +94,7 @@ export function SceneCard({
       </button>
       <div className="flex gap-4 p-4">
         <div
-          className={`flex-none w-44 aspect-video rounded-xl overflow-hidden bg-neutral-800 border border-neutral-700 ${
+          className={`flex-none w-44 aspect-square rounded-xl overflow-hidden bg-neutral-800 border border-neutral-700 ${
             scene.imageUrl
               ? "cursor-zoom-in hover:border-neutral-500 transition-colors"
               : ""
@@ -107,7 +107,7 @@ export function SceneCard({
             <img
               src={scene.imageUrl}
               alt={scene.name}
-              className="w-full h-full object-contain object-top"
+              className="w-full h-full object-cover object-center"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
