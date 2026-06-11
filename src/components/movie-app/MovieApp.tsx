@@ -4,10 +4,18 @@ import { useState } from "react";
 import { useMovieStore, ART_STYLES } from "@/stores/movie-store";
 import { useFolderStore } from "@/stores/folder-store";
 
-const FAL_API = "https://fal.run/fal-ai/flux/dev";
+const FAL_TEXT2IMG = "https://fal.run/fal-ai/nano-banana";
 
-async function generateImage(prompt: string, apiKey: string): Promise<string> {
-  const res = await fetch(FAL_API, {
+interface GenerateResult {
+  url: string;
+  prompt: string;
+}
+
+async function generateImage(
+  prompt: string,
+  apiKey: string,
+): Promise<GenerateResult> {
+  const res = await fetch(FAL_TEXT2IMG, {
     method: "POST",
     headers: {
       Authorization: `Key ${apiKey}`,
@@ -15,14 +23,8 @@ async function generateImage(prompt: string, apiKey: string): Promise<string> {
     },
     body: JSON.stringify({
       prompt,
-      image_size: "landscape_4_3",
       num_images: 1,
-      num_inference_steps: 28,
-      guidance_scale: 3.5,
-      enable_safety_checker: true,
-      output_format: "png",
-      acceleration: "none",
-      seed: 99,
+      image_size: "landscape_4_3",
     }),
   });
 
@@ -32,7 +34,7 @@ async function generateImage(prompt: string, apiKey: string): Promise<string> {
   }
 
   const data = await res.json();
-  return data.images[0].url;
+  return { url: data.images[0].url, prompt };
 }
 
 async function downloadAndSaveImage(
@@ -48,29 +50,43 @@ async function downloadAndSaveImage(
   await writable.close();
 }
 
+async function savePromptFile(
+  prompt: string,
+  filename: string,
+  dir: FileSystemDirectoryHandle,
+): Promise<void> {
+  const fileHandle = await dir.getFileHandle(filename, { create: true });
+  const writable = await fileHandle.createWritable();
+  await writable.write(prompt);
+  await writable.close();
+}
+
 export function MovieApp() {
   const story = useMovieStore((s) => s.story);
   const artStyle = useMovieStore((s) => s.artStyle);
-  const isGenerating = useMovieStore((s) => s.isGenerating);
   const characterImages = useMovieStore((s) => s.characterImages);
   const sceneImages = useMovieStore((s) => s.sceneImages);
   const setStory = useMovieStore((s) => s.setStory);
   const setArtStyle = useMovieStore((s) => s.setArtStyle);
-  const setIsGenerating = useMovieStore((s) => s.setIsGenerating);
   const setCharacterImages = useMovieStore((s) => s.setCharacterImages);
   const setSceneImages = useMovieStore((s) => s.setSceneImages);
 
   const apiKey = useFolderStore((s) => s.apiKey);
   const folderHandle = useFolderStore((s) => s.folderHandle);
   const folderName = useFolderStore((s) => s.folderName);
+
   const [error, setError] = useState<string | null>(null);
   const [savedPath, setSavedPath] = useState<string | null>(null);
+  const [generatingCharacters, setGeneratingCharacters] = useState(false);
+  const [generatingScenes, setGeneratingScenes] = useState(false);
 
-  const handleGenerate = async () => {
+  const isGenerating = generatingCharacters || generatingScenes;
+
+  const handleGenerateCharacters = async () => {
     if (!story.trim() || isGenerating || !apiKey) return;
     setError(null);
     setSavedPath(null);
-    setIsGenerating(true);
+    setGeneratingCharacters(true);
 
     try {
       const styleLabel =
@@ -78,25 +94,19 @@ export function MovieApp() {
       const context = story.substring(0, 800);
 
       const characterPrompt = `Character design reference sheet, ${styleLabel} animation style. Clean character turnaround, full body, consistent character design. Based on this story: ${context}`;
-      const scenePrompt = `Cinematic movie keyframe, ${styleLabel} animation style. Wide establishing shot, dramatic lighting, film composition. Based on this story: ${context}`;
 
-      const [char1, char2, scene1, scene2] = await Promise.all([
+      const [result1, result2] = await Promise.all([
         generateImage(characterPrompt, apiKey),
         generateImage(
-          characterPrompt + " Different character, different design variation.",
-          apiKey,
-        ),
-        generateImage(scenePrompt, apiKey),
-        generateImage(
-          scenePrompt + " Different scene, different location variation.",
+          characterPrompt +
+            " Different character, different design variation.",
           apiKey,
         ),
       ]);
 
-      setCharacterImages([char1, char2]);
-      setSceneImages([scene1, scene2]);
+      const urls = [result1.url, result2.url];
+      setCharacterImages(urls);
 
-      // Save images to the workspace folder
       if (folderHandle) {
         const imagesDir = await folderHandle.getDirectoryHandle("images", {
           create: true,
@@ -104,23 +114,68 @@ export function MovieApp() {
         const characterDir = await imagesDir.getDirectoryHandle("character", {
           create: true,
         });
+
+        await Promise.all([
+          downloadAndSaveImage(result1.url, "character-1.png", characterDir),
+          downloadAndSaveImage(result2.url, "character-2.png", characterDir),
+          savePromptFile(result1.prompt, "character-1.txt", characterDir),
+          savePromptFile(result2.prompt, "character-2.txt", characterDir),
+        ]);
+
+        setSavedPath(`${folderName}/images/character`);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Generation failed");
+    } finally {
+      setGeneratingCharacters(false);
+    }
+  };
+
+  const handleGenerateScenes = async () => {
+    if (!story.trim() || isGenerating || !apiKey) return;
+    setError(null);
+    setSavedPath(null);
+    setGeneratingScenes(true);
+
+    try {
+      const styleLabel =
+        ART_STYLES.find((s) => s.key === artStyle)?.label ?? artStyle;
+      const context = story.substring(0, 800);
+
+      const scenePrompt = `Cinematic movie keyframe, ${styleLabel} animation style. Wide establishing shot, dramatic lighting, film composition, rich environment details. Based on this story: ${context}`;
+
+      const [result1, result2] = await Promise.all([
+        generateImage(scenePrompt, apiKey),
+        generateImage(
+          scenePrompt + " Different scene, different location variation.",
+          apiKey,
+        ),
+      ]);
+
+      const urls = [result1.url, result2.url];
+      setSceneImages(urls);
+
+      if (folderHandle) {
+        const imagesDir = await folderHandle.getDirectoryHandle("images", {
+          create: true,
+        });
         const sceneDir = await imagesDir.getDirectoryHandle("scene", {
           create: true,
         });
 
         await Promise.all([
-          downloadAndSaveImage(char1, "character-1.png", characterDir),
-          downloadAndSaveImage(char2, "character-2.png", characterDir),
-          downloadAndSaveImage(scene1, "scene-1.png", sceneDir),
-          downloadAndSaveImage(scene2, "scene-2.png", sceneDir),
+          downloadAndSaveImage(result1.url, "scene-1.png", sceneDir),
+          downloadAndSaveImage(result2.url, "scene-2.png", sceneDir),
+          savePromptFile(result1.prompt, "scene-1.txt", sceneDir),
+          savePromptFile(result2.prompt, "scene-2.txt", sceneDir),
         ]);
 
-        setSavedPath(`${folderName}/images/character & ${folderName}/images/scene`);
+        setSavedPath(`${folderName}/images/scene`);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Generation failed");
     } finally {
-      setIsGenerating(false);
+      setGeneratingScenes(false);
     }
   };
 
@@ -187,22 +242,38 @@ export function MovieApp() {
           </div>
         </section>
 
-        {/* Generate Button */}
+        {/* Generate Buttons */}
         <section className="flex flex-col items-center gap-4">
-          <button
-            onClick={handleGenerate}
-            disabled={!story.trim() || isGenerating}
-            className="px-8 py-4 bg-white text-black rounded-2xl font-semibold text-base hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-3"
-          >
-            {isGenerating ? (
-              <>
-                <div className="animate-spin rounded-full h-5 w-5 border-2 border-black/20 border-t-black" />
-                Generating...
-              </>
-            ) : (
-              "Generate Movie"
-            )}
-          </button>
+          <div className="flex gap-4">
+            <button
+              onClick={handleGenerateCharacters}
+              disabled={!story.trim() || isGenerating}
+              className="px-6 py-4 bg-white text-black rounded-2xl font-semibold text-base hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-3"
+            >
+              {generatingCharacters ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-black/20 border-t-black" />
+                  Generating...
+                </>
+              ) : (
+                "Generate Characters"
+              )}
+            </button>
+            <button
+              onClick={handleGenerateScenes}
+              disabled={!story.trim() || isGenerating}
+              className="px-6 py-4 bg-white text-black rounded-2xl font-semibold text-base hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-3"
+            >
+              {generatingScenes ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-black/20 border-t-black" />
+                  Generating...
+                </>
+              ) : (
+                "Generate Scenes"
+              )}
+            </button>
+          </div>
           {error && (
             <p className="text-red-400 text-sm bg-red-400/10 rounded-xl px-4 py-3 max-w-md text-center">
               {error}
