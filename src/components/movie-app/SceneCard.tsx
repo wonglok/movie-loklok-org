@@ -7,6 +7,8 @@ interface SceneCardProps {
   index: number;
   sceneRegenIndex: number | null;
   generatingVideoIndex: number | null;
+  selected: boolean;
+  onToggleSelect: (index: number) => void;
   onRegenerate: (index: number) => void;
   onGenerateVideo: (index: number) => void;
   onRemove: (index: number) => void;
@@ -20,6 +22,8 @@ export function SceneCard({
   index,
   sceneRegenIndex,
   generatingVideoIndex,
+  selected,
+  onToggleSelect,
   onRegenerate,
   onGenerateVideo,
   onRemove,
@@ -28,7 +32,17 @@ export function SceneCard({
   updateScene,
 }: SceneCardProps) {
   return (
-    <div className="relative bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden group/card">
+    <div
+      className={`relative bg-neutral-900 border rounded-2xl overflow-hidden group/card ${
+        selected ? "border-(--blender-accent)" : "border-neutral-800"
+      }`}
+    >
+      <input
+        type="checkbox"
+        checked={selected}
+        onChange={() => onToggleSelect(index)}
+        className="absolute top-3 left-3 w-4 h-4 rounded border-neutral-600 bg-neutral-800 accent-(--blender-accent) cursor-pointer z-10 opacity-0 group-hover/card:opacity-100 transition-opacity"
+      />
       <button
         onClick={() => onRemove(index)}
         className="absolute top-3 right-3 p-1.5 rounded-lg text-neutral-600 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover/card:opacity-100 transition-all z-10"

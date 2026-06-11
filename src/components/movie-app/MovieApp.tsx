@@ -50,6 +50,9 @@ export function MovieApp() {
   const [savedPath, setSavedPath] = useState<string | null>(null);
   const [generatingCharacters, setGeneratingCharacters] = useState(false);
   const [generatingScenes, setGeneratingScenes] = useState(false);
+  const [selectedScenes, setSelectedScenes] = useState<Set<number>>(
+    new Set(),
+  );
   const [extracting, setExtracting] = useState(false);
   const [extractingScenes, setExtractingScenes] = useState(false);
   const [regeneratingIndex, setRegeneratingIndex] = useState<number | null>(
@@ -73,7 +76,7 @@ export function MovieApp() {
     generatingScenes ||
     extracting ||
     extractingScenes ||
-    generatingVideoIndex === -1;
+    generatingVideoIndex === -1 || generatingVideoIndex === -2;
   const effectiveStyle = resolveStyle(customArtStyle, artStyle);
 
   const { isSaving } = useAutoSave(
@@ -468,6 +471,94 @@ export function MovieApp() {
     }
   };
 
+  const toggleSceneSelect = (index: number) => {
+    setSelectedScenes((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  };
+
+  const handleGenerateSelectedImages = async () => {
+    if (!selectedScenes.size || isGenerating || !apiKey || !folderHandle)
+      return;
+    setError(null);
+    setGeneratingScenes(true);
+    try {
+      const imagesDir = await folderHandle.getDirectoryHandle("images", {
+        create: true,
+      });
+      const sceneDir = await imagesDir.getDirectoryHandle("scene", {
+        create: true,
+      });
+      const charRefs = characters
+        .filter((c) => c.sourceUrl)
+        .map((c) => c.sourceUrl!);
+      const charNames = characters
+        .filter((c) => c.name)
+        .map((c) => c.name)
+        .join(", ");
+      for (const i of selectedScenes) {
+        const scene = scenes[i];
+        if (!scene) continue;
+        const prompt = `Cinematic movie keyframe, ${effectiveStyle} animation style. Featuring characters: ${charNames || "original characters"}. Scene: ${scene.name}. ${scene.description}. Characters must maintain consistent appearance and design. Wide establishing shot, dramatic lighting, film composition.`;
+        const result = await generateImage(prompt, apiKey, charRefs);
+        const id = crypto.randomUUID();
+        const filename = `${id}.png`;
+        if (scene.imageUrl?.startsWith("blob:"))
+          URL.revokeObjectURL(scene.imageUrl);
+        const localUrl = await saveAndLoadLocal(result.url, filename, sceneDir);
+        updateScene(i, {
+          imageUrl: localUrl,
+          imageFilename: filename,
+          sourceUrl: result.url,
+        });
+        await savePromptFile(result.prompt, `${id}.txt`, sceneDir);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Generation failed");
+    } finally {
+      setGeneratingScenes(false);
+      setSelectedScenes(new Set());
+    }
+  };
+
+  const handleGenerateSelectedVideos = async () => {
+    if (!selectedScenes.size || isGenerating || !apiKey || !folderHandle)
+      return;
+    setError(null);
+    setGeneratingVideoIndex(-2); // -2 means "selected"
+    try {
+      const imagesDir = await folderHandle.getDirectoryHandle("images", {
+        create: true,
+      });
+      const sceneDir = await imagesDir.getDirectoryHandle("scene", {
+        create: true,
+      });
+      for (const i of selectedScenes) {
+        const scene = scenes[i];
+        if (!scene?.imageFilename) continue;
+        const fileHandle = await sceneDir.getFileHandle(scene.imageFilename);
+        const file = await fileHandle.getFile();
+        const prompt = `${scene.name}. ${scene.description}`;
+        const videoUrl = await uploadAndGenerateVideo(
+          file,
+          prompt,
+          apiKey,
+          scene.videoResolution,
+          scene.videoAspect,
+        );
+        updateScene(i, { videoUrl });
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Video generation failed");
+    } finally {
+      setGeneratingVideoIndex(null);
+      setSelectedScenes(new Set());
+    }
+  };
+
   const previewChar =
     previewType === "character" && previewIndex !== null
       ? characters[previewIndex]
@@ -751,6 +842,40 @@ export function MovieApp() {
 
             {scenes.length > 0 && (
               <>
+                {selectedScenes.size > 0 && (
+                  <div className="flex items-center gap-2 px-4 py-2 bg-neutral-900 border border-(--blender-accent) rounded-xl">
+                    <span className="text-neutral-400 text-sm flex-1">
+                      {selectedScenes.size} scene{selectedScenes.size > 1 ? "s" : ""}{" "}
+                      selected
+                    </span>
+                    <button
+                      onClick={handleGenerateSelectedImages}
+                      disabled={isGenerating}
+                      className="px-3 py-1.5 bg-white text-black rounded-lg text-xs font-medium hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {generatingScenes
+                        ? "Generating..."
+                        : "Generate Selected Images"}
+                    </button>
+                    <button
+                      onClick={handleGenerateSelectedVideos}
+                      disabled={
+                        isGenerating || generatingVideoIndex !== null
+                      }
+                      className="px-3 py-1.5 border border-neutral-600 rounded-lg text-neutral-300 text-xs font-medium hover:border-neutral-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {generatingVideoIndex === -2
+                        ? "Generating..."
+                        : "Generate Selected Videos"}
+                    </button>
+                    <button
+                      onClick={() => setSelectedScenes(new Set())}
+                      className="px-2 py-1.5 text-neutral-500 hover:text-neutral-300 text-xs transition-colors"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-4">
                   {scenes.map((scene, i) => (
                     <SceneCard
@@ -759,6 +884,8 @@ export function MovieApp() {
                       index={i}
                       sceneRegenIndex={sceneRegenIndex}
                       generatingVideoIndex={generatingVideoIndex}
+                      selected={selectedScenes.has(i)}
+                      onToggleSelect={toggleSceneSelect}
                       onRegenerate={handleRegenerateScene}
                       onGenerateVideo={handleGenerateSceneVideo}
                       onRemove={setRemoveIndex}
