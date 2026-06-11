@@ -140,11 +140,13 @@ async function writeCharactersJson(
   folderHandle: FileSystemDirectoryHandle,
   characters: Character[],
 ): Promise<void> {
+  // Strip object URLs before persisting — they don't survive page reloads
+  const toSave = characters.map((c) => ({ ...c, imageUrl: null }));
   const fileHandle = await folderHandle.getFileHandle("character.json", {
     create: true,
   });
   const writable = await fileHandle.createWritable();
-  await writable.write(JSON.stringify(characters, null, 2));
+  await writable.write(JSON.stringify(toSave, null, 2));
   await writable.close();
 }
 
@@ -342,12 +344,15 @@ export function MovieApp() {
 
         for (let i = 0; i < characters.length; i++) {
           const char = characters[i];
-          if (char.imageFilename && !char.imageUrl) {
+          if (char.imageFilename) {
             const localUrl = await loadLocalImage(
               char.imageFilename,
               characterDir,
             );
             if (localUrl) {
+              if (char.imageUrl?.startsWith("blob:")) {
+                URL.revokeObjectURL(char.imageUrl);
+              }
               updateCharacter(i, { imageUrl: localUrl });
             }
           }
@@ -414,10 +419,8 @@ export function MovieApp() {
           const prompt = `Character design reference image, ${effectiveStyle} animation style. Character name: ${char.name}. ${char.description}. zoom to show the character's face. grey background. clean character turnaround, consistent design.`;
 
           const result = await generateImage(prompt, apiKey);
-          const safeName = char.name
-            .replace(/[^a-zA-Z0-9]/g, "-")
-            .toLowerCase();
-          const filename = `${safeName}.png`;
+          const id = crypto.randomUUID();
+          const filename = `${id}.png`;
 
           const localUrl = await saveAndLoadLocal(
             result.url,
@@ -430,7 +433,7 @@ export function MovieApp() {
             imageFilename: filename,
           };
 
-          await savePromptFile(result.prompt, `${safeName}.txt`, characterDir);
+          await savePromptFile(result.prompt, `${id}.txt`, characterDir);
         }
       } else {
         for (let i = 0; i < updated.length; i++) {
@@ -474,8 +477,8 @@ export function MovieApp() {
         const characterDir = await imagesDir.getDirectoryHandle("character", {
           create: true,
         });
-        const safeName = char.name.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase();
-        const filename = `${safeName}.png`;
+        const id = crypto.randomUUID();
+        const filename = `${id}.png`;
 
         // Revoke old object URL
         if (char.imageUrl) URL.revokeObjectURL(char.imageUrl);
@@ -490,7 +493,7 @@ export function MovieApp() {
           imageFilename: filename,
         });
 
-        await savePromptFile(result.prompt, `${safeName}.txt`, characterDir);
+        await savePromptFile(result.prompt, `${id}.txt`, characterDir);
       } else {
         updateCharacter(index, { imageUrl: result.url });
       }
