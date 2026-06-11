@@ -3,11 +3,7 @@
 import { useState, useEffect } from "react";
 import { useMovieStore, ART_STYLES, type ArtStyle } from "@/stores/movie-store";
 import { useFolderStore } from "@/stores/folder-store";
-import {
-  generateImage,
-  extractCharacters,
-  extractScenes,
-} from "@/lib/fal";
+import { generateImage, extractCharacters, extractScenes } from "@/lib/fal";
 import { resolveStyle } from "@/lib/style";
 import {
   readMovieJson,
@@ -65,10 +61,7 @@ export function MovieApp() {
   );
 
   const isGenerating =
-    generatingCharacters ||
-    generatingScenes ||
-    extracting ||
-    extractingScenes;
+    generatingCharacters || generatingScenes || extracting || extractingScenes;
   const effectiveStyle = resolveStyle(customArtStyle, artStyle);
 
   const { isSaving } = useAutoSave(
@@ -729,7 +722,6 @@ export function MovieApp() {
             )}
           </section>
         )}
-
       </div>
     </div>
   );
