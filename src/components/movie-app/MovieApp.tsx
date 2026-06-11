@@ -150,6 +150,67 @@ async function writeCharactersJson(
   await writable.close();
 }
 
+async function readScenesJson(
+  folderHandle: FileSystemDirectoryHandle,
+): Promise<Character[] | null> {
+  try {
+    const fileHandle = await folderHandle.getFileHandle("scene.json");
+    const file = await fileHandle.getFile();
+    const text = await file.text();
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+async function writeScenesJson(
+  folderHandle: FileSystemDirectoryHandle,
+  scenes: Character[],
+): Promise<void> {
+  const toSave = scenes.map((c) => ({ ...c, imageUrl: null }));
+  const fileHandle = await folderHandle.getFileHandle("scene.json", {
+    create: true,
+  });
+  const writable = await fileHandle.createWritable();
+  await writable.write(JSON.stringify(toSave, null, 2));
+  await writable.close();
+}
+
+async function extractScenes(
+  story: string,
+  apiKey: string,
+): Promise<{ name: string; description: string }[]> {
+  fal.config({ credentials: apiKey });
+
+  const result = await fal.subscribe(
+    "openrouter/router/openai/v1/chat/completions",
+    {
+      input: {
+        model: "openai/gpt-4o-mini",
+        messages: [
+          {
+            role: "user",
+            content: `Extract all key scenes and locations from this movie story. Return ONLY a valid JSON array of objects with "name" and "description" fields. Include establishing shots, key locations, and pivotal scene settings. No other text.\n\nStory: ${story}`,
+          },
+        ],
+      },
+      logs: true,
+      onQueueUpdate: (update) => {
+        if (update.status === "IN_PROGRESS") {
+          update.logs.map((log) => log.message).forEach(console.log);
+        }
+      },
+    },
+  );
+
+  const data = result.data as {
+    choices: { message: { content: string } }[];
+  };
+  const text = data.choices[0].message.content;
+  const json = text.replace(/```json|```/g, "").trim();
+  return JSON.parse(json);
+}
+
 async function extractCharacters(
   story: string,
   apiKey: string,
@@ -199,6 +260,9 @@ export function MovieApp() {
   const setSceneImages = useMovieStore((s) => s.setSceneImages);
   const setCharacters = useMovieStore((s) => s.setCharacters);
   const updateCharacter = useMovieStore((s) => s.updateCharacter);
+  const scenes = useMovieStore((s) => s.scenes);
+  const setScenes = useMovieStore((s) => s.setScenes);
+  const updateScene = useMovieStore((s) => s.updateScene);
 
   const apiKey = useFolderStore((s) => s.apiKey);
   const folderHandle = useFolderStore((s) => s.folderHandle);
@@ -211,9 +275,11 @@ export function MovieApp() {
   const [generatingCharacters, setGeneratingCharacters] = useState(false);
   const [generatingScenes, setGeneratingScenes] = useState(false);
   const [extracting, setExtracting] = useState(false);
+  const [extractingScenes, setExtractingScenes] = useState(false);
   const [regeneratingIndex, setRegeneratingIndex] = useState<number | null>(
     null,
   );
+  const [sceneRegenIndex, setSceneRegenIndex] = useState<number | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -221,7 +287,11 @@ export function MovieApp() {
   const [removeIndex, setRemoveIndex] = useState<number | null>(null);
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
 
-  const isGenerating = generatingCharacters || generatingScenes || extracting;
+  const isGenerating =
+    generatingCharacters ||
+    generatingScenes ||
+    extracting ||
+    extractingScenes;
   const effectiveStyle = resolveStyle(customArtStyle, artStyle);
 
   // Enter key to confirm removal
@@ -270,9 +340,10 @@ export function MovieApp() {
 
     (async () => {
       try {
-        const [movieData, charData] = await Promise.all([
+        const [movieData, charData, sceneData] = await Promise.all([
           readMovieJson(folderHandle),
           readCharactersJson(folderHandle),
+          readScenesJson(folderHandle),
         ]);
         if (movieData) {
           if (movieData.story) setStory(movieData.story);
@@ -286,6 +357,7 @@ export function MovieApp() {
             setCustomArtStyle(movieData.customArtStyle);
         }
         if (charData) setCharacters(charData);
+        if (sceneData) setScenes(sceneData);
       } catch {
         // file doesn't exist yet or can't be read, use defaults
       } finally {
@@ -329,6 +401,20 @@ export function MovieApp() {
     }, 500);
   }, [characters, hydrated, folderHandle]);
 
+  // Auto-save scenes to scene.json
+  const sceneDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!hydrated || !folderHandle) return;
+
+    if (sceneDebounceRef.current) clearTimeout(sceneDebounceRef.current);
+    sceneDebounceRef.current = setTimeout(() => {
+      writeScenesJson(folderHandle, scenes).catch(() => {
+        // file write failed, ignore
+      });
+    }, 500);
+  }, [scenes, hydrated, folderHandle]);
+
   // Load local images after hydration
   useEffect(() => {
     if (!hydrated || !folderHandle) return;
@@ -339,6 +425,9 @@ export function MovieApp() {
           create: true,
         });
         const characterDir = await imagesDir.getDirectoryHandle("character", {
+          create: true,
+        });
+        const sceneDir = await imagesDir.getDirectoryHandle("scene", {
           create: true,
         });
 
@@ -357,6 +446,22 @@ export function MovieApp() {
             }
           }
         }
+
+        for (let i = 0; i < scenes.length; i++) {
+          const scene = scenes[i];
+          if (scene.imageFilename) {
+            const localUrl = await loadLocalImage(
+              scene.imageFilename,
+              sceneDir,
+            );
+            if (localUrl) {
+              if (scene.imageUrl?.startsWith("blob:")) {
+                URL.revokeObjectURL(scene.imageUrl);
+              }
+              updateScene(i, { imageUrl: localUrl });
+            }
+          }
+        }
       } catch {
         // folder not ready, ignore
       }
@@ -369,6 +474,9 @@ export function MovieApp() {
     return () => {
       for (const char of characters) {
         if (char.imageUrl) URL.revokeObjectURL(char.imageUrl);
+      }
+      for (const scene of scenes) {
+        if (scene.imageUrl) URL.revokeObjectURL(scene.imageUrl);
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -507,26 +615,35 @@ export function MovieApp() {
     }
   };
 
-  const handleGenerateScenes = async () => {
+  const handleExtractScenes = async () => {
     if (!story.trim() || isGenerating || !apiKey) return;
+    setError(null);
+    setSavedPath(null);
+    setExtractingScenes(true);
+
+    try {
+      const extracted = await extractScenes(story, apiKey);
+      const withImageUrls: Character[] = extracted.map((s) => ({
+        ...s,
+        imageUrl: null,
+        imageFilename: null,
+      }));
+      setScenes(withImageUrls);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Scene extraction failed");
+    } finally {
+      setExtractingScenes(false);
+    }
+  };
+
+  const handleGenerateSceneImages = async () => {
+    if (!scenes.length || isGenerating || !apiKey) return;
     setError(null);
     setSavedPath(null);
     setGeneratingScenes(true);
 
     try {
-      const context = story.substring(0, 800);
-      const scenePrompt = `Cinematic movie keyframe, ${effectiveStyle} animation style. Wide establishing shot, dramatic lighting, film composition, rich environment details. Based on this story: ${context}`;
-
-      const [result1, result2] = await Promise.all([
-        generateImage(scenePrompt, apiKey),
-        generateImage(
-          scenePrompt + " Different scene, different location variation.",
-          apiKey,
-        ),
-      ]);
-
-      const urls = [result1.url, result2.url];
-      setSceneImages(urls);
+      const updated = [...scenes];
 
       if (folderHandle) {
         const imagesDir = await folderHandle.getDirectoryHandle("images", {
@@ -536,19 +653,92 @@ export function MovieApp() {
           create: true,
         });
 
-        await Promise.all([
-          downloadAndSaveImage(result1.url, "scene-1.png", sceneDir),
-          downloadAndSaveImage(result2.url, "scene-2.png", sceneDir),
-          savePromptFile(result1.prompt, "scene-1.txt", sceneDir),
-          savePromptFile(result2.prompt, "scene-2.txt", sceneDir),
-        ]);
+        for (let i = 0; i < updated.length; i++) {
+          const scene = updated[i];
+          const prompt = `Cinematic movie keyframe, ${effectiveStyle} animation style. Scene: ${scene.name}. ${scene.description}. Wide establishing shot, dramatic lighting, film composition.`;
 
+          const result = await generateImage(prompt, apiKey);
+          const id = crypto.randomUUID();
+          const filename = `${id}.png`;
+
+          const localUrl = await saveAndLoadLocal(
+            result.url,
+            filename,
+            sceneDir,
+          );
+          updated[i] = {
+            ...scene,
+            imageUrl: localUrl,
+            imageFilename: filename,
+          };
+
+          await savePromptFile(result.prompt, `${id}.txt`, sceneDir);
+        }
+      } else {
+        for (let i = 0; i < updated.length; i++) {
+          const scene = updated[i];
+          const prompt = `Cinematic movie keyframe, ${effectiveStyle} animation style. Scene: ${scene.name}. ${scene.description}. Wide establishing shot, dramatic lighting, film composition.`;
+
+          const result = await generateImage(prompt, apiKey);
+          updated[i] = { ...scene, imageUrl: result.url };
+        }
+      }
+
+      setScenes(updated);
+      setSceneImages(
+        updated.map((s) => s.imageUrl).filter(Boolean) as string[],
+      );
+
+      if (folderHandle) {
         setSavedPath(`${folderName}/images/scene`);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Generation failed");
     } finally {
       setGeneratingScenes(false);
+    }
+  };
+
+  const handleRegenerateScene = async (index: number) => {
+    const scene = scenes[index];
+    if (!scene || !apiKey) return;
+    setError(null);
+    setSceneRegenIndex(index);
+
+    try {
+      const prompt = `Cinematic movie keyframe, ${effectiveStyle} animation style. Scene: ${scene.name}. ${scene.description}. Wide establishing shot, dramatic lighting, film composition.`;
+      const result = await generateImage(prompt, apiKey);
+
+      if (folderHandle) {
+        const imagesDir = await folderHandle.getDirectoryHandle("images", {
+          create: true,
+        });
+        const sceneDir = await imagesDir.getDirectoryHandle("scene", {
+          create: true,
+        });
+        const id = crypto.randomUUID();
+        const filename = `${id}.png`;
+
+        if (scene.imageUrl) URL.revokeObjectURL(scene.imageUrl);
+
+        const localUrl = await saveAndLoadLocal(
+          result.url,
+          filename,
+          sceneDir,
+        );
+        updateScene(index, {
+          imageUrl: localUrl,
+          imageFilename: filename,
+        });
+
+        await savePromptFile(result.prompt, `${id}.txt`, sceneDir);
+      } else {
+        updateScene(index, { imageUrl: result.url });
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Regeneration failed");
+    } finally {
+      setSceneRegenIndex(null);
     }
   };
 
@@ -859,35 +1049,62 @@ export function MovieApp() {
                         rows={3}
                         className="w-full bg-transparent text-neutral-400 text-xs leading-relaxed focus:outline-none placeholder-neutral-600 resize-none blender-scrollbar"
                       />
-                      <button
-                        onClick={() => handleRegenerateCharacter(i)}
-                        disabled={regeneratingIndex !== null}
-                        className="self-start px-3 py-1.5 border border-neutral-700 rounded-lg text-neutral-400 text-xs hover:border-neutral-500 hover:text-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
-                      >
-                        {regeneratingIndex === i ? (
-                          <>
-                            <div className="animate-spin rounded-full h-3 w-3 border border-neutral-400 border-t-transparent" />
-                            Regenerating...
-                          </>
-                        ) : (
-                          <>
-                            <svg
-                              className="w-3 h-3"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                              strokeWidth={2}
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182"
-                              />
-                            </svg>
-                            Regenerate
-                          </>
-                        )}
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => handleRegenerateCharacter(i)}
+                          disabled={regeneratingIndex !== null}
+                          className="px-3 py-1.5 border border-neutral-700 rounded-lg text-neutral-400 text-xs hover:border-neutral-500 hover:text-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+                        >
+                          {regeneratingIndex === i ? (
+                            <>
+                              <div className="animate-spin rounded-full h-3 w-3 border border-neutral-400 border-t-transparent" />
+                              Regenerating...
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
+                              </svg>
+                              Regenerate
+                            </>
+                          )}
+                        </button>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          id={`char-upload-${i}`}
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file || !folderHandle) return;
+                            try {
+                              const imagesDir = await folderHandle.getDirectoryHandle("images", { create: true });
+                              const characterDir = await imagesDir.getDirectoryHandle("character", { create: true });
+                              const id = crypto.randomUUID();
+                              const filename = `${id}.png`;
+                              const fileHandle = await characterDir.getFileHandle(filename, { create: true });
+                              const writable = await fileHandle.createWritable();
+                              await writable.write(file);
+                              await writable.close();
+                              if (char.imageUrl?.startsWith("blob:")) URL.revokeObjectURL(char.imageUrl);
+                              const localUrl = URL.createObjectURL(file);
+                              updateCharacter(i, { imageUrl: localUrl, imageFilename: filename });
+                            } catch {
+                              // upload failed, ignore
+                            }
+                            e.target.value = "";
+                          }}
+                        />
+                        <button
+                          onClick={() => document.getElementById(`char-upload-${i}`)?.click()}
+                          className="px-2 py-1.5 border border-neutral-700 rounded-lg text-neutral-500 text-xs hover:border-neutral-500 hover:text-neutral-300 transition-colors"
+                          title="Upload image"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -931,22 +1148,6 @@ export function MovieApp() {
                 )}
               </button>
             )}
-            {characterImages.length > 0 && (
-              <button
-                onClick={handleGenerateScenes}
-                disabled={isGenerating}
-                className="px-6 py-4 bg-white text-black rounded-2xl font-semibold text-base hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-3"
-              >
-                {generatingScenes ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-black/20 border-t-black" />
-                    Generating...
-                  </>
-                ) : (
-                  "Generate Scenes"
-                )}
-              </button>
-            )}
           </div>
           {error && (
             <p className="text-red-400 text-sm bg-red-400/10 rounded-xl px-4 py-3 max-w-md text-center">
@@ -964,33 +1165,135 @@ export function MovieApp() {
           </section>
         )}
 
-        {/* Scene Images */}
-        {sceneImages.length > 0 && (
+        {/* Section Divider */}
+        {characterImages.length > 0 && (
+          <div className="flex items-center gap-4">
+            <div className="flex-1 h-px bg-neutral-800" />
+            <span className="text-neutral-600 text-sm">Scenes</span>
+            <div className="flex-1 h-px bg-neutral-800" />
+          </div>
+        )}
+
+        {/* Extract Scenes Button */}
+        {characterImages.length > 0 && scenes.length === 0 && (
+          <section className="flex flex-col items-center gap-4">
+            <button
+              onClick={handleExtractScenes}
+              disabled={isGenerating}
+              className="px-6 py-4 bg-white text-black rounded-2xl font-semibold text-base hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-3"
+            >
+              {extractingScenes ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-black/20 border-t-black" />
+                  Extracting Scenes...
+                </>
+              ) : (
+                "Extract Scenes"
+              )}
+            </button>
+          </section>
+        )}
+
+        {/* Scene Cards */}
+        {scenes.length > 0 && (
           <section className="flex flex-col gap-4">
             <div className="flex items-center gap-3">
               <span className="text-2xl">&#x1F3AC;</span>
               <h2 className="text-xl font-semibold text-white">Scenes</h2>
               <span className="text-sm text-neutral-500">
-                {sceneImages.length}{" "}
-                {sceneImages.length === 1 ? "image" : "images"}
+                {scenes.length} {scenes.length === 1 ? "scene" : "scenes"}
               </span>
             </div>
-            <div className="flex gap-4 overflow-x-auto pb-2 blender-scrollbar">
-              {sceneImages.map((url, i) => (
-                <a
+            <div className="grid grid-cols-2 gap-4">
+              {scenes.map((scene, i) => (
+                <div
                   key={i}
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-none w-96 aspect-video rounded-2xl overflow-hidden border border-neutral-800 bg-neutral-900 hover:border-neutral-600 transition-colors group"
+                  className="relative bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden group/card"
                 >
-                  <img
-                    src={url}
-                    alt={`Scene ${i + 1}`}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                </a>
+                  <button
+                    onClick={() => setRemoveIndex(null)}
+                    className="absolute top-3 right-3 p-1.5 rounded-lg text-neutral-600 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover/card:opacity-100 transition-all"
+                    title="Remove scene"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                  <div className="flex gap-4 p-4">
+                    <div
+                      className={`flex-none w-44 aspect-video rounded-xl overflow-hidden bg-neutral-800 border border-neutral-700 ${
+                        scene.imageUrl ? "cursor-zoom-in hover:border-neutral-500 transition-colors" : ""
+                      }`}
+                      onClick={() => { if (scene.imageUrl) setPreviewIndex(null); }}
+                    >
+                      {scene.imageUrl ? (
+                        <img src={scene.imageUrl} alt={scene.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <span className="text-2xl text-neutral-600">{scene.name.charAt(0).toUpperCase()}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 flex flex-col gap-2 min-w-0">
+                      <input
+                        type="text"
+                        value={scene.name}
+                        onChange={(e) => updateScene(i, { name: e.target.value })}
+                        placeholder="Scene name"
+                        className="w-full bg-transparent text-white font-semibold text-sm focus:outline-none placeholder-neutral-600"
+                      />
+                      <textarea
+                        value={scene.description}
+                        onChange={(e) => updateScene(i, { description: e.target.value })}
+                        placeholder="Scene description"
+                        rows={3}
+                        className="w-full bg-transparent text-neutral-400 text-xs leading-relaxed focus:outline-none placeholder-neutral-600 resize-none blender-scrollbar"
+                      />
+                      <button
+                        onClick={() => handleRegenerateScene(i)}
+                        disabled={sceneRegenIndex !== null}
+                        className="self-start px-3 py-1.5 border border-neutral-700 rounded-lg text-neutral-400 text-xs hover:border-neutral-500 hover:text-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+                      >
+                        {sceneRegenIndex === i ? (
+                          <>
+                            <div className="animate-spin rounded-full h-3 w-3 border border-neutral-400 border-t-transparent" />
+                            Regenerating...
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
+                            </svg>
+                            Regenerate
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
               ))}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setScenes([...scenes, { name: "", description: "", imageUrl: null, imageFilename: null }])}
+                className="px-4 py-2 border border-dashed border-neutral-700 rounded-xl text-neutral-500 text-sm hover:border-neutral-500 hover:text-neutral-300 transition-colors"
+              >
+                + Add Scene
+              </button>
+              <button
+                onClick={handleGenerateSceneImages}
+                disabled={isGenerating}
+                className="px-6 py-2 bg-white text-black rounded-xl font-semibold text-sm hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+              >
+                {generatingScenes ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-black/20 border-t-black" />
+                    Generating...
+                  </>
+                ) : (
+                  "Generate All Scene Images"
+                )}
+              </button>
             </div>
           </section>
         )}
