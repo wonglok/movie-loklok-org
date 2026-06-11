@@ -1,10 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { useMovieStore, ART_STYLES } from "@/stores/movie-store";
+import { useState, useEffect, useRef } from "react";
+import { useMovieStore, ART_STYLES, type ArtStyle } from "@/stores/movie-store";
 import { useFolderStore } from "@/stores/folder-store";
 
 const FAL_TEXT2IMG = "https://fal.run/fal-ai/nano-banana";
+
+function resolveStyle(custom: string, preset: ArtStyle): string {
+  if (custom.trim()) return custom.trim();
+  return ART_STYLES.find((s) => s.key === preset)?.label ?? preset;
+}
 
 interface GenerateResult {
   url: string;
@@ -61,13 +66,40 @@ async function savePromptFile(
   await writable.close();
 }
 
+async function readMovieJson(
+  folderHandle: FileSystemDirectoryHandle,
+): Promise<{ story?: string; artStyle?: string; customArtStyle?: string } | null> {
+  try {
+    const fileHandle = await folderHandle.getFileHandle("movie.json");
+    const file = await fileHandle.getFile();
+    const text = await file.text();
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+async function writeMovieJson(
+  folderHandle: FileSystemDirectoryHandle,
+  data: { story: string; artStyle: string; customArtStyle: string },
+): Promise<void> {
+  const fileHandle = await folderHandle.getFileHandle("movie.json", {
+    create: true,
+  });
+  const writable = await fileHandle.createWritable();
+  await writable.write(JSON.stringify(data, null, 2));
+  await writable.close();
+}
+
 export function MovieApp() {
   const story = useMovieStore((s) => s.story);
   const artStyle = useMovieStore((s) => s.artStyle);
+  const customArtStyle = useMovieStore((s) => s.customArtStyle);
   const characterImages = useMovieStore((s) => s.characterImages);
   const sceneImages = useMovieStore((s) => s.sceneImages);
   const setStory = useMovieStore((s) => s.setStory);
   const setArtStyle = useMovieStore((s) => s.setArtStyle);
+  const setCustomArtStyle = useMovieStore((s) => s.setCustomArtStyle);
   const setCharacterImages = useMovieStore((s) => s.setCharacterImages);
   const setSceneImages = useMovieStore((s) => s.setSceneImages);
 
@@ -79,8 +111,53 @@ export function MovieApp() {
   const [savedPath, setSavedPath] = useState<string | null>(null);
   const [generatingCharacters, setGeneratingCharacters] = useState(false);
   const [generatingScenes, setGeneratingScenes] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
 
   const isGenerating = generatingCharacters || generatingScenes;
+  const effectiveStyle = resolveStyle(customArtStyle, artStyle);
+
+  // Load persisted state from movie.json on mount
+  useEffect(() => {
+    if (!folderHandle) {
+      setHydrated(true);
+      return;
+    }
+
+    (async () => {
+      try {
+        const data = await readMovieJson(folderHandle);
+        if (data) {
+          if (data.story) setStory(data.story);
+          if (data.artStyle && ART_STYLES.some((s) => s.key === data.artStyle)) {
+            setArtStyle(data.artStyle as ArtStyle);
+          }
+          if (data.customArtStyle) setCustomArtStyle(data.customArtStyle);
+        }
+      } catch {
+        // file doesn't exist yet or can't be read, use defaults
+      } finally {
+        setHydrated(true);
+      }
+    })();
+  }, [folderHandle, setStory, setArtStyle, setCustomArtStyle]);
+
+  // Auto-save to movie.json
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!hydrated || !folderHandle) return;
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      writeMovieJson(folderHandle, {
+        story,
+        artStyle,
+        customArtStyle,
+      }).catch(() => {
+        // file write failed, ignore
+      });
+    }, 500);
+  }, [story, artStyle, customArtStyle, hydrated, folderHandle]);
 
   const handleGenerateCharacters = async () => {
     if (!story.trim() || isGenerating || !apiKey) return;
@@ -89,11 +166,8 @@ export function MovieApp() {
     setGeneratingCharacters(true);
 
     try {
-      const styleLabel =
-        ART_STYLES.find((s) => s.key === artStyle)?.label ?? artStyle;
       const context = story.substring(0, 800);
-
-      const characterPrompt = `Character design reference sheet, ${styleLabel} animation style. Clean character turnaround, full body, consistent character design. Based on this story: ${context}`;
+      const characterPrompt = `Character design reference sheet, ${effectiveStyle} animation style. Clean character turnaround, full body, consistent character design. Based on this story: ${context}`;
 
       const [result1, result2] = await Promise.all([
         generateImage(characterPrompt, apiKey),
@@ -138,11 +212,8 @@ export function MovieApp() {
     setGeneratingScenes(true);
 
     try {
-      const styleLabel =
-        ART_STYLES.find((s) => s.key === artStyle)?.label ?? artStyle;
       const context = story.substring(0, 800);
-
-      const scenePrompt = `Cinematic movie keyframe, ${styleLabel} animation style. Wide establishing shot, dramatic lighting, film composition, rich environment details. Based on this story: ${context}`;
+      const scenePrompt = `Cinematic movie keyframe, ${effectiveStyle} animation style. Wide establishing shot, dramatic lighting, film composition, rich environment details. Based on this story: ${context}`;
 
       const [result1, result2] = await Promise.all([
         generateImage(scenePrompt, apiKey),
@@ -217,7 +288,8 @@ export function MovieApp() {
           </div>
           <div className="grid grid-cols-3 gap-3">
             {ART_STYLES.map((style) => {
-              const isSelected = artStyle === style.key;
+              const isSelected =
+                !customArtStyle.trim() && artStyle === style.key;
               return (
                 <button
                   key={style.key}
@@ -239,6 +311,18 @@ export function MovieApp() {
                 </button>
               );
             })}
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="text-sm text-neutral-400">
+              Or type a custom style:
+            </label>
+            <input
+              type="text"
+              value={customArtStyle}
+              onChange={(e) => setCustomArtStyle(e.target.value)}
+              placeholder="e.g. Studio Ghibli, pixel art, watercolor..."
+              className="w-full px-4 py-3 bg-neutral-900 border border-neutral-800 rounded-xl text-white text-sm placeholder-neutral-500 focus:outline-none focus:border-neutral-600 transition-colors"
+            />
           </div>
         </section>
 

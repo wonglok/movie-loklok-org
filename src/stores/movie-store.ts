@@ -20,12 +20,14 @@ export const ART_STYLES: { key: ArtStyle; label: string; emoji: string }[] = [
 interface MovieState {
   story: string;
   artStyle: ArtStyle;
+  customArtStyle: string;
   isGenerating: boolean;
   characterImages: string[];
   sceneImages: string[];
   activeTab: "characters" | "scenes";
   setStory: (story: string) => void;
   setArtStyle: (style: ArtStyle) => void;
+  setCustomArtStyle: (style: string) => void;
   setCharacterImages: (images: string[]) => void;
   setSceneImages: (images: string[]) => void;
   setIsGenerating: (generating: boolean) => void;
@@ -35,12 +37,14 @@ interface MovieState {
 export const useMovieStore = create<MovieState>((set) => ({
   story: "",
   artStyle: "cartoon-3d",
+  customArtStyle: "",
   isGenerating: false,
   characterImages: [],
   sceneImages: [],
   activeTab: "characters",
   setStory: (story) => set({ story }),
   setArtStyle: (artStyle) => set({ artStyle }),
+  setCustomArtStyle: (customArtStyle) => set({ customArtStyle }),
   setCharacterImages: (characterImages) => set({ characterImages }),
   setSceneImages: (sceneImages) => set({ sceneImages }),
   setIsGenerating: (isGenerating) => set({ isGenerating }),
