@@ -402,6 +402,9 @@ export function MovieApp() {
     setError(null);
     setSavedPath(null);
     setGeneratingCharacters(true);
+    if (!folderHandle) {
+      return;
+    }
 
     try {
       const updated = [...characters];
@@ -416,7 +419,7 @@ export function MovieApp() {
 
         for (let i = 0; i < updated.length; i++) {
           const char = updated[i];
-          const prompt = `Character design reference image, ${effectiveStyle} animation style. Character name: ${char.name}. ${char.description}. zoom to show the character's face. grey background. clean character turnaround, consistent design.`;
+          const prompt = `Character Concept art, ${effectiveStyle} animation style. Character name: ${char.name}. ${char.description}. zoom to show the character's face. grey background. clean character turnaround, consistent design.`;
 
           const result = await generateImage(prompt, apiKey);
           const id = crypto.randomUUID();
@@ -438,7 +441,7 @@ export function MovieApp() {
       } else {
         for (let i = 0; i < updated.length; i++) {
           const char = updated[i];
-          const prompt = `Character design reference image, ${effectiveStyle} animation style. Character name: ${char.name}. ${char.description}. zoom to show the character's face. grey background. clean character turnaround, consistent design.`;
+          const prompt = `Character Concept art, ${effectiveStyle} animation style. Character name: ${char.name}. ${char.description}. zoom to show the character's face. grey background. clean character turnaround, consistent design.`;
 
           const result = await generateImage(prompt, apiKey);
           updated[i] = { ...char, imageUrl: result.url };
