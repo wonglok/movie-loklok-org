@@ -4,6 +4,7 @@ export interface Character {
   name: string;
   description: string;
   imageUrl: string | null;
+  imageFilename: string | null;
 }
 
 export type ArtStyle =
