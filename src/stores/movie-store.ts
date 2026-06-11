@@ -32,6 +32,7 @@ interface MovieState {
   characterImages: string[];
   sceneImages: string[];
   characters: Character[];
+  scenes: Character[];
   activeTab: "characters" | "scenes";
   setStory: (story: string) => void;
   setArtStyle: (style: ArtStyle) => void;
@@ -40,6 +41,8 @@ interface MovieState {
   setSceneImages: (images: string[]) => void;
   setCharacters: (characters: Character[]) => void;
   updateCharacter: (index: number, updates: Partial<Character>) => void;
+  setScenes: (scenes: Character[]) => void;
+  updateScene: (index: number, updates: Partial<Character>) => void;
   setIsGenerating: (generating: boolean) => void;
   setActiveTab: (tab: "characters" | "scenes") => void;
 }
@@ -52,6 +55,7 @@ export const useMovieStore = create<MovieState>((set) => ({
   characterImages: [],
   sceneImages: [],
   characters: [],
+  scenes: [],
   activeTab: "characters",
   setStory: (story) => set({ story }),
   setArtStyle: (artStyle) => set({ artStyle }),
@@ -64,6 +68,13 @@ export const useMovieStore = create<MovieState>((set) => ({
       const characters = [...state.characters];
       characters[index] = { ...characters[index], ...updates };
       return { characters };
+    }),
+  setScenes: (scenes) => set({ scenes }),
+  updateScene: (index, updates) =>
+    set((state) => {
+      const scenes = [...state.scenes];
+      scenes[index] = { ...scenes[index], ...updates };
+      return { scenes };
     }),
   setIsGenerating: (isGenerating) => set({ isGenerating }),
   setActiveTab: (activeTab) => set({ activeTab }),
