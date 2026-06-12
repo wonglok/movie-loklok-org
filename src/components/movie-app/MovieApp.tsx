@@ -193,6 +193,17 @@ export function MovieApp() {
     setPickerError(null);
     try {
       const handle = await window.showDirectoryPicker();
+      setStory("");
+      setArtStyle("cartoon-3d");
+      setCustomArtStyle("");
+      setCharacters([]);
+      setScenes([]);
+      setCharacterImages([]);
+      setSceneImages([]);
+      setSelectedScenes(new Set());
+      setError(null);
+      setSavedPath(null);
+      setHydrated(false);
       setFolder(handle);
       await saveApiKey(apiKey ?? "");
       setShowSettings(false);
