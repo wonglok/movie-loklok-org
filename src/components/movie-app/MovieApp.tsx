@@ -503,7 +503,7 @@ export function MovieApp() {
       const dialogueLines = (scene.conversations || [])
         .map((c) => `${c.person}: "${c.line}"`)
         .join("\n");
-      const prompt = `${scene.name}. ${scene.description}${
+      const prompt = `${scene.name}. ${scene.description}\n\nDuration: ${scene.videoDuration}s${
         dialogueLines ? `\n\nDialogue:\n${dialogueLines}` : ""
       }${scene.videoCamera ? `\n\nCamera: ${scene.videoCamera}` : ""}`;
       const videoUrl = await uploadAndGenerateVideo(
@@ -512,6 +512,7 @@ export function MovieApp() {
         apiKey,
         scene.videoResolution,
         scene.videoAspect,
+        scene.videoDuration,
       );
       updateScene(id, { videoUrl });
     } catch (err) {

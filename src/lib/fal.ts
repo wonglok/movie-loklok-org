@@ -207,6 +207,7 @@ export async function uploadAndGenerateVideo(
   apiKey: string,
   resolution?: string,
   aspectRatio?: string,
+  duration?: number,
 ): Promise<string> {
   fal.config({ credentials: apiKey });
   const fileUrl = await fal.storage.upload(file);
@@ -217,6 +218,7 @@ export async function uploadAndGenerateVideo(
       image_url: fileUrl,
       aspect_ratio: aspectRatio ?? "9:16",
       resolution: resolution ?? "720p",
+      duration: duration ?? 5,
     },
     logs: true,
     onQueueUpdate: (update) => {
