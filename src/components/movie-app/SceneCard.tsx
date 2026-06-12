@@ -330,7 +330,7 @@ export function SceneCard({
         <div className="border-t border-neutral-800 px-4 py-3">
           <video
             src={scene.videoUrl}
-            className="w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+            className="w-full max-h-[400px] rounded-lg cursor-pointer hover:opacity-90 transition-opacity object-contain bg-black"
             muted
             preload="metadata"
             onClick={() => setShowVideo(true)}
