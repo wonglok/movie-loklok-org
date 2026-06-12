@@ -189,7 +189,7 @@ export async function generateVideo(
       image_urls: [imageUrl],
       aspect_ratio: "9:16",
       resolution: "720p",
-      enable_safety_checker: true,
+      enable_safety_checker: false,
     },
     logs: true,
     onQueueUpdate: (update) => {
@@ -221,7 +221,7 @@ export async function uploadAndGenerateVideo(
       aspect_ratio: aspectRatio ?? "9:16",
       resolution: resolution ?? "720p",
       duration: duration ?? 5,
-      enable_safety_checker: true,
+      enable_safety_checker: false,
     },
     logs: true,
     onQueueUpdate: (update) => {
