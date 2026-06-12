@@ -539,7 +539,7 @@ export function MovieApp() {
         .map((c) => `[${c.camera || "Static Camera"}] ${c.person}: "${c.line}"`)
         .join("\n");
       const prompt = `Language & Tone: ${language}. ${scene.name}. ${scene.description}\n\nDuration: ${scene.videoDuration}s. No background music.${
-        dialogueLines ? `\n\nScene Moments:\n${dialogueLines}` : ""
+        dialogueLines ? `\n\nCamera & Scene:\n${dialogueLines}` : ""
       }`;
       const remoteUrl = await uploadAndGenerateVideo(
         file,
@@ -587,7 +587,7 @@ export function MovieApp() {
           )
           .join("\n");
         const prompt = `Language & Tone: ${language}. ${scene.name}. ${scene.description}\n\nDuration: ${scene.videoDuration}s. No background music.${
-          dialogueLines ? `\n\nScene Moments:\n${dialogueLines}` : ""
+          dialogueLines ? `\n\nCamera & Scene:\n${dialogueLines}` : ""
         }`;
         const remoteUrl = await uploadAndGenerateVideo(
           file,
@@ -693,7 +693,7 @@ export function MovieApp() {
           )
           .join("\n");
         const prompt = `Language & Tone: ${language}. ${scene.name}. ${scene.description}\n\nDuration: ${scene.videoDuration}s. No background music.${
-          dialogueLines ? `\n\nScene Moments:\n${dialogueLines}` : ""
+          dialogueLines ? `\n\nCamera & Scene:\n${dialogueLines}` : ""
         }`;
         const remoteUrl = await uploadAndGenerateVideo(
           file,
