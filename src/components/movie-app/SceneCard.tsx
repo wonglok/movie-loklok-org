@@ -279,6 +279,16 @@ export function SceneCard({
             />
             <span className="text-neutral-600 text-xs">s</span>
           </div>
+          <button
+            onClick={() => setShowVideo(true)}
+            className="shrink-0 px-3 py-1.5 border border-green-700 rounded-lg text-green-400 text-xs hover:bg-green-400/10 transition-colors flex items-center gap-1.5"
+          >
+            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+            Play
+          </button>
+
           <div className="flex items-center gap-2">
             <select
               value={scene.videoAspect}
@@ -296,32 +306,22 @@ export function SceneCard({
               ))}
             </select>
           </div>
-          {scene.videoUrl ? (
-            <button
-              onClick={() => setShowVideo(true)}
-              className="shrink-0 px-3 py-1.5 border border-green-700 rounded-lg text-green-400 text-xs hover:bg-green-400/10 transition-colors flex items-center gap-1.5"
-            >
-              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z" />
-              </svg>
-              Play
-            </button>
-          ) : (
-            <button
-              onClick={() => onGenerateVideo(scene.id)}
-              disabled={generatingVideoId !== null}
-              className="shrink-0 px-3 py-1.5 border border-neutral-700 rounded-lg text-neutral-400 text-xs hover:border-neutral-500 hover:text-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
-            >
-              {generatingVideoId === scene.id ? (
-                <>
-                  <div className="animate-spin rounded-full h-3 w-3 border border-neutral-400 border-t-transparent" />
-                  Generating...
-                </>
-              ) : (
-                "Generate Video"
-              )}
-            </button>
-          )}
+
+          {/*  */}
+          <button
+            onClick={() => onGenerateVideo(scene.id)}
+            disabled={generatingVideoId !== null}
+            className="shrink-0 px-3 py-1.5 border border-neutral-700 rounded-lg text-neutral-400 text-xs hover:border-neutral-500 hover:text-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+          >
+            {generatingVideoId === scene.id ? (
+              <>
+                <div className="animate-spin rounded-full h-3 w-3 border border-neutral-400 border-t-transparent" />
+                Generating...
+              </>
+            ) : (
+              "Generate Video"
+            )}
+          </button>
         </div>
       )}
 
