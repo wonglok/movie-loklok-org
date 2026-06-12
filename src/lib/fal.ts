@@ -470,3 +470,54 @@ ${dialogueSummary || "(no dialogue)"}`.trim(),
     videoDuration: Math.min(Math.max(1, metadata.videoDuration), 15),
   };
 }
+
+export async function regenerateSceneDescription(
+  story: string,
+  sceneName: string,
+  sceneDescription: string,
+  conversations: { person: string; line: string }[],
+  apiKey: string,
+  language?: string,
+): Promise<{ name: string; description: string }> {
+  fal.config({ credentials: apiKey });
+
+  const dialogueSummary = conversations
+    .map((c) => `${c.person}: "${c.line}"`)
+    .join("\n");
+
+  const result = await fal.subscribe(
+    "openrouter/router/openai/v1/chat/completions",
+    {
+      input: {
+        model: "deepseek/deepseek-v4-flash",
+        messages: [
+          {
+            role: "user",
+            content: `Rewrite the name and description for this movie scene based on its dialogue and the full story context. Return ONLY a valid JSON object with "name" (a compelling scene title) and "description" (a concise scene description). No other text.${language ? `\n\nWrite all output in ${language}.` : ""}
+
+Full story: ${story}
+
+Current scene name: ${sceneName}
+Current scene description: ${sceneDescription}
+
+Dialogue:
+${dialogueSummary || "(no dialogue)"}`.trim(),
+          },
+        ],
+      },
+      logs: true,
+      onQueueUpdate: (update) => {
+        if (update.status === "IN_PROGRESS") {
+          update.logs.map((log) => log.message).forEach(console.log);
+        }
+      },
+    },
+  );
+
+  const data = result.data as {
+    choices: { message: { content: string } }[];
+  };
+  const text = data.choices[0].message.content;
+  const json = text.replace(/```json|```/g, "").trim();
+  return JSON.parse(json);
+}

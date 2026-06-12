@@ -6,12 +6,14 @@ import { ASPECT_OPTIONS } from "@/stores/movie-store";
 
 interface SceneCardProps {
   scene: Character;
-  sceneRegenId: string | null;
+  imageRegenId: string | null;
+  descRegenId: string | null;
   scriptRegenId: string | null;
   generatingVideoId: string | null;
   selected: boolean;
   onToggleSelect: (id: string) => void;
-  onRegenerate: (id: string) => void;
+  onRegenerateImage: (id: string) => void;
+  onRegenerateDescription: (id: string) => void;
   onRegenerateScript: (id: string) => void;
   onGenerateVideo: (id: string) => void;
   onRemove: (id: string) => void;
@@ -22,12 +24,14 @@ interface SceneCardProps {
 
 export function SceneCard({
   scene,
-  sceneRegenId,
+  imageRegenId,
+  descRegenId,
   scriptRegenId,
   generatingVideoId,
   selected,
   onToggleSelect,
-  onRegenerate,
+  onRegenerateImage,
+  onRegenerateDescription,
   onRegenerateScript,
   onGenerateVideo,
   onRemove,
@@ -139,8 +143,31 @@ export function SceneCard({
           />
           <div className="flex items-center gap-1.5 flex-wrap">
             <button
+              onClick={() => onRegenerateDescription(scene.id)}
+              disabled={
+                imageRegenId !== null ||
+                descRegenId !== null ||
+                scriptRegenId !== null
+              }
+              className="px-3 py-1.5 border border-neutral-700 rounded-lg text-neutral-400 text-xs hover:border-neutral-500 hover:text-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+            >
+              {descRegenId === scene.id ? (
+                <>
+                  <div className="animate-spin rounded-full h-3 w-3 border border-neutral-400 border-t-transparent" />
+                  Generating...
+                </>
+              ) : (
+                "Desc"
+              )}
+            </button>
+
+            <button
               onClick={() => onRegenerateScript(scene.id)}
-              disabled={sceneRegenId !== null || scriptRegenId !== null}
+              disabled={
+                imageRegenId !== null ||
+                descRegenId !== null ||
+                scriptRegenId !== null
+              }
               className="px-3 py-1.5 border border-neutral-700 rounded-lg text-neutral-400 text-xs hover:border-neutral-500 hover:text-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
             >
               {scriptRegenId === scene.id ? (
@@ -149,51 +176,26 @@ export function SceneCard({
                   Generating...
                 </>
               ) : (
-                <>
-                  <svg
-                    className="w-3 h-3"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182"
-                    />
-                  </svg>
-                  {"Script"}
-                </>
+                "Script"
               )}
             </button>
+
             <button
-              onClick={() => onRegenerate(scene.id)}
-              disabled={sceneRegenId !== null || scriptRegenId !== null}
+              onClick={() => onRegenerateImage(scene.id)}
+              disabled={
+                imageRegenId !== null ||
+                descRegenId !== null ||
+                scriptRegenId !== null
+              }
               className="px-3 py-1.5 border border-neutral-700 rounded-lg text-neutral-400 text-xs hover:border-neutral-500 hover:text-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
             >
-              {sceneRegenId === scene.id ? (
+              {imageRegenId === scene.id ? (
                 <>
                   <div className="animate-spin rounded-full h-3 w-3 border border-neutral-400 border-t-transparent" />
-                  Regenerating...
+                  Generating...
                 </>
               ) : (
-                <>
-                  <svg
-                    className="w-3 h-3"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182"
-                    />
-                  </svg>
-                  Img &amp; Script
-                </>
+                "Img"
               )}
             </button>
             <input

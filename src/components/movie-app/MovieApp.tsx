@@ -12,6 +12,7 @@ import {
   resolveCharacterRefs,
   regenerateSceneConversations,
   estimateSceneMetadata,
+  regenerateSceneDescription,
 } from "@/lib/fal";
 import { resolveStyle } from "@/lib/style";
 import {
@@ -62,7 +63,8 @@ export function MovieApp() {
   const [extracting, setExtracting] = useState(false);
   const [extractingScenes, setExtractingScenes] = useState(false);
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
-  const [sceneRegenId, setSceneRegenId] = useState<string | null>(null);
+  const [imageRegenId, setImageRegenId] = useState<string | null>(null);
+  const [descRegenId, setDescRegenId] = useState<string | null>(null);
   const [scriptRegenId, setScriptRegenId] = useState<string | null>(null);
   const [generatingVideoId, setGeneratingVideoId] = useState<string | null>(
     null,
@@ -384,35 +386,23 @@ export function MovieApp() {
     }
   };
 
-  const handleRegenerateScene = async (id: string) => {
+  const handleRegenerateSceneImage = async (id: string) => {
     const scene = scenes.find((s) => s.id === id);
     if (!scene || !apiKey) return;
     setError(null);
-    setSceneRegenId(id);
+    setImageRegenId(id);
     try {
-      const [charRefs, conversations] = await Promise.all([
-        resolveCharacterRefs(characters, folderHandle, apiKey),
-        regenerateSceneConversations(
-          scene.name,
-          scene.description,
-          apiKey,
-          language,
-        ),
-      ]);
+      const charRefs = await resolveCharacterRefs(
+        characters,
+        folderHandle,
+        apiKey,
+      );
       const charNames = characters
         .filter((c) => c.name)
         .map((c) => c.name)
         .join(", ");
       const imagePrompt = `Cinematic movie keyframe, ${effectiveStyle} animation style. Featuring characters: ${charNames || "original characters"}. Scene: ${scene.name}. ${scene.description}. Characters must maintain consistent appearance and design. Wide establishing shot, dramatic lighting, film composition.`;
-      const [metadata, result] = await Promise.all([
-        estimateSceneMetadata(
-          scene.name,
-          scene.description,
-          conversations,
-          apiKey,
-        ),
-        generateSceneImage(imagePrompt, apiKey, charRefs),
-      ]);
+      const result = await generateSceneImage(imagePrompt, apiKey, charRefs);
       if (folderHandle) {
         const imagesDir = await folderHandle.getDirectoryHandle("images", {
           create: true,
@@ -427,22 +417,45 @@ export function MovieApp() {
         updateScene(id, {
           imageUrl: localUrl,
           imageFilename: filename,
-          conversations,
-          videoDuration: metadata.videoDuration,
         });
         await savePromptFile(result.prompt, `${imageId}.txt`, sceneDir);
       } else {
         updateScene(id, {
           imageUrl: result.url,
           sourceUrl: result.url,
-          conversations,
-          videoDuration: metadata.videoDuration,
         });
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Regeneration failed");
+      setError(err instanceof Error ? err.message : "Image generation failed");
     } finally {
-      setSceneRegenId(null);
+      setImageRegenId(null);
+    }
+  };
+
+  const handleRegenerateSceneDescription = async (id: string) => {
+    const scene = scenes.find((s) => s.id === id);
+    if (!scene || !apiKey) return;
+    setError(null);
+    setDescRegenId(id);
+    try {
+      const result = await regenerateSceneDescription(
+        story,
+        scene.name,
+        scene.description,
+        scene.conversations || [],
+        apiKey,
+        language,
+      );
+      updateScene(id, {
+        name: result.name,
+        description: result.description,
+      });
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Description regeneration failed",
+      );
+    } finally {
+      setDescRegenId(null);
     }
   };
 
@@ -1042,12 +1055,14 @@ export function MovieApp() {
                     <SceneCard
                       key={scene.id}
                       scene={scene}
-                      sceneRegenId={sceneRegenId}
+                      imageRegenId={imageRegenId}
+                      descRegenId={descRegenId}
                       scriptRegenId={scriptRegenId}
                       generatingVideoId={generatingVideoId}
                       selected={selectedScenes.has(scene.id)}
                       onToggleSelect={toggleSceneSelect}
-                      onRegenerate={handleRegenerateScene}
+                      onRegenerateImage={handleRegenerateSceneImage}
+                      onRegenerateDescription={handleRegenerateSceneDescription}
                       onRegenerateScript={handleRegenerateSceneScript}
                       onGenerateVideo={handleGenerateSceneVideo}
                       onRemove={(id) => setRemoveTarget({ id, type: "scene" })}
