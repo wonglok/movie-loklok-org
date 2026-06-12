@@ -184,6 +184,12 @@ export function MovieApp() {
         const clipsDir = await folderHandle.getDirectoryHandle("clips", {
           create: true,
         });
+        for (const char of characters) {
+          if (char.videoFilename && !char.videoUrl) {
+            const localUrl = await loadLocalImage(char.videoFilename, clipsDir);
+            if (localUrl) updateCharacter(char.id, { videoUrl: localUrl });
+          }
+        }
         for (const scene of scenes) {
           if (scene.videoFilename && !scene.videoUrl) {
             const localUrl = await loadLocalImage(
@@ -695,6 +701,7 @@ export function MovieApp() {
           scene.videoResolution,
           scene.videoAspect,
           scene.videoDuration,
+          await getCharacterVideoFiles(),
         );
         const clipsDir = await folderHandle.getDirectoryHandle("clips", {
           create: true,
