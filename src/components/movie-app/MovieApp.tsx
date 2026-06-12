@@ -494,7 +494,7 @@ export function MovieApp() {
       const dialogueLines = (scene.conversations || [])
         .map((c) => `[${c.camera || "Static Camera"}] ${c.person}: "${c.line}"`)
         .join("\n");
-      const prompt = `Language & Tone: ${language}. \n\n Scene Title: ${scene.name}. \n\n Scene Description: ${scene.description}\n\nDuration: ${scene.videoDuration}s. No background music.${
+      const prompt = `Scene Title: ${scene.name}. \n\n Scene Description: ${scene.description}\n\nDuration: ${scene.videoDuration}s. No background music. Language & Tone: ${language}. \n\n ${
         dialogueLines ? `\n\nCamera & Scene:\n${dialogueLines}` : ""
       }`;
       const remoteUrl = await uploadAndGenerateVideo(
@@ -599,7 +599,7 @@ export function MovieApp() {
             (c) => `[${c.camera || "Static Camera"}] ${c.person}: "${c.line}"`,
           )
           .join("\n");
-        const prompt = `Language & Tone: ${language}. \n\n Scene Title: ${scene.name}. \n\n Scene Description: ${scene.description}\n\nDuration: ${scene.videoDuration}s. No background music.${
+        const prompt = `Scene Title: ${scene.name}. \n\n Scene Description: ${scene.description}\n\nDuration: ${scene.videoDuration}s. No background music. Language & Tone: ${language}. \n\n ${
           dialogueLines ? `\n\nCamera & Scene:\n${dialogueLines}` : ""
         }`;
         const remoteUrl = await uploadAndGenerateVideo(
@@ -1022,10 +1022,7 @@ export function MovieApp() {
                     </button>
                     <button
                       onClick={handleGenerateSelectedVideos}
-                      disabled={
-                        isGenerating ||
-                        generatingSelectedVideos
-                      }
+                      disabled={isGenerating || generatingSelectedVideos}
                       className="px-3 py-1.5 bg-white text-black rounded-lg text-xs font-medium hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                     >
                       {generatingSelectedVideos
