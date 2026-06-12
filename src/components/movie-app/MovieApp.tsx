@@ -800,7 +800,8 @@ export function MovieApp() {
                 size={350}
               />
             </div>
-            {/* <div className="h-[256px] w-[256px] rotate-z-45">
+            {/* 
+            <div className="h-[256px] w-[256px] rotate-z-45">
               <Strands
                 colors={["#d16d26", "#34a951", "#1a11be"]}
                 count={3}
@@ -821,7 +822,8 @@ export function MovieApp() {
                 glassSize={1}
                 hueShift={0}
               ></Strands>
-            </div> */}
+            </div>
+            */}
             {/*
              */}
           </div>
