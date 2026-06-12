@@ -74,7 +74,7 @@ export function SceneCard({
         type="checkbox"
         checked={selected}
         onChange={() => onToggleSelect(scene.id)}
-        className="absolute top-3 left-3 w-4 h-4 rounded border-neutral-600 bg-neutral-800 accent-(--blender-accent) cursor-pointer z-10 opacity-0 group-hover/card:opacity-100 transition-opacity"
+        className="absolute top-3 left-3 w-7 h-7 rounded-full border-neutral-600 bg-neutral-800 accent-(--blender-accent) cursor-pointer z-10 opacity-0 group-hover/card:opacity-100 transition-opacity"
       />
       <button
         onClick={() => onRemove(scene.id)}

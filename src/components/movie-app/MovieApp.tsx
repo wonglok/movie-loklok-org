@@ -512,7 +512,7 @@ export function MovieApp() {
       const prompt = `Language & Tone: ${language}. ${scene.name}. ${scene.description}\n\nDuration: ${scene.videoDuration}s. No background music.${
         dialogueLines ? `\n\nShots:\n${dialogueLines}` : ""
       }`;
-      const videoUrl = await uploadAndGenerateVideo(
+      const remoteUrl = await uploadAndGenerateVideo(
         file,
         prompt,
         apiKey,
@@ -520,7 +520,16 @@ export function MovieApp() {
         scene.videoAspect,
         scene.videoDuration,
       );
-      updateScene(id, { videoUrl });
+      const clipsDir = await folderHandle.getDirectoryHandle("clips", {
+        create: true,
+      });
+      const videoFilename = `${crypto.randomUUID()}.mp4`;
+      const localUrl = await saveAndLoadLocal(
+        remoteUrl,
+        videoFilename,
+        clipsDir,
+      );
+      updateScene(id, { videoUrl: localUrl });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Video generation failed");
     } finally {
@@ -544,19 +553,31 @@ export function MovieApp() {
         const fileHandle = await sceneDir.getFileHandle(scene.imageFilename);
         const file = await fileHandle.getFile();
         const dialogueLines = (scene.conversations || [])
-          .map((c) => `${c.person}: "${c.line}"`)
+          .map(
+            (c) => `[${c.camera || "Static Camera"}] ${c.person}: "${c.line}"`,
+          )
           .join("\n");
-        const prompt = `${scene.name}. ${scene.description}${
-          dialogueLines ? `\n\nDialogue:\n${dialogueLines}` : ""
+        const prompt = `Language & Tone: ${language}. ${scene.name}. ${scene.description}\n\nDuration: ${scene.videoDuration}s. No background music.${
+          dialogueLines ? `\n\nShots:\n${dialogueLines}` : ""
         }`;
-        const videoUrl = await uploadAndGenerateVideo(
+        const remoteUrl = await uploadAndGenerateVideo(
           file,
           prompt,
           apiKey,
           scene.videoResolution,
           scene.videoAspect,
+          scene.videoDuration,
         );
-        updateScene(scene.id, { videoUrl });
+        const clipsDir = await folderHandle.getDirectoryHandle("clips", {
+          create: true,
+        });
+        const videoFilename = `${crypto.randomUUID()}.mp4`;
+        const localUrl = await saveAndLoadLocal(
+          remoteUrl,
+          videoFilename,
+          clipsDir,
+        );
+        updateScene(scene.id, { videoUrl: localUrl });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Video generation failed");
@@ -638,19 +659,31 @@ export function MovieApp() {
         const fileHandle = await sceneDir.getFileHandle(scene.imageFilename);
         const file = await fileHandle.getFile();
         const dialogueLines = (scene.conversations || [])
-          .map((c) => `${c.person}: "${c.line}"`)
+          .map(
+            (c) => `[${c.camera || "Static Camera"}] ${c.person}: "${c.line}"`,
+          )
           .join("\n");
-        const prompt = `${scene.name}. ${scene.description}${
-          dialogueLines ? `\n\nDialogue:\n${dialogueLines}` : ""
+        const prompt = `Language & Tone: ${language}. ${scene.name}. ${scene.description}\n\nDuration: ${scene.videoDuration}s. No background music.${
+          dialogueLines ? `\n\nShots:\n${dialogueLines}` : ""
         }`;
-        const videoUrl = await uploadAndGenerateVideo(
+        const remoteUrl = await uploadAndGenerateVideo(
           file,
           prompt,
           apiKey,
           scene.videoResolution,
           scene.videoAspect,
+          scene.videoDuration,
         );
-        updateScene(id, { videoUrl });
+        const clipsDir = await folderHandle.getDirectoryHandle("clips", {
+          create: true,
+        });
+        const videoFilename = `${crypto.randomUUID()}.mp4`;
+        const localUrl = await saveAndLoadLocal(
+          remoteUrl,
+          videoFilename,
+          clipsDir,
+        );
+        updateScene(id, { videoUrl: localUrl });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Video generation failed");
