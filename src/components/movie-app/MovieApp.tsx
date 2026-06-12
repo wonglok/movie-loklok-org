@@ -67,7 +67,6 @@ export function MovieApp() {
   const [generatingVideoId, setGeneratingVideoId] = useState<string | null>(
     null,
   );
-  const [generatingAllVideos, setGeneratingAllVideos] = useState(false);
   const [generatingSelectedVideos, setGeneratingSelectedVideos] =
     useState(false);
   const [generatingSelectedScripts, setGeneratingSelectedScripts] =
@@ -89,7 +88,6 @@ export function MovieApp() {
     generatingScenes ||
     extracting ||
     extractingScenes ||
-    generatingAllVideos ||
     generatingSelectedVideos ||
     generatingSelectedScripts;
   const effectiveStyle = resolveStyle(customArtStyle, artStyle);
@@ -564,55 +562,6 @@ export function MovieApp() {
       setError(err instanceof Error ? err.message : "Video generation failed");
     } finally {
       setGeneratingVideoId(null);
-    }
-  };
-
-  const handleGenerateAllSceneVideos = async () => {
-    if (!folderHandle || !apiKey) return;
-    setError(null);
-    setGeneratingAllVideos(true);
-    try {
-      const imagesDir = await folderHandle.getDirectoryHandle("images", {
-        create: true,
-      });
-      const sceneDir = await imagesDir.getDirectoryHandle("scene", {
-        create: true,
-      });
-      for (const scene of scenes) {
-        if (!scene.imageFilename || scene.videoUrl) continue;
-        const fileHandle = await sceneDir.getFileHandle(scene.imageFilename);
-        const file = await fileHandle.getFile();
-        const dialogueLines = (scene.conversations || [])
-          .map(
-            (c) => `[${c.camera || "Static Camera"}] ${c.person}: "${c.line}"`,
-          )
-          .join("\n");
-        const prompt = `Language & Tone: ${language}. \n\n Scene Title: ${scene.name}. \n\n Scene Description: ${scene.description}\n\nDuration: ${scene.videoDuration}s. No background music.${
-          dialogueLines ? `\n\nCamera & Scene:\n${dialogueLines}` : ""
-        }`;
-        const remoteUrl = await uploadAndGenerateVideo(
-          file,
-          prompt,
-          apiKey,
-          scene.videoResolution,
-          scene.videoAspect,
-          scene.videoDuration,
-        );
-        const clipsDir = await folderHandle.getDirectoryHandle("clips", {
-          create: true,
-        });
-        const videoFilename = `${crypto.randomUUID()}.mp4`;
-        const localUrl = await saveAndLoadLocal(
-          remoteUrl,
-          videoFilename,
-          clipsDir,
-        );
-        updateScene(scene.id, { videoUrl: localUrl, videoFilename });
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Video generation failed");
-    } finally {
-      setGeneratingAllVideos(false);
     }
   };
 
@@ -1102,7 +1051,6 @@ export function MovieApp() {
                       onClick={handleGenerateSelectedVideos}
                       disabled={
                         isGenerating ||
-                        generatingAllVideos ||
                         generatingSelectedVideos
                       }
                       className="px-3 py-1.5 bg-white text-black rounded-lg text-xs font-medium hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
@@ -1186,26 +1134,6 @@ export function MovieApp() {
                       Generate character images first to reference them in
                       scenes.
                     </p>
-                  )}
-                  {scenes.some((s) => s.imageFilename) && (
-                    <button
-                      onClick={handleGenerateAllSceneVideos}
-                      disabled={
-                        isGenerating ||
-                        generatingVideoId !== null ||
-                        generatingAllVideos
-                      }
-                      className="px-5 py-2 border border-neutral-700 rounded-xl text-neutral-400 text-sm hover:border-neutral-500 hover:text-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-2"
-                    >
-                      {generatingAllVideos ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-neutral-400 border-t-transparent" />{" "}
-                          Generating All...
-                        </>
-                      ) : (
-                        "Generate All Videos"
-                      )}
-                    </button>
                   )}
                 </div>
               </>
