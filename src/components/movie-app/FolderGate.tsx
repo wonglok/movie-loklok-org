@@ -93,8 +93,8 @@ export function FolderGate({ children }: { children: ReactNode }) {
               Enter your API Key
             </h1>
             <p className="text-neutral-400 text-sm mb-6 leading-relaxed">
-              Your fal.ai API key will be stored securely in your browser and
-              linked to the folder{" "}
+              Your fal.ai API key will be stored securely in your browser for
+              the workspace{" "}
               <span className="text-neutral-300 font-mono">{folderName}</span>.
             </p>
 
@@ -166,11 +166,11 @@ export function FolderGate({ children }: { children: ReactNode }) {
           </div>
 
           <h1 className="text-xl font-semibold text-white mb-2">
-            Select API Keys Folder
+            Select Movie Workspace Folder
           </h1>
           <p className="text-neutral-400 text-sm mb-6 leading-relaxed">
-            Choose a folder on your computer to store your fal.ai API keys. The
-            keys will be read directly from this folder when making API calls.
+            Choose a folder on your computer to store your movie project. All
+            generated images, videos, and project data will be saved here.
           </p>
 
           {!browserSupported && (
