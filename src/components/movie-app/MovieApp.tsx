@@ -66,6 +66,8 @@ export function MovieApp() {
   const [generatingAllVideos, setGeneratingAllVideos] = useState(false);
   const [generatingSelectedVideos, setGeneratingSelectedVideos] =
     useState(false);
+  const [generatingSelectedScripts, setGeneratingSelectedScripts] =
+    useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [pickerError, setPickerError] = useState<string | null>(null);
@@ -84,7 +86,8 @@ export function MovieApp() {
     extracting ||
     extractingScenes ||
     generatingAllVideos ||
-    generatingSelectedVideos;
+    generatingSelectedVideos ||
+    generatingSelectedScripts;
   const effectiveStyle = resolveStyle(customArtStyle, artStyle);
   const hasCharacterImages = characters.some(
     (c) => c.sourceUrl || c.imageFilename,
@@ -650,6 +653,41 @@ export function MovieApp() {
     }
   };
 
+  const handleGenerateSelectedScripts = async () => {
+    if (!selectedScenes.size || isGenerating || !apiKey) return;
+    setError(null);
+    setGeneratingSelectedScripts(true);
+    try {
+      for (const id of selectedScenes) {
+        const scene = scenes.find((s) => s.id === id);
+        if (!scene) continue;
+        const conversations = await regenerateSceneConversations(
+          scene.name,
+          scene.description,
+          apiKey,
+        );
+        const metadata = await estimateSceneMetadata(
+          scene.name,
+          scene.description,
+          conversations,
+          apiKey,
+        );
+        updateScene(id, {
+          conversations,
+          videoDuration: metadata.videoDuration,
+          videoCamera: metadata.videoCamera,
+        });
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Script generation failed",
+      );
+    } finally {
+      setGeneratingSelectedScripts(false);
+      setSelectedScenes(new Set());
+    }
+  };
+
   const previewItem =
     previewId !== null
       ? previewType === "character"
@@ -957,6 +995,15 @@ export function MovieApp() {
                       {generatingScenes
                         ? "Generating..."
                         : "Generate Selected Images"}
+                    </button>
+                    <button
+                      onClick={handleGenerateSelectedScripts}
+                      disabled={isGenerating}
+                      className="px-3 py-1.5 border border-neutral-600 rounded-lg text-neutral-300 text-xs font-medium hover:border-neutral-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {generatingSelectedScripts
+                        ? "Generating..."
+                        : "Generate Selected Scripts"}
                     </button>
                     <button
                       onClick={handleGenerateSelectedVideos}
