@@ -174,7 +174,7 @@ export async function extractVideoInfo(
   return JSON.parse(json);
 }
 
-const FAL_VIDEO = "fal-ai/happy-horse/reference-to-video";
+const FAL_VIDEO = "alibaba/happy-horse/reference-to-video";
 
 export async function generateVideo(
   imageUrl: string,
@@ -186,9 +186,10 @@ export async function generateVideo(
   const result = await fal.subscribe(FAL_VIDEO, {
     input: {
       prompt,
-      image_url: imageUrl,
+      image_urls: [imageUrl],
       aspect_ratio: "9:16",
       resolution: "720p",
+      enable_safety_checker: true,
     },
     logs: true,
     onQueueUpdate: (update) => {
@@ -216,10 +217,11 @@ export async function uploadAndGenerateVideo(
   const result = await fal.subscribe(FAL_VIDEO, {
     input: {
       prompt,
-      image_url: fileUrl,
+      image_urls: [fileUrl],
       aspect_ratio: aspectRatio ?? "9:16",
       resolution: resolution ?? "720p",
       duration: duration ?? 5,
+      enable_safety_checker: true,
     },
     logs: true,
     onQueueUpdate: (update) => {
