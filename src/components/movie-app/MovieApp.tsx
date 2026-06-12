@@ -794,35 +794,36 @@ export function MovieApp() {
             </svg>
           </button>
           <div className="flex justify-center mb-6">
-            <div className="h-[550px] w-[550px]">
-              <Strands
-                colors={["#d16d26", "#34a951", "#1a11be"]}
-                count={5}
-                speed={0.2}
-                amplitude={1.3}
-                waviness={3}
-                thickness={0.7}
-                glow={2.5}
-                taper={0.5}
-                spread={3}
-                intensity={1}
-                saturation={3}
-                opacity={1}
-                scale={3}
-                glass
-                refraction={2.7}
-                dispersion={1.8}
-                glassSize={1}
-                hueShift={0}
-              ></Strands>
-            </div>
-            {/* 
             <div className="bg-white p-3 rounded-xl">
               <QRCode
                 value={`https://github.com/wonglok/movie-loklok-org`}
-                size={256}
+                size={350}
               />
+            </div>
+            {/* <div className="h-[256px] w-[256px] rotate-z-45">
+              <Strands
+                colors={["#d16d26", "#34a951", "#1a11be"]}
+                count={3}
+                speed={0.06}
+                amplitude={0.5}
+                waviness={2.5}
+                thickness={0.5}
+                glow={10}
+                taper={1}
+                spread={1}
+                intensity={0.1}
+                saturation={1.0}
+                opacity={1}
+                scale={1}
+                glass
+                refraction={3.141592}
+                dispersion={0.0}
+                glassSize={1}
+                hueShift={0}
+              ></Strands>
             </div> */}
+            {/*
+             */}
           </div>
           <div className="text-white mb-3 font-bold">VIDEO.LOKLOK.ORG</div>
           <div className="text-white mb-3 font-bold">
