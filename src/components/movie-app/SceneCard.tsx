@@ -279,7 +279,7 @@ export function SceneCard({
             />
             <span className="text-neutral-600 text-xs">s</span>
           </div>
-          <button
+          {/* <button
             onClick={() => setShowVideo(true)}
             className="shrink-0 px-3 py-1.5 border border-green-700 rounded-lg text-green-400 text-xs hover:bg-green-400/10 transition-colors flex items-center gap-1.5"
           >
@@ -287,7 +287,7 @@ export function SceneCard({
               <path d="M8 5v14l11-7z" />
             </svg>
             Play
-          </button>
+          </button> */}
 
           <div className="flex items-center gap-2">
             <select
