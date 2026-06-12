@@ -30,6 +30,7 @@ import { RemoveConfirmModal } from "./RemoveConfirmModal";
 import { ImagePreviewModal } from "./ImagePreviewModal";
 import { CharacterCard } from "./CharacterCard";
 import { SceneCard } from "./SceneCard";
+import { MovieEditor } from "./MovieEditor";
 import QRCode from "react-qr-code";
 
 export function MovieApp() {
@@ -813,7 +814,9 @@ export function MovieApp() {
           <SettingsModal
             folderName={folderName}
             pickerError={pickerError}
+            apiKey={apiKey}
             onChangeFolder={handleChangeFolder}
+            onSaveApiKey={saveApiKey}
             onClose={() => {
               setShowSettings(false);
               setPickerError(null);
@@ -1188,6 +1191,13 @@ export function MovieApp() {
             )}
           </section>
         )}
+
+        {/* Movie Editor Section */}
+        <MovieEditor
+          scenes={scenes}
+          folderHandle={folderHandle}
+          updateScene={updateScene}
+        />
       </div>
     </div>
   );
