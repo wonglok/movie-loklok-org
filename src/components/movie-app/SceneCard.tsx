@@ -315,42 +315,43 @@ export function SceneCard({
             </select>
           </div>
 
-          {scene.videoUrl ? (
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => setShowVideo(true)}
-                className="shrink-0 px-3 py-1.5 border border-green-700 rounded-lg text-green-400 text-xs hover:bg-green-400/10 transition-colors flex items-center gap-1.5"
-              >
-                <svg
-                  className="w-3 h-3"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
+          <div className="flex items-center gap-1.5">
+            {scene.videoUrl && (
+              <>
+                <button
+                  onClick={() => setShowVideo(true)}
+                  className="shrink-0 px-3 py-1.5 border border-green-700 rounded-lg text-green-400 text-xs hover:bg-green-400/10 transition-colors flex items-center gap-1.5"
                 >
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-                Play
-              </button>
-              <a
-                href={scene.videoUrl}
-                download={`${scene.name || "scene"}.mp4`}
-                className="shrink-0 px-3 py-1.5 border border-neutral-700 rounded-lg text-neutral-400 text-xs hover:border-neutral-500 hover:text-neutral-200 transition-colors flex items-center gap-1.5"
-              >
-                <svg
-                  className="w-3 h-3"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
+                  <svg
+                    className="w-3 h-3"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                  Play
+                </button>
+                <a
+                  href={scene.videoUrl}
+                  download={`${scene.name || "scene"}.mp4`}
+                  className="shrink-0 px-3 py-1.5 border border-neutral-700 rounded-lg text-neutral-400 text-xs hover:border-neutral-500 hover:text-neutral-200 transition-colors flex items-center gap-1.5"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
-                  />
-                </svg>
-              </a>
-            </div>
-          ) : (
+                  <svg
+                    className="w-3 h-3"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
+                    />
+                  </svg>
+                </a>
+              </>
+            )}
             <button
               onClick={() => onGenerateVideo(scene.id)}
               disabled={generatingVideoId !== null}
@@ -362,10 +363,10 @@ export function SceneCard({
                   Generating...
                 </>
               ) : (
-                "Generate Video"
+                "Gen Video"
               )}
             </button>
-          )}
+          </div>
         </div>
       )}
 
