@@ -29,6 +29,7 @@ import { RemoveConfirmModal } from "./RemoveConfirmModal";
 import { ImagePreviewModal } from "./ImagePreviewModal";
 import { CharacterCard } from "./CharacterCard";
 import { SceneCard } from "./SceneCard";
+import QRCode from "react-qr-code";
 
 export function MovieApp() {
   const story = useMovieStore((s) => s.story);
@@ -802,6 +803,8 @@ export function MovieApp() {
               Saving...
             </p>
           )}
+
+          <div>{/* QR Code here... */}</div>
         </section>
 
         {showSettings && (
