@@ -790,6 +790,21 @@ export function MovieApp() {
           />
         </section>
 
+        {/* Language Section */}
+        <section className="flex flex-col gap-4">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">&#x1F1EC;&#x1F1E7;</span>
+            <h2 className="text-xl font-semibold text-white">Language</h2>
+          </div>
+          <input
+            type="text"
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            placeholder="English"
+            className="w-full px-4 py-3 bg-neutral-900 border border-neutral-800 rounded-xl text-white text-sm placeholder-neutral-500 focus:outline-none focus:border-neutral-600 transition-colors"
+          />
+        </section>
+
         {/* Art Direction Section */}
         <section className="flex flex-col gap-4">
           <div className="flex items-center gap-3">
@@ -940,21 +955,6 @@ export function MovieApp() {
             </p>
           </section>
         )} */}
-
-        {/* Language Section */}
-        <section className="flex flex-col gap-4">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">&#x1F1EC;&#x1F1E7;</span>
-            <h2 className="text-xl font-semibold text-white">Language</h2>
-          </div>
-          <input
-            type="text"
-            value={language}
-            onChange={(e) => setLanguage(e.target.value)}
-            placeholder="English"
-            className="w-full px-4 py-3 bg-neutral-900 border border-neutral-800 rounded-xl text-white text-sm placeholder-neutral-500 focus:outline-none focus:border-neutral-600 transition-colors"
-          />
-        </section>
 
         {/* Scenes Section */}
         {characters.length > 0 && (
