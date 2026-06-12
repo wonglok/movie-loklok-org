@@ -20,6 +20,7 @@ import {
   readScenesJson,
   saveAndLoadLocal,
   savePromptFile,
+  loadLocalImage,
 } from "@/lib/fs-helpers";
 import { useAutoSave } from "@/hooks/useAutoSave";
 import { useLocalImages } from "@/hooks/useLocalImages";
@@ -123,6 +124,7 @@ export function MovieApp() {
       }
       for (const scene of scenes) {
         if (scene.imageUrl) URL.revokeObjectURL(scene.imageUrl);
+        if (scene.videoUrl) URL.revokeObjectURL(scene.videoUrl);
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -169,6 +171,30 @@ export function MovieApp() {
     setScenes,
   ]);
 
+  // Load videos from workspace clips/ folder
+  useEffect(() => {
+    if (!hydrated || !folderHandle) return;
+    (async () => {
+      try {
+        const clipsDir = await folderHandle.getDirectoryHandle("clips", {
+          create: true,
+        });
+        for (const scene of scenes) {
+          if (scene.videoFilename && !scene.videoUrl) {
+            const localUrl = await loadLocalImage(
+              scene.videoFilename,
+              clipsDir,
+            );
+            if (localUrl) updateScene(scene.id, { videoUrl: localUrl });
+          }
+        }
+      } catch {
+        // folder not ready, ignore
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated]);
+
   // Enter key to confirm removal
   useEffect(() => {
     if (removeTarget === null) return;
@@ -191,6 +217,7 @@ export function MovieApp() {
     } else {
       const scene = scenes.find((s) => s.id === id);
       if (scene?.imageUrl) URL.revokeObjectURL(scene.imageUrl);
+      if (scene?.videoUrl) URL.revokeObjectURL(scene.videoUrl);
       setScenes(scenes.filter((s) => s.id !== id));
     }
     setRemoveTarget(null);
@@ -238,6 +265,7 @@ export function MovieApp() {
           imageFilename: null,
           sourceUrl: null,
           videoUrl: null,
+          videoFilename: null,
           videoDuration: 5,
           videoResolution: "720p",
           videoAspect: "9:16",
@@ -343,6 +371,7 @@ export function MovieApp() {
           imageFilename: null,
           sourceUrl: null,
           videoUrl: null,
+          videoFilename: null,
           videoDuration: 5,
           videoResolution: "720p",
           videoAspect: "9:16",
@@ -529,7 +558,7 @@ export function MovieApp() {
         videoFilename,
         clipsDir,
       );
-      updateScene(id, { videoUrl: localUrl });
+      updateScene(id, { videoUrl: localUrl, videoFilename });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Video generation failed");
     } finally {
@@ -577,7 +606,7 @@ export function MovieApp() {
           videoFilename,
           clipsDir,
         );
-        updateScene(scene.id, { videoUrl: localUrl });
+        updateScene(scene.id, { videoUrl: localUrl, videoFilename });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Video generation failed");
@@ -683,7 +712,7 @@ export function MovieApp() {
           videoFilename,
           clipsDir,
         );
-        updateScene(id, { videoUrl: localUrl });
+        updateScene(id, { videoUrl: localUrl, videoFilename });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Video generation failed");
@@ -945,6 +974,7 @@ export function MovieApp() {
                       imageFilename: null,
                       sourceUrl: null,
                       videoUrl: null,
+          videoFilename: null,
                       videoDuration: 5,
                       videoResolution: "720p",
                       videoAspect: "9:16",
@@ -1114,6 +1144,7 @@ export function MovieApp() {
                           imageFilename: null,
                           sourceUrl: null,
                           videoUrl: null,
+          videoFilename: null,
                           videoDuration: 5,
                           videoResolution: "720p",
                           videoAspect: "9:16",
