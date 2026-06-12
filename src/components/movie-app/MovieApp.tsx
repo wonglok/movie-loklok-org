@@ -539,7 +539,7 @@ export function MovieApp() {
         .map((c) => `[${c.camera || "Static Camera"}] ${c.person}: "${c.line}"`)
         .join("\n");
       const prompt = `Language & Tone: ${language}. ${scene.name}. ${scene.description}\n\nDuration: ${scene.videoDuration}s. No background music.${
-        dialogueLines ? `\n\nShots:\n${dialogueLines}` : ""
+        dialogueLines ? `\n\nScene Moments:\n${dialogueLines}` : ""
       }`;
       const remoteUrl = await uploadAndGenerateVideo(
         file,
@@ -587,7 +587,7 @@ export function MovieApp() {
           )
           .join("\n");
         const prompt = `Language & Tone: ${language}. ${scene.name}. ${scene.description}\n\nDuration: ${scene.videoDuration}s. No background music.${
-          dialogueLines ? `\n\nShots:\n${dialogueLines}` : ""
+          dialogueLines ? `\n\nScene Moments:\n${dialogueLines}` : ""
         }`;
         const remoteUrl = await uploadAndGenerateVideo(
           file,
@@ -693,7 +693,7 @@ export function MovieApp() {
           )
           .join("\n");
         const prompt = `Language & Tone: ${language}. ${scene.name}. ${scene.description}\n\nDuration: ${scene.videoDuration}s. No background music.${
-          dialogueLines ? `\n\nShots:\n${dialogueLines}` : ""
+          dialogueLines ? `\n\nScene Moments:\n${dialogueLines}` : ""
         }`;
         const remoteUrl = await uploadAndGenerateVideo(
           file,
@@ -974,7 +974,7 @@ export function MovieApp() {
                       imageFilename: null,
                       sourceUrl: null,
                       videoUrl: null,
-          videoFilename: null,
+                      videoFilename: null,
                       videoDuration: 5,
                       videoResolution: "720p",
                       videoAspect: "9:16",
@@ -1144,7 +1144,7 @@ export function MovieApp() {
                           imageFilename: null,
                           sourceUrl: null,
                           videoUrl: null,
-          videoFilename: null,
+                          videoFilename: null,
                           videoDuration: 5,
                           videoResolution: "720p",
                           videoAspect: "9:16",
