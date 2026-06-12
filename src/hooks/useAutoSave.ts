@@ -12,6 +12,7 @@ export function useAutoSave(
   story: string,
   artStyle: string,
   customArtStyle: string,
+  language: string,
   characters: Character[],
   scenes: Character[],
 ) {
@@ -31,11 +32,12 @@ export function useAutoSave(
         story,
         artStyle,
         customArtStyle,
+        language,
       })
         .catch(() => {})
         .finally(() => setIsSaving(false));
     }, 500);
-  }, [story, artStyle, customArtStyle, hydrated, folderHandle]);
+  }, [story, artStyle, customArtStyle, language, hydrated, folderHandle]);
 
   useEffect(() => {
     if (!hydrated || !folderHandle) return;

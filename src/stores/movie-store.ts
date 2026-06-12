@@ -65,6 +65,7 @@ interface MovieState {
   story: string;
   artStyle: ArtStyle;
   customArtStyle: string;
+  language: string;
   isGenerating: boolean;
   characterImages: string[];
   sceneImages: string[];
@@ -76,6 +77,7 @@ interface MovieState {
   setStory: (story: string) => void;
   setArtStyle: (style: ArtStyle) => void;
   setCustomArtStyle: (style: string) => void;
+  setLanguage: (language: string) => void;
   setCharacterImages: (images: string[]) => void;
   setSceneImages: (images: string[]) => void;
   setCharacters: (characters: Character[]) => void;
@@ -93,6 +95,7 @@ export const useMovieStore = create<MovieState>((set) => ({
   story: "",
   artStyle: "cartoon-3d",
   customArtStyle: "",
+  language: "English",
   isGenerating: false,
   characterImages: [],
   sceneImages: [],
@@ -104,6 +107,7 @@ export const useMovieStore = create<MovieState>((set) => ({
   setStory: (story) => set({ story }),
   setArtStyle: (artStyle) => set({ artStyle }),
   setCustomArtStyle: (customArtStyle) => set({ customArtStyle }),
+  setLanguage: (language) => set({ language }),
   setCharacterImages: (characterImages) => set({ characterImages }),
   setSceneImages: (sceneImages) => set({ sceneImages }),
   setCharacters: (characters) => set({ characters }),

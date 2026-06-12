@@ -98,6 +98,7 @@ export async function generateSceneImage(
 export async function extractCharacters(
   story: string,
   apiKey: string,
+  language?: string,
 ): Promise<{ name: string; description: string }[]> {
   fal.config({ credentials: apiKey });
 
@@ -109,7 +110,7 @@ export async function extractCharacters(
         messages: [
           {
             role: "user",
-            content: `Extract all characters from this movie story. Return ONLY a valid JSON array of objects with "name" and "description" fields. No other text.\n\nStory: ${story}`,
+            content: `Extract all characters from this movie story. Return ONLY a valid JSON array of objects with "name" and "description" fields. No other text.${language ? `\n\nWrite all output in ${language}.` : ""}\n\nStory: ${story}`,
           },
         ],
       },
@@ -301,6 +302,7 @@ export async function extractMoments(
 export async function extractScenes(
   story: string,
   apiKey: string,
+  language?: string,
 ): Promise<
   {
     name: string;
@@ -323,7 +325,7 @@ export async function extractScenes(
 - "description": scene description
 - "conversations": an array of objects, each with "person" (the character speaking or voice-over narrator), "line" (their line of dialogue or narration), and "camera" (camera direction for this shot, e.g. "Static", "Close up", "Slow pan", "Dolly in", "Wide"). Each scene is max 15 seconds, so keep dialogue concise and brief. If no one speaks, use an empty array.
 
-No other text.\n\nStory: ${story}`,
+No other text.${language ? `\n\nWrite all output in ${language}.` : ""}\n\nStory: ${story}`,
           },
         ],
       },
@@ -361,6 +363,7 @@ export async function regenerateSceneConversations(
   sceneName: string,
   sceneDescription: string,
   apiKey: string,
+  language?: string,
 ): Promise<{ id: string; person: string; line: string; camera: string }[]> {
   fal.config({ credentials: apiKey });
 
@@ -376,7 +379,8 @@ export async function regenerateSceneConversations(
 Write the scripted dialogue for this scene from a movie story. The scene has a maximum duration of 15 seconds, so keep the total dialogue concise — each line should be brief and speakable within that timeframe. Return ONLY a valid JSON array of objects, each with "person" (the character speaking or voice-over narrator), "line" (their line of dialogue or narration), and "camera" (camera direction for this shot, e.g. "Static", "Close up", "Slow pan", "Dolly in", "Wide", "Over shoulder"). Include all dialogue that happens in this scene. If no one speaks, return an empty array. No other text.
 
 Scene: ${sceneName}
-Description: ${sceneDescription}`.trim(),
+Description: ${sceneDescription}
+${language ? `\nWrite all output in ${language}.` : ""}`.trim(),
           },
         ],
       },

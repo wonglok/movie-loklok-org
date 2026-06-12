@@ -54,6 +54,7 @@ export async function readMovieJson(
   story?: string;
   artStyle?: string;
   customArtStyle?: string;
+  language?: string;
 } | null> {
   try {
     const fileHandle = await folderHandle.getFileHandle("movie.json");
@@ -67,7 +68,12 @@ export async function readMovieJson(
 
 export async function writeMovieJson(
   folderHandle: FileSystemDirectoryHandle,
-  data: { story: string; artStyle: string; customArtStyle: string },
+  data: {
+    story: string;
+    artStyle: string;
+    customArtStyle: string;
+    language: string;
+  },
 ): Promise<void> {
   const fileHandle = await folderHandle.getFileHandle("movie.json", {
     create: true,

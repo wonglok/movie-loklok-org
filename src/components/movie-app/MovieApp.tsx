@@ -38,6 +38,8 @@ export function MovieApp() {
   const setStory = useMovieStore((s) => s.setStory);
   const setArtStyle = useMovieStore((s) => s.setArtStyle);
   const setCustomArtStyle = useMovieStore((s) => s.setCustomArtStyle);
+  const language = useMovieStore((s) => s.language);
+  const setLanguage = useMovieStore((s) => s.setLanguage);
   const setCharacterImages = useMovieStore((s) => s.setCharacterImages);
   const setSceneImages = useMovieStore((s) => s.setSceneImages);
   const setCharacters = useMovieStore((s) => s.setCharacters);
@@ -99,6 +101,7 @@ export function MovieApp() {
     story,
     artStyle,
     customArtStyle,
+    language,
     characters,
     scenes,
   );
@@ -147,6 +150,7 @@ export function MovieApp() {
             setArtStyle(movieData.artStyle as ArtStyle);
           if (movieData.customArtStyle)
             setCustomArtStyle(movieData.customArtStyle);
+          if (movieData.language) setLanguage(movieData.language);
         }
         if (charData) setCharacters(charData);
         if (sceneData) setScenes(sceneData);
@@ -199,6 +203,7 @@ export function MovieApp() {
       setStory("");
       setArtStyle("cartoon-3d");
       setCustomArtStyle("");
+      setLanguage("English");
       setCharacters([]);
       setScenes([]);
       setCharacterImages([]);
@@ -224,7 +229,7 @@ export function MovieApp() {
     setSavedPath(null);
     setExtracting(true);
     try {
-      const extracted = await extractCharacters(story, apiKey);
+      const extracted = await extractCharacters(story, apiKey, language);
       setCharacters(
         extracted.map((c) => ({
           id: crypto.randomUUID(),
@@ -329,7 +334,7 @@ export function MovieApp() {
     setSavedPath(null);
     setExtractingScenes(true);
     try {
-      const extracted = await extractScenes(story, apiKey);
+      const extracted = await extractScenes(story, apiKey, language);
       setScenes(
         extracted.map((s) => ({
           id: crypto.randomUUID(),
@@ -402,7 +407,7 @@ export function MovieApp() {
     try {
       const [charRefs, conversations] = await Promise.all([
         resolveCharacterRefs(characters, folderHandle, apiKey),
-        regenerateSceneConversations(scene.name, scene.description, apiKey),
+        regenerateSceneConversations(scene.name, scene.description, apiKey, language),
       ]);
       const charNames = characters
         .filter((c) => c.name)
@@ -498,7 +503,7 @@ export function MovieApp() {
       const dialogueLines = (scene.conversations || [])
         .map((c) => `[${c.camera || "Static Camera"}] ${c.person}: "${c.line}"`)
         .join("\n");
-      const prompt = `${scene.name}. ${scene.description}\n\nDuration: ${scene.videoDuration}s${
+      const prompt = `Language: ${language}. ${scene.name}. ${scene.description}\n\nDuration: ${scene.videoDuration}s${
         dialogueLines ? `\n\nShots:\n${dialogueLines}` : ""
       }`;
       const videoUrl = await uploadAndGenerateVideo(
@@ -930,6 +935,21 @@ export function MovieApp() {
             </p>
           </section>
         )} */}
+
+        {/* Language Section */}
+        <section className="flex flex-col gap-4">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">&#x1F1EC;&#x1F1E7;</span>
+            <h2 className="text-xl font-semibold text-white">Language</h2>
+          </div>
+          <input
+            type="text"
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            placeholder="English"
+            className="w-full px-4 py-3 bg-neutral-900 border border-neutral-800 rounded-xl text-white text-sm placeholder-neutral-500 focus:outline-none focus:border-neutral-600 transition-colors"
+          />
+        </section>
 
         {/* Scenes Section */}
         {characters.length > 0 && (
