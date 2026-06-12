@@ -326,7 +326,7 @@ export function SceneCard({
       )}
 
       {/* Video preview + fullscreen modal */}
-      {scene.videoUrl && (
+      {/* {scene.videoUrl && (
         <div className="border-t border-neutral-800 px-4 py-3">
           <video
             src={scene.videoUrl}
@@ -336,7 +336,7 @@ export function SceneCard({
             onClick={() => setShowVideo(true)}
           />
         </div>
-      )}
+      )} */}
 
       {/* Fullscreen video modal */}
       {showVideo && scene.videoUrl && (
@@ -439,6 +439,19 @@ export function SceneCard({
           + Add Line
         </button>
       </div>
+
+      {/* Video preview + fullscreen modal */}
+      {scene.videoUrl && (
+        <div className="border-t border-neutral-800 px-4 py-3">
+          <video
+            src={scene.videoUrl}
+            className="w-full max-h-[400px] rounded-lg cursor-pointer hover:opacity-90 transition-opacity object-contain bg-black"
+            muted
+            preload="metadata"
+            onClick={() => setShowVideo(true)}
+          />
+        </div>
+      )}
     </div>
   );
 }
