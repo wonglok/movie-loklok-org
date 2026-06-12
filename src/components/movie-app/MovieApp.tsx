@@ -1051,7 +1051,7 @@ export function MovieApp() {
                     <button
                       onClick={handleGenerateSelectedScripts}
                       disabled={isGenerating}
-                      className="px-3 py-1.5 border border-neutral-600 rounded-lg text-neutral-300 text-xs font-medium hover:border-neutral-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      className="px-3 py-1.5 bg-white text-black rounded-lg text-xs font-medium hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                     >
                       {generatingSelectedScripts
                         ? "Generating..."
@@ -1064,7 +1064,7 @@ export function MovieApp() {
                         generatingAllVideos ||
                         generatingSelectedVideos
                       }
-                      className="px-3 py-1.5 border border-neutral-600 rounded-lg text-neutral-300 text-xs font-medium hover:border-neutral-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      className="px-3 py-1.5 bg-white text-black rounded-lg text-xs font-medium hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                     >
                       {generatingSelectedVideos
                         ? "Generating..."
