@@ -63,6 +63,9 @@ export function MovieApp() {
   const [extracting, setExtracting] = useState(false);
   const [extractingScenes, setExtractingScenes] = useState(false);
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
+  const [referenceVideoGeneratingId, setReferenceVideoGeneratingId] = useState<
+    string | null
+  >(null);
   const [imageRegenId, setImageRegenId] = useState<string | null>(null);
   const [descRegenId, setDescRegenId] = useState<string | null>(null);
   const [scriptRegenId, setScriptRegenId] = useState<string | null>(null);
@@ -122,6 +125,7 @@ export function MovieApp() {
     return () => {
       for (const char of characters) {
         if (char.imageUrl) URL.revokeObjectURL(char.imageUrl);
+        if (char.videoUrl) URL.revokeObjectURL(char.videoUrl);
       }
       for (const scene of scenes) {
         if (scene.imageUrl) URL.revokeObjectURL(scene.imageUrl);
@@ -214,6 +218,7 @@ export function MovieApp() {
     if (type === "character") {
       const char = characters.find((c) => c.id === id);
       if (char?.imageUrl) URL.revokeObjectURL(char.imageUrl);
+      if (char?.videoUrl) URL.revokeObjectURL(char.videoUrl);
       setCharacters(characters.filter((c) => c.id !== id));
     } else {
       const scene = scenes.find((s) => s.id === id);
@@ -354,6 +359,48 @@ export function MovieApp() {
       setError(err instanceof Error ? err.message : "Regeneration failed");
     } finally {
       setRegeneratingId(null);
+    }
+  };
+
+  const handleGenerateReferenceVideo = async (id: string) => {
+    const char = characters.find((c) => c.id === id);
+    if (!char?.imageFilename || !folderHandle || !apiKey) return;
+    setError(null);
+    setReferenceVideoGeneratingId(id);
+    try {
+      const imagesDir = await folderHandle.getDirectoryHandle("images", {
+        create: true,
+      });
+      const characterDir = await imagesDir.getDirectoryHandle("character", {
+        create: true,
+      });
+      const fileHandle = await characterDir.getFileHandle(char.imageFilename);
+      const file = await fileHandle.getFile();
+      const prompt = `Close-up portrait shot of the character facing the camera. The character says: "Hi, I'm ${char.name}. Nice to meet you!" The camera stays static, focused on the character's face with natural expression and lip-sync to the spoken words. Simple neutral background. Language & Tone: ${language}.`;
+      const remoteUrl = await uploadAndGenerateVideo(
+        file,
+        prompt,
+        apiKey,
+        "480p",
+        "9:16",
+        5,
+      );
+      const clipsDir = await folderHandle.getDirectoryHandle("clips", {
+        create: true,
+      });
+      const videoFilename = `${crypto.randomUUID()}.mp4`;
+      const localUrl = await saveAndLoadLocal(
+        remoteUrl,
+        videoFilename,
+        clipsDir,
+      );
+      updateCharacter(id, { videoUrl: localUrl, videoFilename });
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Reference video generation failed",
+      );
+    } finally {
+      setReferenceVideoGeneratingId(null);
     }
   };
 
@@ -880,7 +927,9 @@ export function MovieApp() {
                   key={char.id}
                   char={char}
                   regeneratingId={regeneratingId}
+                  referenceVideoGeneratingId={referenceVideoGeneratingId}
                   onRegenerate={handleRegenerateCharacter}
+                  onGenerateReferenceVideo={handleGenerateReferenceVideo}
                   onRemove={(id) => setRemoveTarget({ id, type: "character" })}
                   onPreview={(id) => {
                     setPreviewId(id);

@@ -1,11 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import type { Character } from "@/stores/movie-store";
 
 interface CharacterCardProps {
   char: Character;
   regeneratingId: string | null;
+  referenceVideoGeneratingId: string | null;
   onRegenerate: (id: string) => void;
+  onGenerateReferenceVideo: (id: string) => void;
   onRemove: (id: string) => void;
   onPreview: (id: string) => void;
   folderHandle: FileSystemDirectoryHandle | null;
@@ -15,12 +18,16 @@ interface CharacterCardProps {
 export function CharacterCard({
   char,
   regeneratingId,
+  referenceVideoGeneratingId,
   onRegenerate,
+  onGenerateReferenceVideo,
   onRemove,
   onPreview,
   folderHandle,
   updateCharacter,
 }: CharacterCardProps) {
+  const [showVideo, setShowVideo] = useState(false);
+
   return (
     <div className="relative bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden group/card">
       <button
@@ -129,18 +136,13 @@ export function CharacterCard({
                   );
                   const characterDir = await imagesDir.getDirectoryHandle(
                     "character",
-                    {
-                      create: true,
-                    },
+                    { create: true },
                   );
                   const uploadId = crypto.randomUUID();
                   const filename = `${uploadId}.png`;
-                  const fileHandle = await characterDir.getFileHandle(
-                    filename,
-                    {
-                      create: true,
-                    },
-                  );
+                  const fileHandle = await characterDir.getFileHandle(filename, {
+                    create: true,
+                  });
                   const writable = await fileHandle.createWritable();
                   await writable.write(file);
                   await writable.close();
@@ -182,6 +184,76 @@ export function CharacterCard({
           </div>
         </div>
       </div>
+
+      {/* Footer: Reference Video */}
+      {char.imageFilename && (
+        <div className="border-t border-neutral-800 px-4 py-3 flex items-center gap-3">
+          {char.videoUrl ? (
+            <>
+              <button
+                onClick={() => setShowVideo(true)}
+                className="px-3 py-1.5 border border-green-700 rounded-lg text-green-400 text-xs hover:bg-green-400/10 transition-colors flex items-center gap-1.5"
+              >
+                <svg
+                  className="w-3 h-3"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+                Play Ref
+              </button>
+              {showVideo && (
+                <div
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"
+                  onClick={() => setShowVideo(false)}
+                >
+                  <button
+                    onClick={() => setShowVideo(false)}
+                    className="absolute top-4 right-4 p-2 text-white/60 hover:text-white transition-colors z-10"
+                  >
+                    <svg
+                      className="w-8 h-8"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                  <video
+                    src={char.videoUrl}
+                    className="max-w-full max-h-full rounded-lg"
+                    controls
+                    autoPlay
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
+              )}
+            </>
+          ) : (
+            <button
+              onClick={() => onGenerateReferenceVideo(char.id)}
+              disabled={referenceVideoGeneratingId !== null}
+              className="px-3 py-1.5 border border-neutral-700 rounded-lg text-neutral-400 text-xs hover:border-neutral-500 hover:text-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+            >
+              {referenceVideoGeneratingId === char.id ? (
+                <>
+                  <div className="animate-spin rounded-full h-3 w-3 border border-neutral-400 border-t-transparent" />
+                  Generating...
+                </>
+              ) : (
+                "Generate Ref Video"
+              )}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
