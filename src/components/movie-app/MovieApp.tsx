@@ -587,7 +587,7 @@ export function MovieApp() {
             (c) => `[${c.camera || "Static Camera"}] ${c.person}: "${c.line}"`,
           )
           .join("\n");
-        const prompt = `Language & Tone: ${language}. ${scene.name}. ${scene.description}\n\nDuration: ${scene.videoDuration}s. No background music.${
+        const prompt = `Language & Tone: ${language}. \n\n Scene Title: ${scene.name}. \n\n Scene Description: ${scene.description}\n\nDuration: ${scene.videoDuration}s. No background music.${
           dialogueLines ? `\n\nCamera & Scene:\n${dialogueLines}` : ""
         }`;
         const remoteUrl = await uploadAndGenerateVideo(
@@ -693,7 +693,7 @@ export function MovieApp() {
             (c) => `[${c.camera || "Static Camera"}] ${c.person}: "${c.line}"`,
           )
           .join("\n");
-        const prompt = `Language & Tone: ${language}. ${scene.name}. ${scene.description}\n\nDuration: ${scene.videoDuration}s. No background music.${
+        const prompt = `Language & Tone: ${language}. \n\n Scene Title: ${scene.name}. \n\n Scene Description: ${scene.description}\n\nDuration: ${scene.videoDuration}s. No background music.${
           dialogueLines ? `\n\nCamera & Scene:\n${dialogueLines}` : ""
         }`;
         const remoteUrl = await uploadAndGenerateVideo(
