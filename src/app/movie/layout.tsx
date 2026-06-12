@@ -1,3 +1,4 @@
+import Strands from "@/components/backgrounds/Strands";
 import { SideRays } from "../../components/backgrounds/SideRays";
 
 export default function RootLayout({
@@ -27,4 +28,27 @@ export default function RootLayout({
       </div>
     </>
   );
+}
+
+{
+  /* <Strands
+  colors={["#F97316", "#7C3AED", "#06B6D4"]}
+  count={5}
+  speed={0.2}
+  amplitude={1.3}
+  waviness={3}
+  thickness={0.7}
+  glow={3}
+  taper={0.5}
+  spread={3}
+  intensity={0.5}
+  saturation={2}
+  opacity={1}
+  scale={3}
+  glass
+  refraction={2.7}
+  dispersion={1.8}
+  glassSize={1}
+  hueShift={0}
+></Strands>; */
 }
