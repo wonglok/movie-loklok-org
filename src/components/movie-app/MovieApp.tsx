@@ -32,6 +32,7 @@ import { CharacterCard } from "./CharacterCard";
 import { SceneCard } from "./SceneCard";
 import { MovieEditor } from "./MovieEditor";
 import QRCode from "react-qr-code";
+import Strands from "../backgrounds/Strands";
 
 export function MovieApp() {
   const story = useMovieStore((s) => s.story);
@@ -777,7 +778,7 @@ export function MovieApp() {
               className="w-6 h-6"
               fill="none"
               viewBox="0 0 24 24"
-              stroke="currentColor"
+              stroke="white"
               strokeWidth={1.5}
             >
               <path
@@ -793,12 +794,35 @@ export function MovieApp() {
             </svg>
           </button>
           <div className="flex justify-center mb-6">
+            <div className="h-[550px] w-[550px]">
+              <Strands
+                colors={["#d16d26", "#34a951", "#1a11be"]}
+                count={5}
+                speed={0.2}
+                amplitude={1.3}
+                waviness={3}
+                thickness={0.7}
+                glow={2.5}
+                taper={0.5}
+                spread={3}
+                intensity={1}
+                saturation={3}
+                opacity={1}
+                scale={3}
+                glass
+                refraction={2.7}
+                dispersion={1.8}
+                glassSize={1}
+                hueShift={0}
+              ></Strands>
+            </div>
+            {/* 
             <div className="bg-white p-3 rounded-xl">
               <QRCode
                 value={`https://github.com/wonglok/movie-loklok-org`}
                 size={256}
               />
-            </div>
+            </div> */}
           </div>
           <div className="text-white mb-3 font-bold">VIDEO.LOKLOK.ORG</div>
           <div className="text-white mb-3 font-bold">

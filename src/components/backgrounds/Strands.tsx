@@ -226,6 +226,9 @@ export default function Strands({
   className = "",
   style,
 }: StrandsProps) {
+  //
+
+  //
   const propsRef = useRef<Required<Omit<StrandsProps, "className" | "style">>>({
     colors,
     count,
