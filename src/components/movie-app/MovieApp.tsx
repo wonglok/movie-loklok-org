@@ -471,6 +471,7 @@ export function MovieApp() {
         scene.name,
         scene.description,
         apiKey,
+        language,
       );
       const metadata = await estimateSceneMetadata(
         scene.name,
@@ -671,6 +672,7 @@ export function MovieApp() {
           scene.name,
           scene.description,
           apiKey,
+          language,
         );
         const metadata = await estimateSceneMetadata(
           scene.name,
