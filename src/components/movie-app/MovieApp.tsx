@@ -384,49 +384,6 @@ export function MovieApp() {
     }
   };
 
-  const handleGenerateSceneImages = async () => {
-    if (!scenes.length || isGenerating || !apiKey || !folderHandle) return;
-    setError(null);
-    setSavedPath(null);
-    setGeneratingScenes(true);
-    try {
-      const imagesDir = await folderHandle.getDirectoryHandle("images", {
-        create: true,
-      });
-      const sceneDir = await imagesDir.getDirectoryHandle("scene", {
-        create: true,
-      });
-      const charRefs = await resolveCharacterRefs(
-        characters,
-        folderHandle,
-        apiKey,
-      );
-      const charNames = characters
-        .filter((c) => c.name)
-        .map((c) => c.name)
-        .join(", ");
-      for (const scene of scenes) {
-        const prompt = `Cinematic movie keyframe, ${effectiveStyle} animation style. Featuring characters: ${charNames || "original characters"}. Scene: ${scene.name}. ${scene.description}. Characters must maintain consistent appearance and design. Wide establishing shot, dramatic lighting, film composition.`;
-        const result = await generateSceneImage(prompt, apiKey, charRefs);
-        const imageId = crypto.randomUUID();
-        const filename = `${imageId}.png`;
-        const localUrl = await saveAndLoadLocal(result.url, filename, sceneDir);
-        updateScene(scene.id, {
-          imageUrl: localUrl,
-          imageFilename: filename,
-          sourceUrl: result.url,
-        });
-        await savePromptFile(result.prompt, `${imageId}.txt`, sceneDir);
-      }
-      setSceneImages(scenes.map((s) => s.imageUrl).filter(Boolean) as string[]);
-      setSavedPath(`${folderName}/images/scene`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Generation failed");
-    } finally {
-      setGeneratingScenes(false);
-    }
-  };
-
   const handleRegenerateScene = async (id: string) => {
     const scene = scenes.find((s) => s.id === id);
     if (!scene || !apiKey) return;
@@ -1130,20 +1087,6 @@ export function MovieApp() {
                     className="px-4 py-2 border border-dashed border-neutral-700 rounded-xl text-neutral-500 text-sm hover:border-neutral-500 hover:text-neutral-300 transition-colors"
                   >
                     + Add Scene
-                  </button>
-                  <button
-                    onClick={handleGenerateSceneImages}
-                    disabled={isGenerating || !hasCharacterImages}
-                    className="px-6 py-2 bg-white text-black rounded-xl font-semibold text-sm hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-2"
-                  >
-                    {generatingScenes ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-black/20 border-t-black" />{" "}
-                        Generating...
-                      </>
-                    ) : (
-                      "Generate All Scene Images"
-                    )}
                   </button>
                   {!hasCharacterImages && (
                     <p className="text-amber-400 text-xs">
