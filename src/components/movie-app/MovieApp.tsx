@@ -797,8 +797,20 @@ export function MovieApp() {
               <QRCode value={`https://video.loklok.org`} size={256} />
             </div>
           </div>
+          <div className="text-white mb-3 font-bold">VIDEO.LOKLOK.ORG</div>
+          <div className="text-white mb-3 font-bold">
+            <a
+              href={`https://github.com/wonglok/movie-loklok-org`}
+              target="_blank"
+            >
+              Github
+            </a>{" "}
+            <a href={`https://www.linkedin.com/in/wonglok831`} target="_blank">
+              LinkedIn
+            </a>
+          </div>
           <h1 className="text-5xl font-bold text-white mb-4 tracking-tight">
-            Movie Studio
+            Simple Movie Studio
           </h1>
           <p className="text-neutral-400 text-lg max-w-md mx-auto leading-relaxed">
             Bring your story to life with AI-generated characters and scenes
