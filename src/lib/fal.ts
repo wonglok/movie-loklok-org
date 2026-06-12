@@ -174,34 +174,34 @@ export async function extractVideoInfo(
   return JSON.parse(json);
 }
 
-const FAL_VIDEO = "alibaba/happy-horse/reference-to-video";
+const FAL_VIDEO = "bytedance/seedance-2.0/reference-to-video";
 
-export async function generateVideo(
-  imageUrl: string,
-  prompt: string,
-  apiKey: string,
-): Promise<string> {
-  fal.config({ credentials: apiKey });
+// export async function generateVideo(
+//   imageUrl: string,
+//   prompt: string,
+//   apiKey: string,
+// ): Promise<string> {
+//   fal.config({ credentials: apiKey });
 
-  const result = await fal.subscribe(FAL_VIDEO, {
-    input: {
-      prompt,
-      image_urls: [imageUrl],
-      aspect_ratio: "9:16",
-      resolution: "720p",
-      enable_safety_checker: false,
-    },
-    logs: true,
-    onQueueUpdate: (update) => {
-      if (update.status === "IN_PROGRESS") {
-        update.logs.map((log) => log.message).forEach(console.log);
-      }
-    },
-  });
+//   const result = await fal.subscribe(FAL_VIDEO, {
+//     input: {
+//       prompt,
+//       image_urls: [imageUrl],
+//       aspect_ratio: "9:16",
+//       resolution: "720p",
+//       enable_safety_checker: false,
+//     },
+//     logs: true,
+//     onQueueUpdate: (update) => {
+//       if (update.status === "IN_PROGRESS") {
+//         update.logs.map((log) => log.message).forEach(console.log);
+//       }
+//     },
+//   });
 
-  const data = result.data as { video?: { url: string }; url?: string };
-  return data.video?.url ?? data.url ?? "";
-}
+//   const data = result.data as { video?: { url: string }; url?: string };
+//   return data.video?.url ?? data.url ?? "";
+// }
 
 export async function uploadAndGenerateVideo(
   file: File,
@@ -210,17 +210,28 @@ export async function uploadAndGenerateVideo(
   resolution?: string,
   aspectRatio?: string,
   duration?: number,
+  videoFiles?: File[],
 ): Promise<string> {
   fal.config({ credentials: apiKey });
   const fileUrl = await fal.storage.upload(file);
+
+  const videoUrls: string[] = [];
+  if (videoFiles?.length) {
+    for (const vf of videoFiles) {
+      videoUrls.push(await fal.storage.upload(vf));
+    }
+  }
 
   const result = await fal.subscribe(FAL_VIDEO, {
     input: {
       prompt,
       image_urls: [fileUrl],
       aspect_ratio: aspectRatio ?? "9:16",
-      resolution: resolution ?? "720p",
+      resolution: resolution ?? "480p",
       duration: Math.min(Number(duration), 15) ?? 5,
+      generate_audio: true,
+      video_urls: videoUrls,
+      audio_urls: [],
     },
     logs: true,
     onQueueUpdate: (update) => {
@@ -493,7 +504,8 @@ export async function regenerateSceneDescription(
         messages: [
           {
             role: "user",
-            content: `Rewrite the name and description for this movie scene based on its dialogue and the full story context. Return ONLY a valid JSON object with "name" (a compelling scene title) and "description" (a concise scene description). No other text.${language ? `\n\nWrite all output in ${language}.` : ""}
+            content:
+              `Rewrite the name and description for this movie scene based on its dialogue and the full story context. Return ONLY a valid JSON object with "name" (a compelling scene title) and "description" (a concise scene description). No other text.${language ? `\n\nWrite all output in ${language}.` : ""}
 
 Full story: ${story}
 

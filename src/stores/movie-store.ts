@@ -17,7 +17,7 @@ export interface Character {
   videoUrl: string | null;
   videoFilename: string | null;
   videoDuration: number;
-  videoResolution: "720p" | "1080p";
+  videoResolution: "720p" | "1080p" | "480p";
   videoAspect: "16:9" | "9:16" | "4:3" | "1:1" | "3:4";
   conversations: Conversation[];
 }
@@ -121,9 +121,7 @@ export const useMovieStore = create<MovieState>((set) => ({
   setScenes: (scenes) => set({ scenes }),
   updateScene: (id, updates) =>
     set((state) => ({
-      scenes: state.scenes.map((s) =>
-        s.id === id ? { ...s, ...updates } : s,
-      ),
+      scenes: state.scenes.map((s) => (s.id === id ? { ...s, ...updates } : s)),
     })),
   setMoments: (moments) => set({ moments }),
   updateMoment: (id, updates) =>
