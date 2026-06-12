@@ -793,12 +793,7 @@ export function MovieApp() {
           </button>
           <div className="flex justify-center mb-6">
             <div className="bg-white p-3 rounded-xl">
-              <QRCode
-                value={
-                  typeof window !== "undefined" ? window.location.origin : ""
-                }
-                size={256}
-              />
+              <QRCode value={`https://video.loklok.org`} size={256} />
             </div>
           </div>
           <h1 className="text-5xl font-bold text-white mb-4 tracking-tight">
