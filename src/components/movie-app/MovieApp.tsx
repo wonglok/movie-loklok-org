@@ -992,6 +992,22 @@ export function MovieApp() {
                   {scenes.length} {scenes.length === 1 ? "scene" : "scenes"}
                 </span>
               )}
+              {scenes.length > 0 && (
+                <button
+                  onClick={() =>
+                    setSelectedScenes(
+                      selectedScenes.size === scenes.length
+                        ? new Set()
+                        : new Set(scenes.map((s) => s.id)),
+                    )
+                  }
+                  className="ml-auto px-3 py-1 border border-neutral-700 rounded-lg text-neutral-400 text-xs hover:border-neutral-500 hover:text-neutral-200 transition-colors"
+                >
+                  {selectedScenes.size === scenes.length
+                    ? "Deselect All"
+                    : "Select All"}
+                </button>
+              )}
             </div>
 
             {scenes.length === 0 && (
