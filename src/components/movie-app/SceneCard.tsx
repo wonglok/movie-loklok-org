@@ -143,26 +143,28 @@ export function SceneCard({
               disabled={sceneRegenId !== null || scriptRegenId !== null}
               className="px-3 py-1.5 border border-neutral-700 rounded-lg text-neutral-400 text-xs hover:border-neutral-500 hover:text-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
             >
-              <svg
-                className="w-3 h-3"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182"
-                />
-              </svg>
               {scriptRegenId === scene.id ? (
                 <>
                   <div className="animate-spin rounded-full h-3 w-3 border border-neutral-400 border-t-transparent" />
                   Generating...
                 </>
               ) : (
-                "Script"
+                <>
+                  <svg
+                    className="w-3 h-3"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182"
+                    />
+                  </svg>
+                  {"Script"}
+                </>
               )}
             </button>
             <button
@@ -299,11 +301,7 @@ export function SceneCard({
               onClick={() => setShowVideo(true)}
               className="shrink-0 px-3 py-1.5 border border-green-700 rounded-lg text-green-400 text-xs hover:bg-green-400/10 transition-colors flex items-center gap-1.5"
             >
-              <svg
-                className="w-3 h-3"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
               </svg>
               Play
