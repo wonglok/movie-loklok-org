@@ -384,7 +384,7 @@ export function MovieApp() {
       });
       const fileHandle = await characterDir.getFileHandle(char.imageFilename);
       const file = await fileHandle.getFile();
-      const prompt = `Close-up portrait shot of the character facing the camera. The character says: "Hi, I'm ${char.name}. Nice to meet you!" The voice sound should match the face image. The camera stays static, focused on the character's face with natural expression and lip-sync to the spoken words. Simple neutral background. Language & Tone: ${language}. No background music`;
+      const prompt = `Close-up portrait shot of the character facing the camera. The character says: "Hi, I'm ${char.name}. Nice to meet you!" The voice sound should match the face image. Character General Description: ${char.description}. The camera stays static, focused on the character's face with natural expression and lip-sync to the spoken words. Simple neutral background. Language & Tone: ${language}. No background music`;
       const remoteUrl = await uploadAndGenerateVideo(
         file,
         prompt,
@@ -800,6 +800,7 @@ export function MovieApp() {
                 size={350}
               />
             </div>
+
             {/* 
             <div className="h-[256px] w-[256px] rotate-z-45">
               <Strands
