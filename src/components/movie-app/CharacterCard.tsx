@@ -140,9 +140,12 @@ export function CharacterCard({
                   );
                   const uploadId = crypto.randomUUID();
                   const filename = `${uploadId}.png`;
-                  const fileHandle = await characterDir.getFileHandle(filename, {
-                    create: true,
-                  });
+                  const fileHandle = await characterDir.getFileHandle(
+                    filename,
+                    {
+                      create: true,
+                    },
+                  );
                   const writable = await fileHandle.createWritable();
                   await writable.write(file);
                   await writable.close();
@@ -237,21 +240,23 @@ export function CharacterCard({
               )}
             </>
           ) : (
-            <button
-              onClick={() => onGenerateReferenceVideo(char.id)}
-              disabled={referenceVideoGeneratingId !== null}
-              className="px-3 py-1.5 border border-neutral-700 rounded-lg text-neutral-400 text-xs hover:border-neutral-500 hover:text-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
-            >
-              {referenceVideoGeneratingId === char.id ? (
-                <>
-                  <div className="animate-spin rounded-full h-3 w-3 border border-neutral-400 border-t-transparent" />
-                  Generating...
-                </>
-              ) : (
-                "Generate Ref Video"
-              )}
-            </button>
+            <></>
           )}
+
+          <button
+            onClick={() => onGenerateReferenceVideo(char.id)}
+            disabled={referenceVideoGeneratingId !== null}
+            className="px-3 py-1.5 border border-neutral-700 rounded-lg text-neutral-400 text-xs hover:border-neutral-500 hover:text-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+          >
+            {referenceVideoGeneratingId === char.id ? (
+              <>
+                <div className="animate-spin rounded-full h-3 w-3 border border-neutral-400 border-t-transparent" />
+                Generating...
+              </>
+            ) : (
+              "Generate Ref Video"
+            )}
+          </button>
         </div>
       )}
     </div>
