@@ -440,7 +440,7 @@ export async function estimateSceneMetadata(
             role: "user",
             content:
               `Estimate the total duration for this movie scene based on its dialogue and description. Return ONLY a valid JSON object with:
-- "videoDuration": estimated total length in seconds (a number between 3 and 15, max 15 seconds, based on dialogue pacing and number of lines)
+- "videoDuration": estimated total length in seconds (a number between 3 and 15, max 15 seconds, based on dialogue pacing and number of lines). Add 1-2 seconds to the estimated duration by default so the video won't cut off abruptly.
 
 Consider the mood, action, and pacing implied by the dialogue.
 
