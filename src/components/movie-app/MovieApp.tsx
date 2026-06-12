@@ -539,6 +539,29 @@ export function MovieApp() {
     }
   };
 
+  const getCharacterVideoFiles = async (): Promise<File[]> => {
+    if (!folderHandle) return [];
+    const files: File[] = [];
+    try {
+      const clipsDir = await folderHandle.getDirectoryHandle("clips", {
+        create: true,
+      });
+      for (const char of characters) {
+        if (char.videoFilename) {
+          try {
+            const fileHandle = await clipsDir.getFileHandle(char.videoFilename);
+            files.push(await fileHandle.getFile());
+          } catch {
+            // file not found, skip
+          }
+        }
+      }
+    } catch {
+      // folder not accessible
+    }
+    return files;
+  };
+
   const handleGenerateSceneVideo = async (id: string) => {
     const scene = scenes.find((s) => s.id === id);
     if (!scene?.imageFilename || !folderHandle || !apiKey) return;
@@ -566,6 +589,7 @@ export function MovieApp() {
         scene.videoResolution,
         scene.videoAspect,
         scene.videoDuration,
+        await getCharacterVideoFiles(),
       );
       const clipsDir = await folderHandle.getDirectoryHandle("clips", {
         create: true,
