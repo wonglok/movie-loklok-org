@@ -1,6 +1,7 @@
 "use client";
 
 import type { Character, Conversation } from "@/stores/movie-store";
+import { ASPECT_OPTIONS } from "@/stores/movie-store";
 
 interface SceneCardProps {
   scene: Character;
@@ -273,6 +274,23 @@ export function SceneCard({
               min={1}
             />
             <span className="text-neutral-600 text-xs">s</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <select
+              value={scene.videoAspect}
+              onChange={(e) =>
+                updateScene(scene.id, {
+                  videoAspect: e.target.value as Character["videoAspect"],
+                })
+              }
+              className="bg-neutral-800 rounded px-2 py-1 text-neutral-300 text-xs focus:outline-none focus:ring-1 focus:ring-neutral-600"
+            >
+              {ASPECT_OPTIONS.map((a) => (
+                <option key={a} value={a}>
+                  {a}
+                </option>
+              ))}
+            </select>
           </div>
           {scene.videoUrl ? (
             <a
