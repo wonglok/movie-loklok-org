@@ -804,7 +804,16 @@ export function MovieApp() {
             </p>
           )}
 
-          <div>{/* QR Code here... */}</div>
+          <div className="flex justify-center mt-4">
+            <div className="bg-white p-3 rounded-xl">
+              <QRCode
+                value={
+                  typeof window !== "undefined" ? window.location.origin : ""
+                }
+                size={128}
+              />
+            </div>
+          </div>
         </section>
 
         {showSettings && (
