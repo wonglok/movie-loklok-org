@@ -508,7 +508,7 @@ export function MovieApp() {
       const dialogueLines = (scene.conversations || [])
         .map((c) => `[${c.camera || "Static Camera"}] ${c.person}: "${c.line}"`)
         .join("\n");
-      const prompt = `Language & Tone: ${language}. ${scene.name}. ${scene.description}\n\nDuration: ${scene.videoDuration}s${
+      const prompt = `Language & Tone: ${language}. ${scene.name}. ${scene.description}\n\nDuration: ${scene.videoDuration}s. No background music.${
         dialogueLines ? `\n\nShots:\n${dialogueLines}` : ""
       }`;
       const videoUrl = await uploadAndGenerateVideo(
