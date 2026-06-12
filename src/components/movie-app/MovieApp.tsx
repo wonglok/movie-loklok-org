@@ -792,6 +792,16 @@ export function MovieApp() {
               />
             </svg>
           </button>
+          <div className="flex justify-center mb-6">
+            <div className="bg-white p-3 rounded-xl">
+              <QRCode
+                value={
+                  typeof window !== "undefined" ? window.location.origin : ""
+                }
+                size={256}
+              />
+            </div>
+          </div>
           <h1 className="text-5xl font-bold text-white mb-4 tracking-tight">
             Movie Studio
           </h1>
@@ -803,17 +813,6 @@ export function MovieApp() {
               Saving...
             </p>
           )}
-
-          <div className="flex justify-center mt-4">
-            <div className="bg-white p-3 rounded-xl">
-              <QRCode
-                value={
-                  typeof window !== "undefined" ? window.location.origin : ""
-                }
-                size={128}
-              />
-            </div>
-          </div>
         </section>
 
         {showSettings && (
