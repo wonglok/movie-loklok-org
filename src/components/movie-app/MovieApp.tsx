@@ -397,7 +397,9 @@ export function MovieApp() {
       updateCharacter(id, { videoUrl: localUrl, videoFilename });
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Reference video generation failed",
+        err instanceof Error
+          ? err.message
+          : "Reference video generation failed",
       );
     } finally {
       setReferenceVideoGeneratingId(null);
