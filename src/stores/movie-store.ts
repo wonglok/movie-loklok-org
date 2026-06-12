@@ -22,7 +22,7 @@ export interface Character {
   conversations: Conversation[];
 }
 
-export const RESOLUTION_OPTIONS = ["720p", "1080p"] as const;
+export const RESOLUTION_OPTIONS = ["480p", "720p", "1080p"] as const;
 export const ASPECT_OPTIONS = ["16:9", "9:16", "4:3", "1:1", "3:4"] as const;
 
 export interface Moment {
