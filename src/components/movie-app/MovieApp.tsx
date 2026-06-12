@@ -794,7 +794,10 @@ export function MovieApp() {
           </button>
           <div className="flex justify-center mb-6">
             <div className="bg-white p-3 rounded-xl">
-              <QRCode value={`https://video.loklok.org`} size={256} />
+              <QRCode
+                value={`https://github.com/wonglok/movie-loklok-org`}
+                size={256}
+              />
             </div>
           </div>
           <div className="text-white mb-3 font-bold">VIDEO.LOKLOK.ORG</div>

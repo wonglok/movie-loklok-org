@@ -31,7 +31,12 @@ export default function RootLayout({
 }
 
 {
-  /* <Strands
+  /* 
+  
+  
+  
+  
+  <Strands
   colors={["#F97316", "#7C3AED", "#06B6D4"]}
   count={5}
   speed={0.2}
@@ -50,5 +55,8 @@ export default function RootLayout({
   dispersion={1.8}
   glassSize={1}
   hueShift={0}
-></Strands>; */
+></Strands>; 
+
+
+*/
 }
