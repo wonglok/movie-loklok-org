@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { Character, Conversation } from "@/stores/movie-store";
 import { ASPECT_OPTIONS } from "@/stores/movie-store";
 
@@ -35,6 +36,7 @@ export function SceneCard({
   updateScene,
 }: SceneCardProps) {
   const conversations = scene.conversations || [];
+  const [showVideo, setShowVideo] = useState(false);
 
   const updateConversation = (
     convId: string,
@@ -293,14 +295,19 @@ export function SceneCard({
             </select>
           </div>
           {scene.videoUrl ? (
-            <a
-              href={scene.videoUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="shrink-0 px-3 py-1.5 border border-green-700 rounded-lg text-green-400 text-xs hover:bg-green-400/10 transition-colors"
+            <button
+              onClick={() => setShowVideo(true)}
+              className="shrink-0 px-3 py-1.5 border border-green-700 rounded-lg text-green-400 text-xs hover:bg-green-400/10 transition-colors flex items-center gap-1.5"
             >
-              View Video
-            </a>
+              <svg
+                className="w-3 h-3"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path d="M8 5v14l11-7z" />
+              </svg>
+              Play
+            </button>
           ) : (
             <button
               onClick={() => onGenerateVideo(scene.id)}
@@ -317,6 +324,53 @@ export function SceneCard({
               )}
             </button>
           )}
+        </div>
+      )}
+
+      {/* Video preview + fullscreen modal */}
+      {scene.videoUrl && (
+        <div className="border-t border-neutral-800 px-4 py-3">
+          <video
+            src={scene.videoUrl}
+            className="w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+            muted
+            preload="metadata"
+            onClick={() => setShowVideo(true)}
+          />
+        </div>
+      )}
+
+      {/* Fullscreen video modal */}
+      {showVideo && scene.videoUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"
+          onClick={() => setShowVideo(false)}
+        >
+          <button
+            onClick={() => setShowVideo(false)}
+            className="absolute top-4 right-4 p-2 text-white/60 hover:text-white transition-colors z-10"
+          >
+            <svg
+              className="w-8 h-8"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+          <video
+            src={scene.videoUrl}
+            className="max-w-full max-h-full rounded-lg"
+            controls
+            autoPlay
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
 
