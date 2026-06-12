@@ -451,11 +451,7 @@ export function SceneCard({
               onClick={() => setShowVideo(true)}
               className="px-3 py-1.5 border border-green-700 rounded-lg text-green-400 text-xs hover:bg-green-400/10 transition-colors flex items-center gap-1.5"
             >
-              <svg
-                className="w-3 h-3"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
               </svg>
               Play
