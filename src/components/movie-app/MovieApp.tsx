@@ -407,7 +407,12 @@ export function MovieApp() {
     try {
       const [charRefs, conversations] = await Promise.all([
         resolveCharacterRefs(characters, folderHandle, apiKey),
-        regenerateSceneConversations(scene.name, scene.description, apiKey, language),
+        regenerateSceneConversations(
+          scene.name,
+          scene.description,
+          apiKey,
+          language,
+        ),
       ]);
       const charNames = characters
         .filter((c) => c.name)
@@ -503,7 +508,7 @@ export function MovieApp() {
       const dialogueLines = (scene.conversations || [])
         .map((c) => `[${c.camera || "Static Camera"}] ${c.person}: "${c.line}"`)
         .join("\n");
-      const prompt = `Language: ${language}. ${scene.name}. ${scene.description}\n\nDuration: ${scene.videoDuration}s${
+      const prompt = `Language & Tone: ${language}. ${scene.name}. ${scene.description}\n\nDuration: ${scene.videoDuration}s${
         dialogueLines ? `\n\nShots:\n${dialogueLines}` : ""
       }`;
       const videoUrl = await uploadAndGenerateVideo(
