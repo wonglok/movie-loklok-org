@@ -220,7 +220,7 @@ export async function uploadAndGenerateVideo(
       image_urls: [fileUrl],
       aspect_ratio: aspectRatio ?? "9:16",
       resolution: resolution ?? "720p",
-      duration: duration ?? 5,
+      duration: Math.min(Number(duration), 15) ?? 5,
       enable_safety_checker: false,
     },
     logs: true,
@@ -309,7 +309,12 @@ export async function extractScenes(
   {
     name: string;
     description: string;
-    conversations: { id: string; person: string; line: string; camera: string }[];
+    conversations: {
+      id: string;
+      person: string;
+      line: string;
+      camera: string;
+    }[];
   }[]
 > {
   fal.config({ credentials: apiKey });
@@ -433,7 +438,8 @@ export async function estimateSceneMetadata(
         messages: [
           {
             role: "user",
-            content: `Estimate the total duration for this movie scene based on its dialogue and description. Return ONLY a valid JSON object with:
+            content:
+              `Estimate the total duration for this movie scene based on its dialogue and description. Return ONLY a valid JSON object with:
 - "videoDuration": estimated total length in seconds (a number between 3 and 15, max 15 seconds, based on dialogue pacing and number of lines)
 
 Consider the mood, action, and pacing implied by the dialogue.
