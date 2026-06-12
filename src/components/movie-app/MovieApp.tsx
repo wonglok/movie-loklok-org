@@ -502,7 +502,7 @@ export function MovieApp() {
         .join("\n");
       const prompt = `${scene.name}. ${scene.description}${
         dialogueLines ? `\n\nDialogue:\n${dialogueLines}` : ""
-      }`;
+      }${scene.videoCamera ? `\n\nCamera: ${scene.videoCamera}` : ""}`;
       const videoUrl = await uploadAndGenerateVideo(
         file,
         prompt,
