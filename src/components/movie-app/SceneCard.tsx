@@ -51,7 +51,7 @@ export function SceneCard({
     updateScene(scene.id, {
       conversations: [
         ...conversations,
-        { id: crypto.randomUUID(), person: "", line: "" },
+        { id: crypto.randomUUID(), person: "", line: "", camera: "" },
       ],
     });
   };
@@ -350,6 +350,15 @@ export function SceneCard({
               placeholder="Line of script..."
               className="flex-1 bg-neutral-800 rounded px-2 py-1 text-neutral-300 text-xs focus:outline-none focus:ring-1 focus:ring-neutral-600 placeholder-neutral-600"
             />
+            <input
+              type="text"
+              value={conv.camera}
+              onChange={(e) =>
+                updateConversation(conv.id, { camera: e.target.value })
+              }
+              placeholder="Camera"
+              className="w-20 shrink-0 bg-neutral-800 rounded px-2 py-1 text-neutral-300 text-xs focus:outline-none focus:ring-1 focus:ring-neutral-600 placeholder-neutral-600"
+            />
             <button
               onClick={() => removeConversation(conv.id)}
               className="shrink-0 p-1 rounded text-neutral-600 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover/conv:opacity-100 transition-all"
@@ -377,18 +386,6 @@ export function SceneCard({
         >
           + Add Line
         </button>
-        <div className="flex items-center gap-2 pt-1">
-          <span className="text-neutral-500 text-xs shrink-0">Camera</span>
-          <input
-            type="text"
-            value={scene.videoCamera}
-            onChange={(e) =>
-              updateScene(scene.id, { videoCamera: e.target.value })
-            }
-            className="flex-1 bg-neutral-800 rounded px-2 py-1 text-neutral-300 text-xs focus:outline-none focus:ring-1 focus:ring-neutral-600"
-            placeholder="Slow pan"
-          />
-        </div>
       </div>
     </div>
   );

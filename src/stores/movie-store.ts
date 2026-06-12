@@ -4,6 +4,7 @@ export interface Conversation {
   id: string;
   person: string;
   line: string;
+  camera: string;
 }
 
 export interface Character {
@@ -15,7 +16,6 @@ export interface Character {
   sourceUrl: string | null;
   videoUrl: string | null;
   videoDuration: number;
-  videoCamera: string;
   videoResolution: "720p" | "1080p";
   videoAspect: "16:9" | "9:16" | "4:3" | "1:1" | "3:4";
   conversations: Conversation[];

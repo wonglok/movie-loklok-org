@@ -305,7 +305,7 @@ export async function extractScenes(
   {
     name: string;
     description: string;
-    conversations: { id: string; person: string; line: string }[];
+    conversations: { id: string; person: string; line: string; camera: string }[];
   }[]
 > {
   fal.config({ credentials: apiKey });
@@ -321,7 +321,7 @@ export async function extractScenes(
             content: `Extract all key scenes from this movie story. Return ONLY a valid JSON array of objects with these fields:
 - "name": scene name
 - "description": scene description
-- "conversations": an array of objects, each with "person" (the character speaking or voice-over narrator) and "line" (their line of dialogue or narration). Each scene is max 15 seconds, so keep dialogue concise and brief. If no one speaks, use an empty array.
+- "conversations": an array of objects, each with "person" (the character speaking or voice-over narrator), "line" (their line of dialogue or narration), and "camera" (camera direction for this shot, e.g. "Static", "Close up", "Slow pan", "Dolly in", "Wide"). Each scene is max 15 seconds, so keep dialogue concise and brief. If no one speaks, use an empty array.
 
 No other text.\n\nStory: ${story}`,
           },
@@ -344,13 +344,15 @@ No other text.\n\nStory: ${story}`,
   const raw = JSON.parse(json) as {
     name: string;
     description: string;
-    conversations: { person: string; line: string }[];
+    conversations: { person: string; line: string; camera?: string }[];
   }[];
   return raw.map((s) => ({
     ...s,
     conversations: (s.conversations || []).map((c) => ({
       id: crypto.randomUUID(),
-      ...c,
+      person: c.person,
+      line: c.line,
+      camera: c.camera || "Static",
     })),
   }));
 }
@@ -359,7 +361,7 @@ export async function regenerateSceneConversations(
   sceneName: string,
   sceneDescription: string,
   apiKey: string,
-): Promise<{ id: string; person: string; line: string }[]> {
+): Promise<{ id: string; person: string; line: string; camera: string }[]> {
   fal.config({ credentials: apiKey });
 
   const result = await fal.subscribe(
@@ -371,7 +373,7 @@ export async function regenerateSceneConversations(
           {
             role: "user",
             content: `
-Write the scripted dialogue for this scene from a movie story. The scene has a maximum duration of 15 seconds, so keep the total dialogue concise — each line should be brief and speakable within that timeframe. Return ONLY a valid JSON array of objects, each with "person" (the character speaking or voice-over narrator) and "line" (their line of dialogue or narration). Include all dialogue that happens in this scene. If no one speaks, return an empty array. No other text.
+Write the scripted dialogue for this scene from a movie story. The scene has a maximum duration of 15 seconds, so keep the total dialogue concise — each line should be brief and speakable within that timeframe. Return ONLY a valid JSON array of objects, each with "person" (the character speaking or voice-over narrator), "line" (their line of dialogue or narration), and "camera" (camera direction for this shot, e.g. "Static", "Close up", "Slow pan", "Dolly in", "Wide", "Over shoulder"). Include all dialogue that happens in this scene. If no one speaks, return an empty array. No other text.
 
 Scene: ${sceneName}
 Description: ${sceneDescription}`.trim(),
@@ -392,8 +394,17 @@ Description: ${sceneDescription}`.trim(),
   };
   const text = data.choices[0].message.content;
   const json = text.replace(/```json|```/g, "").trim();
-  const raw = JSON.parse(json) as { person: string; line: string }[];
-  return raw.map((c) => ({ id: crypto.randomUUID(), ...c }));
+  const raw = JSON.parse(json) as {
+    person: string;
+    line: string;
+    camera?: string;
+  }[];
+  return raw.map((c) => ({
+    id: crypto.randomUUID(),
+    person: c.person,
+    line: c.line,
+    camera: c.camera || "Static",
+  }));
 }
 
 export async function estimateSceneMetadata(
@@ -401,7 +412,7 @@ export async function estimateSceneMetadata(
   sceneDescription: string,
   conversations: { person: string; line: string }[],
   apiKey: string,
-): Promise<{ videoDuration: number; videoCamera: string }> {
+): Promise<{ videoDuration: number }> {
   fal.config({ credentials: apiKey });
 
   const dialogueSummary = conversations
@@ -416,9 +427,8 @@ export async function estimateSceneMetadata(
         messages: [
           {
             role: "user",
-            content: `Estimate the video production metadata for this movie scene based on its dialogue and description. Return ONLY a valid JSON object with these fields:
-- "videoDuration": estimated shot length in seconds (a number between 3 and 15, max 15 seconds, based on dialogue pacing)
-- "videoCamera": a short camera direction (e.g. "Static", "Slow pan", "Dolly in", "Tracking shot", "Handheld", "Low angle push", "Wide crane")
+            content: `Estimate the total duration for this movie scene based on its dialogue and description. Return ONLY a valid JSON object with:
+- "videoDuration": estimated total length in seconds (a number between 3 and 15, max 15 seconds, based on dialogue pacing and number of lines)
 
 Consider the mood, action, and pacing implied by the dialogue.
 
@@ -444,12 +454,8 @@ ${dialogueSummary || "(no dialogue)"}`.trim(),
   };
   const text = data.choices[0].message.content;
   const json = text.replace(/```json|```/g, "").trim();
-  const metadata = JSON.parse(json) as {
-    videoDuration: number;
-    videoCamera: string;
-  };
+  const metadata = JSON.parse(json) as { videoDuration: number };
   return {
     videoDuration: Math.min(Math.max(1, metadata.videoDuration), 15),
-    videoCamera: metadata.videoCamera,
   };
 }

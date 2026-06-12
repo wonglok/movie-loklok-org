@@ -234,7 +234,6 @@ export function MovieApp() {
           sourceUrl: null,
           videoUrl: null,
           videoDuration: 5,
-          videoCamera: "Static / Slow pan",
           videoResolution: "720p",
           videoAspect: "9:16",
           conversations: [],
@@ -340,7 +339,6 @@ export function MovieApp() {
           sourceUrl: null,
           videoUrl: null,
           videoDuration: 5,
-          videoCamera: "Static / Slow pan",
           videoResolution: "720p",
           videoAspect: "9:16",
           conversations: s.conversations || [],
@@ -436,7 +434,6 @@ export function MovieApp() {
           imageFilename: filename,
           conversations,
           videoDuration: metadata.videoDuration,
-          videoCamera: metadata.videoCamera,
         });
         await savePromptFile(result.prompt, `${imageId}.txt`, sceneDir);
       } else {
@@ -445,7 +442,6 @@ export function MovieApp() {
           sourceUrl: result.url,
           conversations,
           videoDuration: metadata.videoDuration,
-          videoCamera: metadata.videoCamera,
         });
       }
     } catch (err) {
@@ -475,7 +471,6 @@ export function MovieApp() {
       updateScene(id, {
         conversations,
         videoDuration: metadata.videoDuration,
-        videoCamera: metadata.videoCamera,
       });
     } catch (err) {
       setError(
@@ -501,11 +496,11 @@ export function MovieApp() {
       const fileHandle = await sceneDir.getFileHandle(scene.imageFilename);
       const file = await fileHandle.getFile();
       const dialogueLines = (scene.conversations || [])
-        .map((c) => `${c.person}: "${c.line}"`)
+        .map((c) => `[${c.camera || "Static Camera"}] ${c.person}: "${c.line}"`)
         .join("\n");
       const prompt = `${scene.name}. ${scene.description}\n\nDuration: ${scene.videoDuration}s${
-        dialogueLines ? `\n\nDialogue:\n${dialogueLines}` : ""
-      }${scene.videoCamera ? `\n\nCamera: ${scene.videoCamera}` : ""}`;
+        dialogueLines ? `\n\nShots:\n${dialogueLines}` : ""
+      }`;
       const videoUrl = await uploadAndGenerateVideo(
         file,
         prompt,
@@ -676,13 +671,10 @@ export function MovieApp() {
         updateScene(id, {
           conversations,
           videoDuration: metadata.videoDuration,
-          videoCamera: metadata.videoCamera,
         });
       }
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Script generation failed",
-      );
+      setError(err instanceof Error ? err.message : "Script generation failed");
     } finally {
       setGeneratingSelectedScripts(false);
       setSelectedScenes(new Set());
@@ -894,7 +886,6 @@ export function MovieApp() {
                       sourceUrl: null,
                       videoUrl: null,
                       videoDuration: 5,
-                      videoCamera: "Static / Slow pan",
                       videoResolution: "720p",
                       videoAspect: "9:16",
                       conversations: [],
@@ -1064,7 +1055,6 @@ export function MovieApp() {
                           sourceUrl: null,
                           videoUrl: null,
                           videoDuration: 5,
-                          videoCamera: "Static / Slow pan",
                           videoResolution: "720p",
                           videoAspect: "9:16",
                           conversations: [],
