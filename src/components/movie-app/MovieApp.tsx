@@ -801,8 +801,7 @@ export function MovieApp() {
               />
             </div>
 
-            {/* 
-            <div className="h-[256px] w-[256px] rotate-z-45">
+            {/* <div className="h-[256px] w-[256px] rotate-z-45">
               <Strands
                 colors={["#d16d26", "#34a951", "#1a11be"]}
                 count={3}
@@ -823,8 +822,8 @@ export function MovieApp() {
                 glassSize={1}
                 hueShift={0}
               ></Strands>
-            </div>
-            */}
+            </div> */}
+
             {/*
              */}
           </div>
@@ -847,7 +846,7 @@ export function MovieApp() {
             Bring your story to life with AI-generated characters and scenes
           </p>
           {isSaving && (
-            <p className="text-neutral-500 text-xs mt-3 animate-pulse">
+            <p className="text-neutral-100 text-xs mt-3 animate-pulse fixed top-3 left-3">
               Saving...
             </p>
           )}
