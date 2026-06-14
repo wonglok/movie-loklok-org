@@ -267,21 +267,6 @@ export function SceneCard({
       {scene.imageFilename && (
         <div className="border-t border-neutral-800 px-4 py-3 flex items-center gap-3">
           <div className="flex items-center gap-2 flex-1">
-            <span className="text-neutral-500 text-xs shrink-0">Duration</span>
-            <input
-              type="number"
-              value={scene.videoDuration}
-              onChange={(e) =>
-                updateScene(scene.id, {
-                  videoDuration: Number(e.target.value) || 0,
-                })
-              }
-              className="w-16 bg-neutral-800 rounded px-2 py-1 text-neutral-300 text-xs focus:outline-none focus:ring-1 focus:ring-neutral-600"
-              min={1}
-            />
-            <span className="text-neutral-600 text-xs">s</span>
-          </div>
-          <div className="flex items-center gap-2">
             <select
               value={scene.videoAspect}
               onChange={(e) =>

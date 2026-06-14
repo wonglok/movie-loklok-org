@@ -393,7 +393,6 @@ export function MovieApp() {
         apiKey,
         "480p",
         "9:16",
-        5,
       );
       const clipsDir = await folderHandle.getDirectoryHandle("clips", {
         create: true,
@@ -598,7 +597,6 @@ export function MovieApp() {
         apiKey,
         scene.videoResolution,
         scene.videoAspect,
-        scene.videoDuration,
         await getCharacterVideoFiles(),
       );
       const clipsDir = await folderHandle.getDirectoryHandle("clips", {
@@ -704,7 +702,6 @@ export function MovieApp() {
           apiKey,
           scene.videoResolution,
           scene.videoAspect,
-          scene.videoDuration,
           await getCharacterVideoFiles(),
         );
         const clipsDir = await folderHandle.getDirectoryHandle("clips", {

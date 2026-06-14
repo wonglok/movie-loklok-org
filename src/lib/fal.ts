@@ -209,7 +209,6 @@ export async function uploadAndGenerateVideo(
   apiKey: string,
   resolution?: string,
   aspectRatio?: string,
-  duration?: number,
   videoFiles?: File[],
 ): Promise<string> {
   fal.config({ credentials: apiKey });
