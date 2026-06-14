@@ -272,8 +272,9 @@ export function MovieApp() {
     try {
       const extracted = await extractCharacters(story, apiKey, language);
 
-      setCharacters(
-        extracted.map((c) => ({
+      setCharacters([
+        ...characters,
+        ...extracted.map((c) => ({
           id: crypto.randomUUID(),
           ...c,
           imageUrl: null,
@@ -286,7 +287,7 @@ export function MovieApp() {
           videoAspect: "9:16",
           conversations: [],
         })),
-      );
+      ]);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Character extraction failed",
@@ -965,7 +966,7 @@ export function MovieApp() {
         </section>
 
         {/* Extract Characters Button */}
-        {characters.length === 0 && (
+        {
           <section className="flex flex-col items-center gap-4">
             <button
               onClick={handleExtractCharacters}
@@ -982,7 +983,7 @@ export function MovieApp() {
               )}
             </button>
           </section>
-        )}
+        }
 
         {/* Character Cards */}
         {characters.length > 0 && (
