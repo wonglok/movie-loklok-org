@@ -174,7 +174,7 @@ export async function extractVideoInfo(
   return JSON.parse(json);
 }
 
-const FAL_VIDEO = "bytedance/seedance-2.0/reference-to-video";
+const FAL_VIDEO = "bytedance/seedance-2.0/fast/reference-to-video";
 
 // export async function generateVideo(
 //   imageUrl: string,
