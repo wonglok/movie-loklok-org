@@ -233,10 +233,19 @@ export async function uploadAndGenerateVideo(
       audio_urls: [],
     },
     logs: true,
-    onQueueUpdate: (update) => {
+    onQueueUpdate: async (update) => {
       console.log("update", update);
       if (update.status === "IN_PROGRESS") {
         update.logs.map((log) => log.message).forEach(console.log);
+
+        const status = await fal.queue.status(
+          "bytedance/seedance-2.0/fast/reference-to-video",
+          {
+            requestId: update.request_id,
+            logs: true,
+          },
+        );
+        console.log(status);
       }
     },
   });
