@@ -588,8 +588,8 @@ export function MovieApp() {
       const dialogueLines = (scene.conversations || [])
         .map((c) => `[${c.camera || "Static Camera"}] ${c.person}: "${c.line}"`)
         .join("\n");
-      const prompt = `Scene Title: ${scene.name}. \n\n Scene Description: ${scene.description}\n\nDuration: ${scene.videoDuration}s. No background music. Language & Tone: ${language}. \n\n ${
-        dialogueLines ? `\n\nCamera & Scene:\n${dialogueLines}` : ""
+      const prompt = `Scene Title: ${scene.name}. \n\n Scene Description: ${scene.description}\n\nDuration: ${scene.videoDuration}s. No background music. Language & Tone: ${language}. Must speak the dialogue lines and ignore the words in the attached video. The attached video is designed for voice and tone reference.  \n\n ${
+        dialogueLines ? `\n\nDialogue lines:\n${dialogueLines}` : ""
       }`;
       const remoteUrl = await uploadAndGenerateVideo(
         file,
@@ -693,8 +693,8 @@ export function MovieApp() {
             (c) => `[${c.camera || "Static Camera"}] ${c.person}: "${c.line}"`,
           )
           .join("\n");
-        const prompt = `Scene Title: ${scene.name}. \n\n Scene Description: ${scene.description}\n\nDuration: ${scene.videoDuration}s. No background music. Language & Tone: ${language}. \n\n ${
-          dialogueLines ? `\n\nCamera & Scene:\n${dialogueLines}` : ""
+        const prompt = `Scene Title: ${scene.name}. \n\n Scene Description: ${scene.description}\n\nDuration: ${scene.videoDuration}s. No background music. Language & Tone: ${language}. Must speak the dialogue lines and ignore the words in the attached video. The attached video is designed for voice and tone reference. \n\n ${
+          dialogueLines ? `\n\nDialogue lines:\n${dialogueLines}` : ""
         }`;
         const remoteUrl = await uploadAndGenerateVideo(
           file,
