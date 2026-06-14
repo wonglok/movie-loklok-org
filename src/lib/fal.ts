@@ -235,6 +235,7 @@ export async function uploadAndGenerateVideo(
     },
     logs: true,
     onQueueUpdate: (update) => {
+      console.log("update", update);
       if (update.status === "IN_PROGRESS") {
         update.logs.map((log) => log.message).forEach(console.log);
       }
