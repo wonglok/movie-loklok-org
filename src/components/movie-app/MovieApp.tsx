@@ -1095,7 +1095,7 @@ export function MovieApp() {
                         : new Set(scenes.map((s) => s.id)),
                     )
                   }
-                  className="ml-auto px-3 py-1 border border-neutral-700 rounded-lg text-neutral-400 text-xs hover:border-neutral-500 hover:text-neutral-200 transition-colors"
+                  className="ml-auto px-3 py-1 border bg-white border-neutral-700 rounded-lg text-black text-xs hover:border-black/50 hover:text-neutral-200 transition-colors"
                 >
                   {selectedScenes.size === scenes.length
                     ? "Deselect All"
