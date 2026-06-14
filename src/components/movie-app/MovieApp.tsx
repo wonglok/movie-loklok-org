@@ -271,6 +271,7 @@ export function MovieApp() {
     setExtracting(true);
     try {
       const extracted = await extractCharacters(story, apiKey, language);
+
       setCharacters(
         extracted.map((c) => ({
           id: crypto.randomUUID(),
