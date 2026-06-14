@@ -591,10 +591,7 @@ export function MovieApp() {
       const fileHandle = await sceneDir.getFileHandle(scene.imageFilename);
       const file = await fileHandle.getFile();
       const dialogueLines = (scene.conversations || [])
-        .map(
-          (c) =>
-            `[${c.camera || "Static Camera"} camera] ${c.person} says: "${c.line}"`,
-        )
+        .map((c) => `${c.person} says: "${c.line}"`)
         .join("\n");
       const prompt = `Scene Title: ${scene.name}. \n\n 
       
@@ -711,10 +708,7 @@ export function MovieApp() {
         const fileHandle = await sceneDir.getFileHandle(scene.imageFilename);
         const file = await fileHandle.getFile();
         const dialogueLines = (scene.conversations || [])
-          .map(
-            (c) =>
-              `[${c.camera || "Static Camera"} camera] ${c.person} says: "${c.line}"`,
-          )
+          .map((c) => `${c.person} says: "${c.line}"`)
           .join("\n");
         const prompt = `Scene Title: ${scene.name}. \n\n Scene Description: ${scene.description}\n\n No background music. 
         Language & Tone: ${language}. 
