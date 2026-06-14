@@ -17,7 +17,7 @@ export interface Character {
   videoUrl: string | null;
   videoFilename: string | null;
   videoDuration: number;
-  videoResolution: "720p" | "1080p" | "480p";
+  videoResolution: "480p" | "720p" | "1080p";
   videoAspect: "16:9" | "9:16" | "4:3" | "1:1" | "3:4";
   conversations: Conversation[];
 }
