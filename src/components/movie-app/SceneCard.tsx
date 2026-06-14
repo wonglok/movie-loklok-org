@@ -57,7 +57,7 @@ export function SceneCard({
     updateScene(scene.id, {
       conversations: [
         ...conversations,
-        { id: crypto.randomUUID(), person: "", line: "", camera: "" },
+        { id: crypto.randomUUID(), person: "", line: "" },
       ],
     });
   };
@@ -393,15 +393,6 @@ export function SceneCard({
               }
               placeholder="Line of script..."
               className="flex-1 bg-neutral-800 rounded px-2 py-1 text-neutral-300 text-xs focus:outline-none focus:ring-1 focus:ring-neutral-600 placeholder-neutral-600"
-            />
-            <input
-              type="text"
-              value={conv.camera}
-              onChange={(e) =>
-                updateConversation(conv.id, { camera: e.target.value })
-              }
-              placeholder="Camera"
-              className="w-20 shrink-0 bg-neutral-800 rounded px-2 py-1 text-neutral-300 text-xs focus:outline-none focus:ring-1 focus:ring-neutral-600 placeholder-neutral-600"
             />
             <button
               onClick={() => removeConversation(conv.id)}

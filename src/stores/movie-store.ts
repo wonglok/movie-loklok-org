@@ -4,7 +4,6 @@ export interface Conversation {
   id: string;
   person: string;
   line: string;
-  camera: string;
 }
 
 export interface Character {

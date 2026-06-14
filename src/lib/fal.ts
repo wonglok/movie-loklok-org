@@ -174,7 +174,7 @@ export async function extractVideoInfo(
   return JSON.parse(json);
 }
 
-const FAL_VIDEO = "bytedance/seedance-2.0/fast/reference-to-video";
+const FAL_VIDEO = "bytedance/seedance-2.0/reference-to-video";
 
 // export async function generateVideo(
 //   imageUrl: string,
@@ -323,7 +323,6 @@ export async function extractScenes(
       id: string;
       person: string;
       line: string;
-      camera: string;
     }[];
   }[]
 > {
@@ -340,7 +339,7 @@ export async function extractScenes(
             content: `Extract all key scenes from this movie story. Return ONLY a valid JSON array of objects with these fields:
 - "name": scene name
 - "description": scene description
-- "conversations": an array of objects, each with "person" (the character speaking or voice-over narrator), "line" (their line of dialogue or narration), and "camera" (camera direction for this shot, e.g. "Static", "Close up", "Slow pan", "Dolly in", "Wide"). Each scene is max 15 seconds, so keep dialogue concise and brief. If no one speaks, use an empty array.
+- "conversations": an array of objects, each with "person" (the character speaking or voice-over narrator) and "line" (their line of dialogue or narration). Each scene is max 15 seconds, so keep dialogue concise and brief. If no one speaks, use an empty array.
 
 No other text.${language ? `\n\nWrite all output in ${language}.` : ""}\n\nStory: ${story}`,
           },
@@ -363,7 +362,7 @@ No other text.${language ? `\n\nWrite all output in ${language}.` : ""}\n\nStory
   const raw = JSON.parse(json) as {
     name: string;
     description: string;
-    conversations: { person: string; line: string; camera?: string }[];
+    conversations: { person: string; line: string }[];
   }[];
   return raw.map((s) => ({
     ...s,
@@ -371,7 +370,6 @@ No other text.${language ? `\n\nWrite all output in ${language}.` : ""}\n\nStory
       id: crypto.randomUUID(),
       person: c.person,
       line: c.line,
-      camera: c.camera || "Static",
     })),
   }));
 }
@@ -381,7 +379,7 @@ export async function regenerateSceneConversations(
   sceneDescription: string,
   apiKey: string,
   language?: string,
-): Promise<{ id: string; person: string; line: string; camera: string }[]> {
+): Promise<{ id: string; person: string; line: string }[]> {
   fal.config({ credentials: apiKey });
 
   const result = await fal.subscribe(
@@ -393,7 +391,7 @@ export async function regenerateSceneConversations(
           {
             role: "user",
             content: `
-Write the scripted dialogue for this scene from a movie story. The scene has a maximum duration of 15 seconds, so keep the total dialogue concise — each line should be brief and speakable within that timeframe. Return ONLY a valid JSON array of objects, each with "person" (the character speaking or voice-over narrator), "line" (their line of dialogue or narration), and "camera" (camera direction for this shot, e.g. "Static", "Close up", "Slow pan", "Dolly in", "Wide", "Over shoulder"). Include all dialogue that happens in this scene. If no one speaks, return an empty array. No other text.
+Write the scripted dialogue for this scene from a movie story. The scene has a maximum duration of 15 seconds, so keep the total dialogue concise — each line should be brief and speakable within that timeframe. Return ONLY a valid JSON array of objects, each with "person" (the character speaking or voice-over narrator) and "line" (their line of dialogue or narration). Include all dialogue that happens in this scene. If no one speaks, return an empty array. No other text.
 
 Scene: ${sceneName}
 Description: ${sceneDescription}
@@ -418,13 +416,11 @@ ${language ? `\nWrite all output in ${language}.` : ""}`.trim(),
   const raw = JSON.parse(json) as {
     person: string;
     line: string;
-    camera?: string;
   }[];
   return raw.map((c) => ({
     id: crypto.randomUUID(),
     person: c.person,
     line: c.line,
-    camera: c.camera || "Static",
   }));
 }
 
