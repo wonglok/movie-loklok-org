@@ -228,7 +228,7 @@ export async function uploadAndGenerateVideo(
       image_urls: [fileUrl],
       aspect_ratio: aspectRatio ?? "9:16",
       resolution: resolution ?? "480p",
-      duration: Math.min(Number(duration), 15) ?? 5,
+      duration: "auto",
       generate_audio: true,
       video_urls: videoUrls,
       audio_urls: [],
