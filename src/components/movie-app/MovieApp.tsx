@@ -391,7 +391,7 @@ export function MovieApp() {
       });
       const fileHandle = await characterDir.getFileHandle(char.imageFilename);
       const file = await fileHandle.getFile();
-      const prompt = `Close-up portrait shot of the character facing the camera. The character says: "Hi! I'm ${char.name}!". The duration is around 3 to 4 seconds. The camera stays static, focused on the character's face with natural expression and lip-sync to the spoken words. Simple neutral background. Language & Tone: ${language}. No background music`;
+      const prompt = `Close-up portrait shot of the character facing the camera. The character says: "Hi! I'm ${char.name}!". Character's Voice Description: ${JSON.stringify(char.description)} The duration is around 3 seconds. The camera stays static, focused on the character's face with natural expression and lip-sync to the spoken words. Simple neutral background. Language & Tone: ${language}. No background music`;
       const remoteUrl = await uploadAndGenerateVideo(
         file,
         prompt,
