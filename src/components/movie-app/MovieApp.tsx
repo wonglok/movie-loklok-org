@@ -391,7 +391,7 @@ export function MovieApp() {
       });
       const fileHandle = await characterDir.getFileHandle(char.imageFilename);
       const file = await fileHandle.getFile();
-      const prompt = `Close-up portrait shot of the character facing the camera. The character says: "I'm ${char.name}!". Character General Description: ${char.description}. The camera stays static, focused on the character's face with natural expression and lip-sync to the spoken words. Simple neutral background. Language & Tone: ${language}. No background music`;
+      const prompt = `Close-up portrait shot of the character facing the camera. The character says: "I'm ${char.name}!". Character's Description: ${char.description}. The camera stays static, focused on the character's face with natural expression and lip-sync to the spoken words. Simple neutral background. Language & Tone: ${language}. No background music`;
       const remoteUrl = await uploadAndGenerateVideo(
         file,
         prompt,
