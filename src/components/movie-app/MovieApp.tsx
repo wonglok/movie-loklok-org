@@ -290,6 +290,7 @@ export function MovieApp() {
           videoDuration: 5,
           videoResolution: "480p",
           videoAspect: "9:16",
+          videoReferenceIds: [],
           conversations: [],
         })),
       ]);
@@ -439,6 +440,7 @@ export function MovieApp() {
           videoDuration: 5,
           videoResolution: "480p",
           videoAspect: "9:16",
+          videoReferenceIds: [],
           conversations: s.conversations || [],
         })),
       );
@@ -553,21 +555,24 @@ export function MovieApp() {
     }
   };
 
-  const getCharacterVideoFiles = async (): Promise<File[]> => {
+  const getCharacterVideoFiles = async (
+    referenceIds?: string[],
+  ): Promise<File[]> => {
     if (!folderHandle) return [];
+    const ids = new Set(referenceIds);
     const files: File[] = [];
     try {
       const clipsDir = await folderHandle.getDirectoryHandle("clips", {
         create: true,
       });
       for (const char of characters) {
-        if (char.videoFilename) {
-          try {
-            const fileHandle = await clipsDir.getFileHandle(char.videoFilename);
-            files.push(await fileHandle.getFile());
-          } catch {
-            // file not found, skip
-          }
+        if (!char.videoFilename) continue;
+        if (referenceIds && !ids.has(char.id)) continue;
+        try {
+          const fileHandle = await clipsDir.getFileHandle(char.videoFilename);
+          files.push(await fileHandle.getFile());
+        } catch {
+          // file not found, skip
         }
       }
     } catch {
@@ -607,7 +612,11 @@ export function MovieApp() {
         apiKey,
         scene.videoResolution,
         scene.videoAspect,
-        await getCharacterVideoFiles(),
+        await getCharacterVideoFiles(
+          (scene.videoReferenceIds?.length ?? 0)
+            ? scene.videoReferenceIds!
+            : undefined,
+        ),
       );
       const clipsDir = await folderHandle.getDirectoryHandle("clips", {
         create: true,
@@ -723,7 +732,11 @@ export function MovieApp() {
           apiKey,
           scene.videoResolution,
           scene.videoAspect,
-          await getCharacterVideoFiles(),
+          await getCharacterVideoFiles(
+            (scene.videoReferenceIds?.length ?? 0)
+              ? scene.videoReferenceIds!
+              : undefined,
+          ),
         );
         const clipsDir = await folderHandle.getDirectoryHandle("clips", {
           create: true,
@@ -1059,6 +1072,7 @@ export function MovieApp() {
                       videoDuration: 5,
                       videoResolution: "480p",
                       videoAspect: "9:16",
+                      videoReferenceIds: [],
                       conversations: [],
                     },
                   ])
@@ -1229,6 +1243,9 @@ export function MovieApp() {
                       }}
                       folderHandle={folderHandle}
                       updateScene={updateScene}
+                      availableReferences={characters
+                        .filter((c) => c.videoFilename)
+                        .map((c) => ({ id: c.id, name: c.name }))}
                     />
                   ))}
                 </div>
@@ -1249,6 +1266,7 @@ export function MovieApp() {
                           videoDuration: 5,
                           videoResolution: "480p",
                           videoAspect: "9:16",
+                          videoReferenceIds: [],
                           conversations: [],
                         },
                       ])

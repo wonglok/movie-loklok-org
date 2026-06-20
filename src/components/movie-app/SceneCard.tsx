@@ -20,6 +20,7 @@ interface SceneCardProps {
   onPreview: (id: string) => void;
   folderHandle: FileSystemDirectoryHandle | null;
   updateScene: (id: string, updates: Partial<Character>) => void;
+  availableReferences: { id: string; name: string }[];
 }
 
 export function SceneCard({
@@ -38,6 +39,7 @@ export function SceneCard({
   onPreview,
   folderHandle,
   updateScene,
+  availableReferences,
 }: SceneCardProps) {
   const conversations = scene.conversations || [];
   const [showVideo, setShowVideo] = useState(false);
@@ -265,55 +267,94 @@ export function SceneCard({
 
       {/* Footer: Video generation */}
       {scene.imageFilename && (
-        <div className="border-t border-neutral-800 px-4 py-3 flex items-center gap-3">
-          <div className="flex items-center gap-2 flex-1">
-            <select
-              value={scene.videoAspect}
-              onChange={(e) =>
-                updateScene(scene.id, {
-                  videoAspect: e.target.value as Character["videoAspect"],
-                })
-              }
-              className="bg-neutral-800 rounded px-2 py-1 text-neutral-300 text-xs focus:outline-none focus:ring-1 focus:ring-neutral-600"
+        <div className="border-t border-neutral-800 px-4 py-3 flex flex-col gap-2">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 flex-1">
+              <select
+                value={scene.videoAspect}
+                onChange={(e) =>
+                  updateScene(scene.id, {
+                    videoAspect: e.target.value as Character["videoAspect"],
+                  })
+                }
+                className="bg-neutral-800 rounded px-2 py-1 text-neutral-300 text-xs focus:outline-none focus:ring-1 focus:ring-neutral-600"
+              >
+                {ASPECT_OPTIONS.map((a) => (
+                  <option key={a} value={a}>
+                    {a}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={scene.videoResolution}
+                onChange={(e) =>
+                  updateScene(scene.id, {
+                    videoResolution: e.target
+                      .value as Character["videoResolution"],
+                  })
+                }
+                className="bg-neutral-800 rounded px-2 py-1 text-neutral-300 text-xs focus:outline-none focus:ring-1 focus:ring-neutral-600"
+              >
+                {RESOLUTION_OPTIONS.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <button
+              onClick={() => onGenerateVideo(scene.id)}
+              disabled={generatingVideoId !== null}
+              className="shrink-0 px-3 py-1.5 border border-neutral-700 rounded-lg text-neutral-400 text-xs hover:border-neutral-500 hover:text-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
             >
-              {ASPECT_OPTIONS.map((a) => (
-                <option key={a} value={a}>
-                  {a}
-                </option>
-              ))}
-            </select>
-            <select
-              value={scene.videoResolution}
-              onChange={(e) =>
-                updateScene(scene.id, {
-                  videoResolution: e.target
-                    .value as Character["videoResolution"],
-                })
-              }
-              className="bg-neutral-800 rounded px-2 py-1 text-neutral-300 text-xs focus:outline-none focus:ring-1 focus:ring-neutral-600"
-            >
-              {RESOLUTION_OPTIONS.map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
-              ))}
-            </select>
+              {generatingVideoId === scene.id ? (
+                <>
+                  <div className="animate-spin rounded-full h-3 w-3 border border-neutral-400 border-t-transparent" />
+                  Generating...
+                </>
+              ) : (
+                "Gen Video"
+              )}
+            </button>
           </div>
 
-          <button
-            onClick={() => onGenerateVideo(scene.id)}
-            disabled={generatingVideoId !== null}
-            className="shrink-0 px-3 py-1.5 border border-neutral-700 rounded-lg text-neutral-400 text-xs hover:border-neutral-500 hover:text-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
-          >
-            {generatingVideoId === scene.id ? (
-              <>
-                <div className="animate-spin rounded-full h-3 w-3 border border-neutral-400 border-t-transparent" />
-                Generating...
-              </>
-            ) : (
-              "Gen Video"
-            )}
-          </button>
+          {availableReferences.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <span className="text-neutral-500 text-[10px] font-medium">
+                Video References
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {availableReferences.map((ref) => {
+                  const isChecked = (scene.videoReferenceIds ?? []).includes(ref.id);
+                  return (
+                    <label
+                      key={ref.id}
+                      className="flex items-center gap-1 px-2 py-0.5 rounded bg-neutral-800 hover:bg-neutral-700/70 cursor-pointer transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {
+                          const ids = scene.videoReferenceIds ?? [];
+                          const next = isChecked
+                            ? ids.filter((rid) => rid !== ref.id)
+                            : [...ids, ref.id];
+                          updateScene(scene.id, {
+                            videoReferenceIds: next,
+                          });
+                        }}
+                        className="w-3 h-3 rounded border-neutral-600 bg-neutral-700 accent-(--blender-accent) cursor-pointer"
+                      />
+                      <span className="text-neutral-400 text-[10px] truncate max-w-[80px]">
+                        {ref.name}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
