@@ -60,7 +60,8 @@ export function MovieApp() {
   const [error, setError] = useState<string | null>(null);
   const [savedPath, setSavedPath] = useState<string | null>(null);
   const [generatingCharacters, setGeneratingCharacters] = useState(false);
-  const [generatingScenes, setGeneratingScenes] = useState(false);
+  const [generatingSelectedImages, setGeneratingSelectedImages] =
+    useState(false);
   const [selectedScenes, setSelectedScenes] = useState<Set<string>>(new Set());
   const [extracting, setExtracting] = useState(false);
   const [extractingScenes, setExtractingScenes] = useState(false);
@@ -96,7 +97,7 @@ export function MovieApp() {
 
   const isGenerating =
     generatingCharacters ||
-    generatingScenes ||
+    generatingSelectedImages ||
     extracting ||
     extractingScenes ||
     generatingSelectedVideos ||
@@ -648,7 +649,7 @@ export function MovieApp() {
     if (!selectedScenes.size || isGenerating || !apiKey || !folderHandle)
       return;
     setError(null);
-    setGeneratingScenes(true);
+    setGeneratingSelectedImages(true);
     const total = selectedScenes.size;
     setSelectedProgress({ current: 0, total });
     try {
@@ -668,29 +669,29 @@ export function MovieApp() {
         .map((c) => c.name)
         .join(", ");
       let done = 0;
-      for (const id of selectedScenes) {
-        const scene = scenes.find((s) => s.id === id);
-        if (!scene) continue;
-        const prompt = `Cinematic movie keyframe, ${effectiveStyle} animation style. Featuring characters: ${charNames || "original characters"}. Scene: ${scene.name}. ${scene.description}. Characters must maintain consistent appearance and design. Wide establishing shot, dramatic lighting, film composition.`;
-        const result = await generateSceneImage(prompt, apiKey, charRefs);
-        const imageId = crypto.randomUUID();
-        const filename = `${imageId}.png`;
-        if (scene.imageUrl?.startsWith("blob:"))
-          URL.revokeObjectURL(scene.imageUrl);
-        const localUrl = await saveAndLoadLocal(result.url, filename, sceneDir);
-        updateScene(id, {
-          imageUrl: localUrl,
-          imageFilename: filename,
-          sourceUrl: result.url,
-        });
-        await savePromptFile(result.prompt, `${imageId}.txt`, sceneDir);
-        done++;
-        setSelectedProgress({ current: done, total });
-      }
+      await Promise.all(
+        Array.from(selectedScenes).map(async (id) => {
+          const scene = scenes.find((s) => s.id === id);
+          if (!scene) return;
+          const prompt = `Cinematic movie keyframe, ${effectiveStyle} animation style. Featuring characters: ${charNames || "original characters"}. Scene: ${scene.name}. ${scene.description}. Characters must maintain consistent appearance and design. Wide establishing shot, dramatic lighting, film composition.`;
+          const result = await generateSceneImage(prompt, apiKey, charRefs);
+          const imageId = crypto.randomUUID();
+          const filename = `${imageId}.png`;
+          const localUrl = await saveAndLoadLocal(result.url, filename, sceneDir);
+          updateScene(id, {
+            imageUrl: localUrl,
+            imageFilename: filename,
+            sourceUrl: result.url,
+          });
+          await savePromptFile(result.prompt, `${imageId}.txt`, sceneDir);
+          done++;
+          setSelectedProgress({ current: done, total });
+        }),
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Generation failed");
     } finally {
-      setGeneratingScenes(false);
+      setGeneratingSelectedImages(false);
       setSelectedProgress(null);
       setSelectedScenes(new Set());
     }
@@ -710,47 +711,49 @@ export function MovieApp() {
       const sceneDir = await imagesDir.getDirectoryHandle("scene", {
         create: true,
       });
+      const clipsDir = await folderHandle.getDirectoryHandle("clips", {
+        create: true,
+      });
       let done = 0;
-      for (const id of selectedScenes) {
-        const scene = scenes.find((s) => s.id === id);
-        if (!scene?.imageFilename) continue;
-        const fileHandle = await sceneDir.getFileHandle(scene.imageFilename);
-        const file = await fileHandle.getFile();
-        const dialogueLines = (scene.conversations || [])
-          .map((c) => `${c.person} says: "${c.line}"`)
-          .join("\n");
-        const prompt = `Scene Title: ${scene.name}. \n\n Scene Description: ${scene.description}\n\n No background music. 
-        Language & Tone: ${language}. 
-        Must speak the dialogue lines. 
-        Must ignore the words in the attached video. 
+      await Promise.all(
+        Array.from(selectedScenes).map(async (id) => {
+          const scene = scenes.find((s) => s.id === id);
+          if (!scene?.imageFilename) return;
+          const fileHandle = await sceneDir.getFileHandle(scene.imageFilename);
+          const file = await fileHandle.getFile();
+          const dialogueLines = (scene.conversations || [])
+            .map((c) => `${c.person} says: "${c.line}"`)
+            .join("\n");
+          const prompt = `Scene Title: ${scene.name}. \n\n Scene Description: ${scene.description}\n\n No background music.
+        Language & Tone: ${language}.
+        Must speak the dialogue lines.
+        Must ignore the words in the attached video.
         The attached video is designed for tone reference. \n\n ${
           dialogueLines ? `\n\nDialogue lines:\n${dialogueLines}` : ""
         }`;
-        const remoteUrl = await uploadAndGenerateVideo(
-          file,
-          prompt,
-          apiKey,
-          scene.videoResolution,
-          scene.videoAspect,
-          await getCharacterVideoFiles(
-            (scene.videoReferenceIds?.length ?? 0)
-              ? scene.videoReferenceIds!
-              : undefined,
-          ),
-        );
-        const clipsDir = await folderHandle.getDirectoryHandle("clips", {
-          create: true,
-        });
-        const videoFilename = `${crypto.randomUUID()}.mp4`;
-        const localUrl = await saveAndLoadLocal(
-          remoteUrl,
-          videoFilename,
-          clipsDir,
-        );
-        updateScene(id, { videoUrl: localUrl, videoFilename });
-        done++;
-        setSelectedProgress({ current: done, total });
-      }
+          const remoteUrl = await uploadAndGenerateVideo(
+            file,
+            prompt,
+            apiKey,
+            scene.videoResolution,
+            scene.videoAspect,
+            await getCharacterVideoFiles(
+              (scene.videoReferenceIds?.length ?? 0)
+                ? scene.videoReferenceIds!
+                : undefined,
+            ),
+          );
+          const videoFilename = `${crypto.randomUUID()}.mp4`;
+          const localUrl = await saveAndLoadLocal(
+            remoteUrl,
+            videoFilename,
+            clipsDir,
+          );
+          updateScene(id, { videoUrl: localUrl, videoFilename });
+          done++;
+          setSelectedProgress({ current: done, total });
+        }),
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Video generation failed");
     } finally {
@@ -768,28 +771,30 @@ export function MovieApp() {
     setSelectedProgress({ current: 0, total });
     try {
       let done = 0;
-      for (const id of selectedScenes) {
-        const scene = scenes.find((s) => s.id === id);
-        if (!scene) continue;
-        const conversations = await regenerateSceneConversations(
-          scene.name,
-          scene.description,
-          apiKey,
-          language,
-        );
-        const metadata = await estimateSceneMetadata(
-          scene.name,
-          scene.description,
-          conversations,
-          apiKey,
-        );
-        updateScene(id, {
-          conversations,
-          videoDuration: metadata.videoDuration,
-        });
-        done++;
-        setSelectedProgress({ current: done, total });
-      }
+      await Promise.all(
+        Array.from(selectedScenes).map(async (id) => {
+          const scene = scenes.find((s) => s.id === id);
+          if (!scene) return;
+          const conversations = await regenerateSceneConversations(
+            scene.name,
+            scene.description,
+            apiKey,
+            language,
+          );
+          const metadata = await estimateSceneMetadata(
+            scene.name,
+            scene.description,
+            conversations,
+            apiKey,
+          );
+          updateScene(id, {
+            conversations,
+            videoDuration: metadata.videoDuration,
+          });
+          done++;
+          setSelectedProgress({ current: done, total });
+        }),
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Script generation failed");
     } finally {
@@ -1191,19 +1196,11 @@ export function MovieApp() {
                       }
                       className="px-3 py-1.5 bg-white text-black rounded-lg text-xs font-medium hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                     >
-                      {generatingScenes
+                      {generatingSelectedImages
                         ? "Generating..."
                         : "Generate Selected Images"}
                     </button>
-                    <button
-                      onClick={handleGenerateSelectedScripts}
-                      disabled={isGenerating}
-                      className="px-3 py-1.5 bg-white text-black rounded-lg text-xs font-medium hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                    >
-                      {generatingSelectedScripts
-                        ? "Generating..."
-                        : "Generate Selected Scripts"}
-                    </button>
+
                     <button
                       onClick={handleGenerateSelectedVideos}
                       disabled={isGenerating || generatingSelectedVideos}
@@ -1213,6 +1210,17 @@ export function MovieApp() {
                         ? "Generating..."
                         : "Generate Selected Videos"}
                     </button>
+
+                    <button
+                      onClick={handleGenerateSelectedScripts}
+                      disabled={isGenerating}
+                      className="px-3 py-1.5 bg-white text-black rounded-lg text-xs font-medium hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {generatingSelectedScripts
+                        ? "Generating..."
+                        : "Generate Selected Scripts"}
+                    </button>
+
                     <button
                       onClick={() => setSelectedScenes(new Set())}
                       className="px-2 py-1.5 text-neutral-500 hover:text-neutral-300 text-xs transition-colors"
