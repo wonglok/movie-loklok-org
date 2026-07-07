@@ -26,7 +26,7 @@ import {
 } from "@/lib/fs-helpers";
 import { useAutoSave } from "@/hooks/useAutoSave";
 import { useLocalImages } from "@/hooks/useLocalImages";
-import { generateEbook, generatePptx } from "@/lib/ebook";
+import { generatePptx } from "@/lib/ebook";
 import { SettingsModal } from "./SettingsModal";
 import { RemoveConfirmModal } from "./RemoveConfirmModal";
 import { ImagePreviewModal } from "./ImagePreviewModal";
@@ -98,7 +98,6 @@ export function MovieApp() {
   const [previewType, setPreviewType] = useState<"character" | "scene">(
     "character",
   );
-  const [generatingEbook, setGeneratingEbook] = useState(false);
   const [generatingPptx, setGeneratingPptx] = useState(false);
 
   const isGenerating =
@@ -592,32 +591,6 @@ export function MovieApp() {
       );
     } finally {
       setLocationRegenId(null);
-    }
-  };
-
-  const handleGenerateEbook = async () => {
-    if (generatingEbook) return;
-    setError(null);
-    setGeneratingEbook(true);
-    try {
-      const blob = await generateEbook(
-        story,
-        characters,
-        scenes,
-        language,
-      );
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${story.slice(0, 30) || "movie"}-ebook.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "eBook generation failed");
-    } finally {
-      setGeneratingEbook(false);
     }
   };
 
@@ -1225,25 +1198,6 @@ export function MovieApp() {
             <span className="text-2xl">&#x1F4D6;</span>
             <h2 className="text-xl font-semibold text-white">eBook</h2>
             <div className="flex items-center gap-3">
-              <button
-                onClick={handleGenerateEbook}
-                disabled={generatingEbook}
-                className="px-6 py-3 bg-(--blender-accent) text-white rounded-xl font-semibold text-sm hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-2"
-              >
-                {generatingEbook ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white" />
-                    Generating PDF...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                    </svg>
-                    Download PDF
-                  </>
-                )}
-              </button>
               <button
                 onClick={handleGeneratePptx}
                 disabled={generatingPptx}
