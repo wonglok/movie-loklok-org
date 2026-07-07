@@ -155,8 +155,8 @@ export function SceneCard({
             >
               {descRegenId === scene.id ? (
                 <>
-                  <div className="animate-spin rounded-full h-3 w-3 border border-neutral-400 border-t-transparent" />
-                  Generating...
+                  <div className="animate-spin rounded-full h-3 w-3 border border-cyan-400/30 border-t-cyan-400" />
+                  <span className="text-cyan-400">Generating...</span>
                 </>
               ) : (
                 "Desc"
@@ -174,8 +174,8 @@ export function SceneCard({
             >
               {scriptRegenId === scene.id ? (
                 <>
-                  <div className="animate-spin rounded-full h-3 w-3 border border-neutral-400 border-t-transparent" />
-                  Generating...
+                  <div className="animate-spin rounded-full h-3 w-3 border border-cyan-400/30 border-t-cyan-400" />
+                  <span className="text-cyan-400">Generating...</span>
                 </>
               ) : (
                 "Script"
@@ -193,8 +193,8 @@ export function SceneCard({
             >
               {imageRegenId === scene.id ? (
                 <>
-                  <div className="animate-spin rounded-full h-3 w-3 border border-neutral-400 border-t-transparent" />
-                  Generating...
+                  <div className="animate-spin rounded-full h-3 w-3 border border-cyan-400/30 border-t-cyan-400" />
+                  <span className="text-cyan-400">Generating...</span>
                 </>
               ) : (
                 "Img"
@@ -310,8 +310,8 @@ export function SceneCard({
             >
               {generatingVideoId === scene.id ? (
                 <>
-                  <div className="animate-spin rounded-full h-3 w-3 border border-neutral-400 border-t-transparent " />
-                  Generating...
+                  <div className="animate-spin rounded-full h-3 w-3 border border-cyan-400/30 border-t-cyan-400 " />
+                  <span className="text-cyan-400">Generating...</span>
                 </>
               ) : (
                 "Gen Video"

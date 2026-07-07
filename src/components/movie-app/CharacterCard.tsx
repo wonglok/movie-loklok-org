@@ -99,8 +99,8 @@ export function CharacterCard({
             >
               {regeneratingIds.has(char.id) ? (
                 <>
-                  <div className="animate-spin rounded-full h-3 w-3 border border-neutral-400 border-t-transparent" />
-                  Regenerating...
+                  <div className="animate-spin rounded-full h-3 w-3 border border-cyan-400/30 border-t-cyan-400" />
+                  <span className="text-cyan-400">Regenerating...</span>
                 </>
               ) : (
                 <>
@@ -250,8 +250,8 @@ export function CharacterCard({
           >
             {referenceVideoGeneratingIds.has(char.id) ? (
               <>
-                <div className="animate-spin rounded-full h-3 w-3 border border-neutral-400 border-t-transparent" />
-                Generating...
+                <div className="animate-spin rounded-full h-3 w-3 border border-cyan-400/30 border-t-cyan-400" />
+                <span className="text-cyan-400">Generating...</span>
               </>
             ) : (
               "Generate Ref Video"

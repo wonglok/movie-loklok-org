@@ -1028,8 +1028,8 @@ export function MovieApp() {
             >
               {extracting ? (
                 <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-black/20 border-t-black" />{" "}
-                  Extracting Characters...
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-cyan-400/30 border-t-cyan-400" />{" "}
+                  <span className="text-cyan-400">Extracting Characters...</span>
                 </>
               ) : (
                 "Extract Characters"
@@ -1101,8 +1101,8 @@ export function MovieApp() {
               >
                 {generatingCharacters ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-black/20 border-t-black" />{" "}
-                    Generating...
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-cyan-400/30 border-t-cyan-400" />{" "}
+                    <span className="text-cyan-400">Generating...</span>
                   </>
                 ) : (
                   "Generate All Character Images"
@@ -1170,8 +1170,8 @@ export function MovieApp() {
                 >
                   {extractingScenes ? (
                     <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-black/20 border-t-black" />{" "}
-                      Extracting Scenes...
+                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-cyan-400/30 border-t-cyan-400" />{" "}
+                      <span className="text-cyan-400">Extracting Scenes...</span>
                     </>
                   ) : (
                     "Extract Scenes"
@@ -1188,8 +1188,8 @@ export function MovieApp() {
                       {selectedScenes.size} scene
                       {selectedScenes.size > 1 ? "s" : ""} selected
                       {selectedProgress !== null && (
-                        <span className="inline-flex items-center gap-1.5 text-(--blender-accent)">
-                          <div className="animate-spin rounded-full h-3 w-3 border border-(--blender-accent)/30 border-t-(--blender-accent)" />
+                        <span className="inline-flex items-center gap-1.5 text-cyan-400">
+                          <div className="animate-spin rounded-full h-3 w-3 border border-cyan-400/30 border-t-cyan-400" />
                           {selectedProgress.current}/{selectedProgress.total}
                         </span>
                       )}
@@ -1205,7 +1205,7 @@ export function MovieApp() {
                       className="px-3 py-1.5 bg-white text-black rounded-lg text-xs font-medium hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                     >
                       {generatingSelectedImages
-                        ? "Generating..."
+                        ? <span className="text-cyan-400">Generating...</span>
                         : "Generate Selected Images"}
                     </button>
 
@@ -1215,7 +1215,7 @@ export function MovieApp() {
                       className="px-3 py-1.5 bg-white text-black rounded-lg text-xs font-medium hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                     >
                       {generatingSelectedVideos
-                        ? "Generating..."
+                        ? <span className="text-cyan-400">Generating...</span>
                         : "Generate Selected Videos"}
                     </button>
 
@@ -1225,7 +1225,7 @@ export function MovieApp() {
                       className="px-3 py-1.5 bg-white text-black rounded-lg text-xs font-medium hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                     >
                       {generatingSelectedScripts
-                        ? "Generating..."
+                        ? <span className="text-cyan-400">Generating...</span>
                         : "Generate Selected Scripts"}
                     </button>
 
