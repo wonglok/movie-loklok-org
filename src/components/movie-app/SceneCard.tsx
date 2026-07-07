@@ -359,7 +359,7 @@ export function SceneCard({
           {availableReferences.length > 0 && (
             <div className="flex flex-col gap-1">
               <span className="text-neutral-500 text-[10px] font-medium">
-                Video References
+                Video References (max 3)
               </span>
               <div className="flex flex-wrap gap-1.5">
                 {availableReferences.map((ref) => {
@@ -376,6 +376,7 @@ export function SceneCard({
                         checked={isChecked}
                         onChange={() => {
                           const ids = scene.videoReferenceIds ?? [];
+                          if (!isChecked && ids.length >= 3) return;
                           const next = isChecked
                             ? ids.filter((rid) => rid !== ref.id)
                             : [...ids, ref.id];
@@ -383,7 +384,8 @@ export function SceneCard({
                             videoReferenceIds: next,
                           });
                         }}
-                        className="w-3 h-3 rounded border-neutral-600 bg-neutral-700 accent-(--blender-accent) cursor-pointer"
+                        disabled={!isChecked && (scene.videoReferenceIds ?? []).length >= 3}
+                        className="w-3 h-3 rounded border-neutral-600 bg-neutral-700 accent-(--blender-accent) cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                       />
                       <span className="text-neutral-400 text-[10px] truncate max-w-[80px]">
                         {ref.name}
