@@ -110,6 +110,14 @@ export function SettingsModal({
           {keyError && (
             <p className="text-red-400 text-xs mb-2">{keyError}</p>
           )}
+          <a
+            href="https://fal.ai/dashboard/keys"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block w-full px-4 py-2 bg-neutral-700 text-white text-center rounded-lg text-sm font-medium hover:bg-neutral-600 transition-colors mb-3"
+          >
+            Get FAL AI Key
+          </a>
           <button
             onClick={handleSave}
             disabled={!key.trim() || saving}
