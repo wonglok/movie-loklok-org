@@ -13,6 +13,7 @@ import {
   regenerateSceneConversations,
   estimateSceneMetadata,
   regenerateSceneDescription,
+  regenerateSceneLocation,
 } from "@/lib/fal";
 import { resolveStyle } from "@/lib/style";
 import {
@@ -65,11 +66,15 @@ export function MovieApp() {
   const [selectedScenes, setSelectedScenes] = useState<Set<string>>(new Set());
   const [extracting, setExtracting] = useState(false);
   const [extractingScenes, setExtractingScenes] = useState(false);
-  const [regeneratingIds, setRegeneratingIds] = useState<Set<string>>(new Set());
-  const [referenceVideoGeneratingIds, setReferenceVideoGeneratingIds] = useState<Set<string>>(new Set());
+  const [regeneratingIds, setRegeneratingIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [referenceVideoGeneratingIds, setReferenceVideoGeneratingIds] =
+    useState<Set<string>>(new Set());
   const [imageRegenId, setImageRegenId] = useState<string | null>(null);
   const [descRegenId, setDescRegenId] = useState<string | null>(null);
   const [scriptRegenId, setScriptRegenId] = useState<string | null>(null);
+  const [locationRegenId, setLocationRegenId] = useState<string | null>(null);
   const [generatingVideoId, setGeneratingVideoId] = useState<string | null>(
     null,
   );
@@ -281,6 +286,7 @@ export function MovieApp() {
         ...extracted.map((c) => ({
           id: crypto.randomUUID(),
           ...c,
+          location: "",
           imageUrl: null,
           imageFilename: null,
           sourceUrl: null,
@@ -564,6 +570,28 @@ export function MovieApp() {
     }
   };
 
+  const handleRegenerateSceneLocation = async (id: string) => {
+    const scene = scenes.find((s) => s.id === id);
+    if (!scene || !apiKey) return;
+    setError(null);
+    setLocationRegenId(id);
+    try {
+      const location = await regenerateSceneLocation(
+        scene.name,
+        scene.description,
+        apiKey,
+        language,
+      );
+      updateScene(id, { location });
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Location regeneration failed",
+      );
+    } finally {
+      setLocationRegenId(null);
+    }
+  };
+
   const getCharacterVideoFiles = async (
     referenceIds?: string[],
   ): Promise<File[]> => {
@@ -685,7 +713,11 @@ export function MovieApp() {
           const result = await generateSceneImage(prompt, apiKey, charRefs);
           const imageId = crypto.randomUUID();
           const filename = `${imageId}.png`;
-          const localUrl = await saveAndLoadLocal(result.url, filename, sceneDir);
+          const localUrl = await saveAndLoadLocal(
+            result.url,
+            filename,
+            sceneDir,
+          );
           updateScene(id, {
             imageUrl: localUrl,
             imageFilename: filename,
@@ -823,7 +855,7 @@ export function MovieApp() {
     <div className="h-full overflow-y-auto blender-scrollbar">
       {isGenerating && (
         <div className="fixed top-0 left-1/2 -translate-x-1/2 z-50 mt-3 px-5 py-2 bg-orange-500/90 backdrop-blur-sm text-white text-sm font-semibold rounded-full shadow-lg shadow-orange-500/20 animate-pulse">
-          Generating in progress, do not refresh
+          Generation in progress, do not refresh.
         </div>
       )}
       <div className="max-w-5xl mx-auto px-6 py-12 flex flex-col gap-16">
@@ -1034,7 +1066,9 @@ export function MovieApp() {
               {extracting ? (
                 <>
                   <div className="animate-spin rounded-full h-5 w-5 border-2 border-cyan-400/30 border-t-cyan-400" />{" "}
-                  <span className="text-cyan-400">Extracting Characters...</span>
+                  <span className="text-cyan-400">
+                    Extracting Characters...
+                  </span>
                 </>
               ) : (
                 "Extract Characters"
@@ -1082,6 +1116,7 @@ export function MovieApp() {
                       id: crypto.randomUUID(),
                       name: "",
                       description: "",
+                      location: "",
                       imageUrl: null,
                       imageFilename: null,
                       sourceUrl: null,
@@ -1176,7 +1211,9 @@ export function MovieApp() {
                   {extractingScenes ? (
                     <>
                       <div className="animate-spin rounded-full h-5 w-5 border-2 border-cyan-400/30 border-t-cyan-400" />{" "}
-                      <span className="text-cyan-400">Extracting Scenes...</span>
+                      <span className="text-cyan-400">
+                        Extracting Scenes...
+                      </span>
                     </>
                   ) : (
                     "Extract Scenes"
@@ -1209,9 +1246,11 @@ export function MovieApp() {
                       }
                       className="px-3 py-1.5 bg-white text-black rounded-lg text-xs font-medium hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                     >
-                      {generatingSelectedImages
-                        ? <span className="text-cyan-400">Generating...</span>
-                        : "Generate Selected Images"}
+                      {generatingSelectedImages ? (
+                        <span className="text-cyan-400">Generating...</span>
+                      ) : (
+                        "Generate Selected Images"
+                      )}
                     </button>
 
                     <button
@@ -1219,9 +1258,11 @@ export function MovieApp() {
                       disabled={isGenerating || generatingSelectedVideos}
                       className="px-3 py-1.5 bg-white text-black rounded-lg text-xs font-medium hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                     >
-                      {generatingSelectedVideos
-                        ? <span className="text-cyan-400">Generating...</span>
-                        : "Generate Selected Videos"}
+                      {generatingSelectedVideos ? (
+                        <span className="text-cyan-400">Generating...</span>
+                      ) : (
+                        "Generate Selected Videos"
+                      )}
                     </button>
 
                     <button
@@ -1229,9 +1270,11 @@ export function MovieApp() {
                       disabled={isGenerating}
                       className="px-3 py-1.5 bg-white text-black rounded-lg text-xs font-medium hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                     >
-                      {generatingSelectedScripts
-                        ? <span className="text-cyan-400">Generating...</span>
-                        : "Generate Selected Scripts"}
+                      {generatingSelectedScripts ? (
+                        <span className="text-cyan-400">Generating...</span>
+                      ) : (
+                        "Generate Selected Scripts"
+                      )}
                     </button>
 
                     <button
@@ -1250,12 +1293,14 @@ export function MovieApp() {
                       imageRegenId={imageRegenId}
                       descRegenId={descRegenId}
                       scriptRegenId={scriptRegenId}
+                      locationRegenId={locationRegenId}
                       generatingVideoId={generatingVideoId}
                       selected={selectedScenes.has(scene.id)}
                       onToggleSelect={toggleSceneSelect}
                       onRegenerateImage={handleRegenerateSceneImage}
                       onRegenerateDescription={handleRegenerateSceneDescription}
                       onRegenerateScript={handleRegenerateSceneScript}
+                      onRegenerateLocation={handleRegenerateSceneLocation}
                       onGenerateVideo={handleGenerateSceneVideo}
                       onRemove={(id) => setRemoveTarget({ id, type: "scene" })}
                       onPreview={(id) => {
@@ -1279,6 +1324,7 @@ export function MovieApp() {
                           id: crypto.randomUUID(),
                           name: "",
                           description: "",
+                          location: "",
                           imageUrl: null,
                           imageFilename: null,
                           sourceUrl: null,

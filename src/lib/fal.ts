@@ -319,6 +319,7 @@ export async function extractScenes(
   {
     name: string;
     description: string;
+    location: string;
     conversations: {
       id: string;
       person: string;
@@ -339,6 +340,7 @@ export async function extractScenes(
             content: `Extract all key scenes from this movie story. Return ONLY a valid JSON array of objects with these fields:
 - "name": scene name
 - "description": scene description
+- "location": a brief description of where this scene takes place (e.g. "A dimly lit detective's office", "A bustling city street at noon", "A quiet forest clearing")
 - "conversations": an array of objects, each with "person" (the character speaking or voice-over narrator) and "line" (their line of dialogue or narration). Each scene is max 12 seconds, so keep dialogue concise and brief. If a scene would exceed 12 seconds, break it into multiple smaller scenes (e.g. 8s each). If no one speaks, use an empty array.
 
 No other text.${language ? `\n\nWrite all output in ${language}.` : ""}\n\nStory: ${story}`,
@@ -362,10 +364,12 @@ No other text.${language ? `\n\nWrite all output in ${language}.` : ""}\n\nStory
   const raw = JSON.parse(json) as {
     name: string;
     description: string;
+    location: string;
     conversations: { person: string; line: string }[];
   }[];
   return raw.map((s) => ({
     ...s,
+    location: s.location || "",
     conversations: (s.conversations || []).map((c) => ({
       id: crypto.randomUUID(),
       person: c.person,
@@ -528,4 +532,43 @@ ${dialogueSummary || "(no dialogue)"}`.trim(),
   const text = data.choices[0].message.content;
   const json = text.replace(/```json|```/g, "").trim();
   return JSON.parse(json);
+}
+
+export async function regenerateSceneLocation(
+  sceneName: string,
+  sceneDescription: string,
+  apiKey: string,
+  language?: string,
+): Promise<string> {
+  fal.config({ credentials: apiKey });
+
+  const result = await fal.subscribe(
+    "openrouter/router/openai/v1/chat/completions",
+    {
+      input: {
+        model: "google/gemma-4-26b-a4b-it",
+        messages: [
+          {
+            role: "user",
+            content:
+              `Describe the location where this movie scene takes place. Return ONLY a short location description (e.g. "A dimly lit detective's office", "A bustling city street at noon", "A quiet forest clearing"). Keep it under 15 words. No other text.${language ? `\n\nWrite in ${language}.` : ""}
+
+Scene: ${sceneName}
+Description: ${sceneDescription}`,
+          },
+        ],
+      },
+      logs: true,
+      onQueueUpdate: (update) => {
+        if (update.status === "IN_PROGRESS") {
+          update.logs.map((log) => log.message).forEach(console.log);
+        }
+      },
+    },
+  );
+
+  const data = result.data as {
+    choices: { message: { content: string } }[];
+  };
+  return data.choices[0].message.content.trim();
 }

@@ -9,12 +9,14 @@ interface SceneCardProps {
   imageRegenId: string | null;
   descRegenId: string | null;
   scriptRegenId: string | null;
+  locationRegenId: string | null;
   generatingVideoId: string | null;
   selected: boolean;
   onToggleSelect: (id: string) => void;
   onRegenerateImage: (id: string) => void;
   onRegenerateDescription: (id: string) => void;
   onRegenerateScript: (id: string) => void;
+  onRegenerateLocation: (id: string) => void;
   onGenerateVideo: (id: string) => void;
   onRemove: (id: string) => void;
   onPreview: (id: string) => void;
@@ -28,12 +30,14 @@ export function SceneCard({
   imageRegenId,
   descRegenId,
   scriptRegenId,
+  locationRegenId,
   generatingVideoId,
   selected,
   onToggleSelect,
   onRegenerateImage,
   onRegenerateDescription,
   onRegenerateScript,
+  onRegenerateLocation,
   onGenerateVideo,
   onRemove,
   onPreview,
@@ -143,13 +147,44 @@ export function SceneCard({
             rows={3}
             className="w-full bg-transparent text-neutral-400 text-xs leading-relaxed focus:outline-none placeholder-neutral-600 resize-none blender-scrollbar"
           />
+          <div className="flex items-center gap-1.5">
+            <svg className="w-3 h-3 shrink-0 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+            </svg>
+            <input
+              type="text"
+              value={scene.location}
+              onChange={(e) => updateScene(scene.id, { location: e.target.value })}
+              placeholder="Location..."
+              className="flex-1 bg-transparent text-neutral-400 text-xs focus:outline-none placeholder-neutral-600"
+            />
+            <button
+              onClick={() => onRegenerateLocation(scene.id)}
+              disabled={
+                locationRegenId !== null ||
+                imageRegenId !== null ||
+                descRegenId !== null ||
+                scriptRegenId !== null ||
+                locationRegenId !== null
+              }
+              className="shrink-0 px-2 py-0.5 border border-neutral-700 rounded text-neutral-500 text-xs hover:border-neutral-500 hover:text-neutral-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              {locationRegenId === scene.id ? (
+                <div className="animate-spin rounded-full h-3 w-3 border border-cyan-400/30 border-t-cyan-400" />
+              ) : (
+                "Gen"
+              )}
+            </button>
+          </div>
           <div className="flex items-center gap-1.5 flex-wrap">
             <button
               onClick={() => onRegenerateDescription(scene.id)}
               disabled={
                 imageRegenId !== null ||
                 descRegenId !== null ||
-                scriptRegenId !== null
+                scriptRegenId !== null ||
+                locationRegenId !== null
               }
               className="px-3 py-1.5 border border-neutral-700 rounded-lg text-neutral-400 text-xs hover:border-neutral-500 hover:text-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
             >
@@ -168,7 +203,8 @@ export function SceneCard({
               disabled={
                 imageRegenId !== null ||
                 descRegenId !== null ||
-                scriptRegenId !== null
+                scriptRegenId !== null ||
+                locationRegenId !== null
               }
               className="px-3 py-1.5 border border-neutral-700 rounded-lg text-neutral-400 text-xs hover:border-neutral-500 hover:text-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
             >
@@ -187,7 +223,8 @@ export function SceneCard({
               disabled={
                 imageRegenId !== null ||
                 descRegenId !== null ||
-                scriptRegenId !== null
+                scriptRegenId !== null ||
+                locationRegenId !== null
               }
               className="px-3 py-1.5 border border-neutral-700 rounded-lg text-neutral-400 text-xs hover:border-neutral-500 hover:text-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
             >

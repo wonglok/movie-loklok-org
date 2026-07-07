@@ -10,6 +10,7 @@ export interface Character {
   id: string;
   name: string;
   description: string;
+  location: string;
   imageUrl: string | null;
   imageFilename: string | null;
   sourceUrl: string | null;
