@@ -310,7 +310,7 @@ export function SceneCard({
             >
               {generatingVideoId === scene.id ? (
                 <>
-                  <div className="animate-spin rounded-full h-3 w-3 border border-neutral-400 border-t-transparent" />
+                  <div className="animate-spin rounded-full h-3 w-3 border border-neutral-400 border-t-transparent " />
                   Generating...
                 </>
               ) : (
@@ -326,7 +326,9 @@ export function SceneCard({
               </span>
               <div className="flex flex-wrap gap-1.5">
                 {availableReferences.map((ref) => {
-                  const isChecked = (scene.videoReferenceIds ?? []).includes(ref.id);
+                  const isChecked = (scene.videoReferenceIds ?? []).includes(
+                    ref.id,
+                  );
                   return (
                     <label
                       key={ref.id}
