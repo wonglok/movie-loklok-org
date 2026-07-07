@@ -257,6 +257,61 @@ export function CharacterCard({
               "Generate Ref Video"
             )}
           </button>
+          <input
+            type="file"
+            accept="video/*"
+            id={`char-video-upload-${char.id}`}
+            className="hidden"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file || !folderHandle) return;
+              try {
+                const clipsDir = await folderHandle.getDirectoryHandle("clips", {
+                  create: true,
+                });
+                const uploadId = crypto.randomUUID();
+                const filename = `${uploadId}.mp4`;
+                const fileHandle = await clipsDir.getFileHandle(filename, {
+                  create: true,
+                });
+                const writable = await fileHandle.createWritable();
+                await writable.write(file);
+                await writable.close();
+                if (char.videoUrl?.startsWith("blob:")) {
+                  URL.revokeObjectURL(char.videoUrl);
+                }
+                const localUrl = URL.createObjectURL(file);
+                updateCharacter(char.id, {
+                  videoUrl: localUrl,
+                  videoFilename: filename,
+                });
+              } catch {
+                // upload failed, ignore
+              }
+              e.target.value = "";
+            }}
+          />
+          <button
+            onClick={() =>
+              document.getElementById(`char-video-upload-${char.id}`)?.click()
+            }
+            className="px-2 py-1.5 border border-neutral-700 rounded-lg text-neutral-500 text-xs hover:border-neutral-500 hover:text-neutral-300 transition-colors"
+            title="Upload reference video"
+          >
+            <svg
+              className="w-3.5 h-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
+              />
+            </svg>
+          </button>
         </div>
       )}
     </div>
