@@ -481,7 +481,7 @@ export function MovieApp() {
         .filter((c) => c.name)
         .map((c) => c.name)
         .join(", ");
-      const imagePrompt = `Cinematic movie keyframe, ${effectiveStyle} animation style. Featuring characters: ${charNames || "original characters"}. Scene: ${scene.name}. ${scene.description}. Characters must maintain consistent appearance and design. Wide establishing shot, dramatic lighting, film composition.`;
+      const imagePrompt = `Cinematic movie keyframe, ${effectiveStyle} animation style. Featuring characters: ${charNames || "original characters"}. Scene: ${scene.name}. ${scene.description}. Location: ${scene.location || "unspecified"}. Characters must maintain consistent appearance and design. Wide establishing shot, dramatic lighting, film composition.`;
       const result = await generateSceneImage(imagePrompt, apiKey, charRefs);
       if (folderHandle) {
         const imagesDir = await folderHandle.getDirectoryHandle("images", {
@@ -635,11 +635,11 @@ export function MovieApp() {
       const dialogueLines = (scene.conversations || [])
         .map((c) => `${c.person} says: "${c.line}"`)
         .join("\n");
-      const prompt = `Scene Title: ${scene.name}. \n\n 
-      
-      Scene Description: ${scene.description}\n\nDuration: ${scene.videoDuration}s. 
-      No background music. Language & Tone: ${language}. 
-      Must speak the dialogue lines. MUST ignore the words in the attached video. 
+      const prompt = `Scene Title: ${scene.name}. \n\n
+
+      Scene Description: ${scene.description}\n\nScene Location: ${scene.location || "unspecified"}\n\nDuration: ${scene.videoDuration}s.
+      No background music. Language & Tone: ${language}.
+      Must speak the dialogue lines. MUST ignore the words in the attached video.
       The attached video is designed for tone reference.  \n\n ${
         dialogueLines ? `\n\nDialogue lines:\n${dialogueLines}` : ""
       }`;
@@ -709,7 +709,7 @@ export function MovieApp() {
         Array.from(selectedScenes).map(async (id) => {
           const scene = scenes.find((s) => s.id === id);
           if (!scene) return;
-          const prompt = `Cinematic movie keyframe, ${effectiveStyle} animation style. Featuring characters: ${charNames || "original characters"}. Scene: ${scene.name}. ${scene.description}. Characters must maintain consistent appearance and design. Wide establishing shot, dramatic lighting, film composition.`;
+          const prompt = `Cinematic movie keyframe, ${effectiveStyle} animation style. Featuring characters: ${charNames || "original characters"}. Scene: ${scene.name}. ${scene.description}. Location: ${scene.location || "unspecified"}. Characters must maintain consistent appearance and design. Wide establishing shot, dramatic lighting, film composition.`;
           const result = await generateSceneImage(prompt, apiKey, charRefs);
           const imageId = crypto.randomUUID();
           const filename = `${imageId}.png`;
@@ -764,7 +764,7 @@ export function MovieApp() {
           const dialogueLines = (scene.conversations || [])
             .map((c) => `${c.person} says: "${c.line}"`)
             .join("\n");
-          const prompt = `Scene Title: ${scene.name}. \n\n Scene Description: ${scene.description}\n\n No background music.
+          const prompt = `Scene Title: ${scene.name}. \n\n Scene Description: ${scene.description}\n\nScene Location: ${scene.location || "unspecified"}\n\n No background music.
         Language & Tone: ${language}.
         Must speak the dialogue lines.
         Must ignore the words in the attached video.
