@@ -66,9 +66,7 @@ export function MovieApp() {
   const [extracting, setExtracting] = useState(false);
   const [extractingScenes, setExtractingScenes] = useState(false);
   const [regeneratingIds, setRegeneratingIds] = useState<Set<string>>(new Set());
-  const [referenceVideoGeneratingId, setReferenceVideoGeneratingId] = useState<
-    string | null
-  >(null);
+  const [referenceVideoGeneratingIds, setReferenceVideoGeneratingIds] = useState<Set<string>>(new Set());
   const [imageRegenId, setImageRegenId] = useState<string | null>(null);
   const [descRegenId, setDescRegenId] = useState<string | null>(null);
   const [scriptRegenId, setScriptRegenId] = useState<string | null>(null);
@@ -389,7 +387,7 @@ export function MovieApp() {
     const char = characters.find((c) => c.id === id);
     if (!char?.imageFilename || !folderHandle || !apiKey) return;
     setError(null);
-    setReferenceVideoGeneratingId(id);
+    setReferenceVideoGeneratingIds((prev) => new Set(prev).add(id));
     try {
       const imagesDir = await folderHandle.getDirectoryHandle("images", {
         create: true,
@@ -424,7 +422,11 @@ export function MovieApp() {
           : "Reference video generation failed",
       );
     } finally {
-      setReferenceVideoGeneratingId(null);
+      setReferenceVideoGeneratingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     }
   };
 
@@ -1053,7 +1055,7 @@ export function MovieApp() {
                   key={char.id}
                   char={char}
                   regeneratingIds={regeneratingIds}
-                  referenceVideoGeneratingId={referenceVideoGeneratingId}
+                  referenceVideoGeneratingIds={referenceVideoGeneratingIds}
                   onRegenerate={handleRegenerateCharacter}
                   onGenerateReferenceVideo={handleGenerateReferenceVideo}
                   onRemove={(id) => setRemoveTarget({ id, type: "character" })}
