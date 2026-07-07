@@ -339,7 +339,7 @@ export async function extractScenes(
             content: `Extract all key scenes from this movie story. Return ONLY a valid JSON array of objects with these fields:
 - "name": scene name
 - "description": scene description
-- "conversations": an array of objects, each with "person" (the character speaking or voice-over narrator) and "line" (their line of dialogue or narration). Each scene is max 15 seconds, so keep dialogue concise and brief. If no one speaks, use an empty array.
+- "conversations": an array of objects, each with "person" (the character speaking or voice-over narrator) and "line" (their line of dialogue or narration). Each scene is max 10 seconds, so keep dialogue concise and brief. If a scene would exceed 10 seconds, break it into multiple smaller scenes. If no one speaks, use an empty array.
 
 No other text.${language ? `\n\nWrite all output in ${language}.` : ""}\n\nStory: ${story}`,
           },
@@ -391,7 +391,7 @@ export async function regenerateSceneConversations(
           {
             role: "user",
             content: `
-Write the scripted dialogue for this scene from a movie story. The scene has a maximum duration of 15 seconds, so keep the total dialogue concise — each line should be brief and speakable within that timeframe. Return ONLY a valid JSON array of objects, each with "person" (the character speaking or voice-over narrator) and "line" (their line of dialogue or narration). Include all dialogue that happens in this scene. If no one speaks, return an empty array. No other text.
+Write the scripted dialogue for this scene from a movie story. The scene has a maximum duration of 10 seconds, so keep the total dialogue concise — each line should be brief and speakable within that timeframe. Return ONLY a valid JSON array of objects, each with "person" (the character speaking or voice-over narrator) and "line" (their line of dialogue or narration). Include all dialogue that happens in this scene. If no one speaks, return an empty array. No other text.
 
 Scene: ${sceneName}
 Description: ${sceneDescription}
@@ -446,7 +446,7 @@ export async function estimateSceneMetadata(
             role: "user",
             content:
               `Estimate the total duration for this movie scene based on its dialogue and description. Return ONLY a valid JSON object with:
-- "videoDuration": estimated total length in seconds (a number between 3 and 15, max 15 seconds, based on dialogue pacing and number of lines). Add 1-2 seconds to the estimated duration by default so the video won't cut off abruptly.
+- "videoDuration": estimated total length in seconds (a number between 3 and 10, max 10 seconds, based on dialogue pacing and number of lines). Add 1-2 seconds to the estimated duration by default so the video won't cut off abruptly.
 
 Consider the mood, action, and pacing implied by the dialogue.
 
@@ -474,7 +474,7 @@ ${dialogueSummary || "(no dialogue)"}`.trim(),
   const json = text.replace(/```json|```/g, "").trim();
   const metadata = JSON.parse(json) as { videoDuration: number };
   return {
-    videoDuration: Math.min(Math.max(1, metadata.videoDuration), 15),
+    videoDuration: Math.min(Math.max(1, metadata.videoDuration), 10),
   };
 }
 
