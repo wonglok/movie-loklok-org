@@ -65,7 +65,7 @@ export function MovieApp() {
   const [selectedScenes, setSelectedScenes] = useState<Set<string>>(new Set());
   const [extracting, setExtracting] = useState(false);
   const [extractingScenes, setExtractingScenes] = useState(false);
-  const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
+  const [regeneratingIds, setRegeneratingIds] = useState<Set<string>>(new Set());
   const [referenceVideoGeneratingId, setReferenceVideoGeneratingId] = useState<
     string | null
   >(null);
@@ -350,7 +350,7 @@ export function MovieApp() {
     const char = characters.find((c) => c.id === id);
     if (!char || !apiKey) return;
     setError(null);
-    setRegeneratingId(id);
+    setRegeneratingIds((prev) => new Set(prev).add(id));
     try {
       const prompt = `Character design reference sheet, ${effectiveStyle} animation style. Character name: ${char.name}. ${char.description}. Full body, clean character turnaround, consistent design.`;
       const result = await generateImage(prompt, apiKey);
@@ -377,7 +377,11 @@ export function MovieApp() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Regeneration failed");
     } finally {
-      setRegeneratingId(null);
+      setRegeneratingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     }
   };
 
@@ -1048,7 +1052,7 @@ export function MovieApp() {
                 <CharacterCard
                   key={char.id}
                   char={char}
-                  regeneratingId={regeneratingId}
+                  regeneratingIds={regeneratingIds}
                   referenceVideoGeneratingId={referenceVideoGeneratingId}
                   onRegenerate={handleRegenerateCharacter}
                   onGenerateReferenceVideo={handleGenerateReferenceVideo}

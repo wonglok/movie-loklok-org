@@ -5,7 +5,7 @@ import type { Character } from "@/stores/movie-store";
 
 interface CharacterCardProps {
   char: Character;
-  regeneratingId: string | null;
+  regeneratingIds: Set<string>;
   referenceVideoGeneratingId: string | null;
   onRegenerate: (id: string) => void;
   onGenerateReferenceVideo: (id: string) => void;
@@ -17,7 +17,7 @@ interface CharacterCardProps {
 
 export function CharacterCard({
   char,
-  regeneratingId,
+  regeneratingIds,
   referenceVideoGeneratingId,
   onRegenerate,
   onGenerateReferenceVideo,
@@ -94,10 +94,10 @@ export function CharacterCard({
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => onRegenerate(char.id)}
-              disabled={regeneratingId !== null}
+              disabled={regeneratingIds.has(char.id)}
               className="px-3 py-1.5 border border-neutral-700 rounded-lg text-neutral-400 text-xs hover:border-neutral-500 hover:text-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
             >
-              {regeneratingId === char.id ? (
+              {regeneratingIds.has(char.id) ? (
                 <>
                   <div className="animate-spin rounded-full h-3 w-3 border border-neutral-400 border-t-transparent" />
                   Regenerating...
