@@ -106,7 +106,7 @@ export async function extractCharacters(
     "openrouter/router/openai/v1/chat/completions",
     {
       input: {
-        model: "deepseek/deepseek-v4-flash",
+        model: "deepseek/deepseek-v4-pro",
         messages: [
           {
             role: "user",
@@ -149,7 +149,7 @@ export async function extractVideoInfo(
     "openrouter/router/openai/v1/chat/completions",
     {
       input: {
-        model: "deepseek/deepseek-v4-flash",
+        model: "deepseek/deepseek-v4-pro",
         messages: [
           {
             role: "user",
@@ -270,7 +270,7 @@ export async function extractMoments(
     "openrouter/router/openai/v1/chat/completions",
     {
       input: {
-        model: "deepseek/deepseek-v4-flash",
+        model: "deepseek/deepseek-v4-pro",
         messages: [
           {
             role: "user",
@@ -332,7 +332,7 @@ export async function extractScenes(
     "openrouter/router/openai/v1/chat/completions",
     {
       input: {
-        model: "deepseek/deepseek-v4-flash",
+        model: "deepseek/deepseek-v4-pro",
         messages: [
           {
             role: "user",
@@ -386,7 +386,7 @@ export async function regenerateSceneConversations(
     "openrouter/router/openai/v1/chat/completions",
     {
       input: {
-        model: "deepseek/deepseek-v4-flash",
+        model: "deepseek/deepseek-v4-pro",
         messages: [
           {
             role: "user",
@@ -496,7 +496,7 @@ export async function regenerateSceneDescription(
     "openrouter/router/openai/v1/chat/completions",
     {
       input: {
-        model: "deepseek/deepseek-v4-flash",
+        model: "deepseek/deepseek-v4-pro",
         messages: [
           {
             role: "user",
