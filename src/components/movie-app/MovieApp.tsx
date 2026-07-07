@@ -316,23 +316,25 @@ export function MovieApp() {
       const characterDir = await imagesDir.getDirectoryHandle("character", {
         create: true,
       });
-      for (const char of characters) {
-        const prompt = `Face Image. ${effectiveStyle} style. Character name: ${char.name}. ${char.description}. MUST NOT draw any text. zoom to show the character's face. grey background. clean character turnaround, consistent design.`;
-        const result = await generateImage(prompt, apiKey);
-        const imageId = crypto.randomUUID();
-        const filename = `${imageId}.png`;
-        const localUrl = await saveAndLoadLocal(
-          result.url,
-          filename,
-          characterDir,
-        );
-        updateCharacter(char.id, {
-          imageUrl: localUrl,
-          imageFilename: filename,
-          sourceUrl: result.url,
-        });
-        await savePromptFile(result.prompt, `${imageId}.txt`, characterDir);
-      }
+      await Promise.all(
+        characters.map(async (char) => {
+          const prompt = `Face Image. ${effectiveStyle} style. Character name: ${char.name}. ${char.description}. MUST NOT draw any text. zoom to show the character's face. grey background. clean character turnaround, consistent design.`;
+          const result = await generateImage(prompt, apiKey);
+          const imageId = crypto.randomUUID();
+          const filename = `${imageId}.png`;
+          const localUrl = await saveAndLoadLocal(
+            result.url,
+            filename,
+            characterDir,
+          );
+          updateCharacter(char.id, {
+            imageUrl: localUrl,
+            imageFilename: filename,
+            sourceUrl: result.url,
+          });
+          await savePromptFile(result.prompt, `${imageId}.txt`, characterDir);
+        }),
+      );
       setCharacterImages(
         characters.map((c) => c.imageUrl).filter(Boolean) as string[],
       );

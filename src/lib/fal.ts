@@ -110,7 +110,7 @@ export async function extractCharacters(
         messages: [
           {
             role: "user",
-            content: `Extract all characters from this movie story. Return ONLY a valid JSON array of objects with "name" and "description" fields. The description is about the character's voice. No other text.${language ? `\n\nWrite all output in ${language}.` : ""}\n\nStory: ${story}`,
+            content: `Extract all characters from this movie story. Return ONLY a valid JSON array of objects with "name" and "description" fields. The description is about the character's face description, outlook description, and voice description. No other text. ${language ? `\n\nWrite all output in ${language}.` : ""}\n\nStory: ${story}`,
           },
         ],
       },

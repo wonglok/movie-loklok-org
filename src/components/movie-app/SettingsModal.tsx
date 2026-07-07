@@ -107,9 +107,7 @@ export function SettingsModal({
               )}
             </button>
           </div>
-          {keyError && (
-            <p className="text-red-400 text-xs mb-2">{keyError}</p>
-          )}
+          {keyError && <p className="text-red-400 text-xs mb-2">{keyError}</p>}
           <a
             href="https://fal.ai/dashboard/keys"
             target="_blank"
