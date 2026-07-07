@@ -184,8 +184,8 @@ async function blobToBase64(blobUrl: string): Promise<string> {
 }
 
 export async function generatePptx(
-  title: string,
-  characters: Character[],
+  _title: string,
+  _characters: Character[],
   scenes: Character[],
 ): Promise<Blob> {
   const pptx = new PptxGenJS();
@@ -212,62 +212,6 @@ export async function generatePptx(
     }
     return { w, h, x: rightX + (maxW - w) / 2, y: margin + (maxH - h) / 2 };
   };
-
-  // Title slide
-  const titleSlide = pptx.addSlide();
-  titleSlide.background = { color: "FFFFFF" };
-  titleSlide.addText("Movie Presentation", {
-    x: 0, y: 1.5, w: "100%", h: 1,
-    fontSize: 36, bold: true, align: "center", color: "000000",
-  });
-  titleSlide.addText(title || "Untitled Movie", {
-    x: 0, y: 2.5, w: "100%", h: 0.6,
-    fontSize: 20, align: "center", color: "555555",
-  });
-  titleSlide.addText(new Date().toLocaleDateString(), {
-    x: 0, y: 3.3, w: "100%", h: 0.4,
-    fontSize: 12, align: "center", color: "999999",
-  });
-
-  // Character slides
-  for (const char of characters) {
-    const slide = pptx.addSlide();
-    slide.background = { color: "FFFFFF" };
-
-    // Left column: text
-    slide.addText(char.name || "Unnamed", {
-      x: margin, y: 1.5, w: leftW, h: 0.5,
-      fontSize: 22, bold: true, color: "000000", align: "left",
-    });
-    slide.addText("Character", {
-      x: margin, y: 2.0, w: leftW, h: 0.3,
-      fontSize: 10, color: "777777", align: "left",
-    });
-    slide.addText(char.description || "No description", {
-      x: margin, y: 2.6, w: leftW, h: 3.5,
-      fontSize: 11, color: "333333", align: "left", valign: "top",
-    });
-
-    // Right column: image
-    if (char.imageUrl) {
-      try {
-        const b64 = await blobToBase64(char.imageUrl!);
-        const dims = await new Promise<{ w: number; h: number }>((resolve) => {
-          const img = new Image();
-          img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
-          img.onerror = () => resolve({ w: 1, h: 1 });
-          img.src = `data:image/png;base64,${b64}`;
-        });
-        const fit = fitImage(dims, rightW, rightH);
-        slide.addImage({
-          data: `data:image/png;base64,${b64}`,
-          x: fit.x, y: fit.y, w: fit.w, h: fit.h,
-        });
-      } catch {
-        // skip image
-      }
-    }
-  }
 
   // Scene slides
   for (const scene of scenes) {
