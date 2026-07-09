@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import type { Character } from "@/stores/movie-store";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile } from "@ffmpeg/util";
@@ -17,7 +17,11 @@ export function MovieEditor({
   updateScene,
 }: MovieEditorProps) {
   const [stitching, setStitching] = useState(false);
-  const [progress, setProgress] = useState<string>("");
+  const [currentTask, setCurrentTask] = useState("");
+  const [overallProgress, setOverallProgress] = useState(0);
+  const [currentTaskProgress, setCurrentTaskProgress] = useState(0);
+
+  const progressRef = useRef({ step: 0, total: 0 });
 
   const scenesWithVideo = scenes.filter((s) => s.videoUrl);
 
@@ -39,57 +43,87 @@ export function MovieEditor({
   const handleStitch = useCallback(async () => {
     if (!folderHandle || scenesWithVideo.length < 2) return;
     setStitching(true);
-    setProgress("Loading FFmpeg...");
+    setOverallProgress(0);
+    setCurrentTaskProgress(0);
+    setCurrentTask("Loading FFmpeg...");
 
     try {
       const ffmpeg = new FFmpeg();
 
       ffmpeg.on("progress", ({ progress: p }) => {
-        setProgress(`Processing: ${Math.round(p * 100)}%`);
+        const clipPct = Math.round(p * 100);
+        setCurrentTaskProgress(clipPct);
+        const { step, total } = progressRef.current;
+        setOverallProgress(
+          total > 0 ? Math.round(((step + p) / total) * 100) : 0,
+        );
       });
 
       await ffmpeg.load();
 
-      // Write input files
-      const listLines: string[] = [];
-      setProgress("Loading video files...");
+      const clipsDir = await folderHandle.getDirectoryHandle("clips");
 
-      for (let i = 0; i < scenesWithVideo.length; i++) {
-        const scene = scenesWithVideo[i];
-        if (!scene.videoFilename) continue;
+      const clips = scenesWithVideo.filter((s) => s.videoFilename);
+      const totalSteps = clips.length + 1; // normalize each + concat
+      progressRef.current = { step: 0, total: totalSteps };
 
-        const clipsDir = await folderHandle.getDirectoryHandle("clips");
-        const fileHandle = await clipsDir.getFileHandle(scene.videoFilename);
+      // Step 1: normalize each clip to a uniform mp4
+      const normLines: string[] = [];
+      for (let i = 0; i < clips.length; i++) {
+        const scene = clips[i];
+        const taskLabel = `Converting clip ${i + 1} of ${clips.length}`;
+        setCurrentTask(taskLabel);
+        setCurrentTaskProgress(0);
+        progressRef.current = { step: i, total: totalSteps };
+
+        const fileHandle = await clipsDir.getFileHandle(scene.videoFilename!);
         const file = await fileHandle.getFile();
-        const inputName = `input_${i}.mp4`;
+        const inputName = `raw_${i}.mp4`;
+        const normName = `norm_${i}.mp4`;
+
         await ffmpeg.writeFile(inputName, await fetchFile(file));
-        listLines.push(`file '${inputName}'`);
+
+        await ffmpeg.exec([
+          "-i", inputName,
+          "-c:v", "libx264",
+          "-preset", "ultrafast",
+          "-crf", "23",
+          "-c:a", "aac",
+          "-b:a", "192k",
+          "-ar", "44100",
+          "-ac", "2",
+          "-pix_fmt", "yuv420p",
+          "-movflags", "+faststart",
+          normName,
+        ]);
+
+        await ffmpeg.deleteFile(inputName);
+        normLines.push(`file '${normName}'`);
       }
 
-      // Write concat list
-      await ffmpeg.writeFile("concat.txt", listLines.join("\n"));
+      // Step 2: concat normalized clips with stream copy
+      setCurrentTask("Stitching clips together");
+      setCurrentTaskProgress(0);
+      progressRef.current = { step: clips.length, total: totalSteps };
 
-      // Run concat
-      setProgress("Stitching videos...");
+      await ffmpeg.writeFile("concat.txt", normLines.join("\n"));
       await ffmpeg.exec([
-        "-f",
-        "concat",
-        "-safe",
-        "0",
-        "-i",
-        "concat.txt",
-        "-c",
-        "copy",
+        "-f", "concat",
+        "-safe", "0",
+        "-i", "concat.txt",
+        "-c", "copy",
         "output.mp4",
       ]);
 
       // Read output
-      setProgress("Preparing download...");
+      setCurrentTask("Preparing download...");
+      setCurrentTaskProgress(100);
+      setOverallProgress(100);
+
       const data = (await ffmpeg.readFile("output.mp4")) as Uint8Array;
       const blob = new Blob([new Uint8Array(data)], { type: "video/mp4" });
       const url = URL.createObjectURL(blob);
 
-      // Download
       const a = document.createElement("a");
       a.href = url;
       a.download = "movie.mp4";
@@ -98,10 +132,16 @@ export function MovieEditor({
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      setProgress("Done!");
-      setTimeout(() => setProgress(""), 2000);
+      setCurrentTask("Done!");
+      setTimeout(() => {
+        setCurrentTask("");
+        setOverallProgress(0);
+        setCurrentTaskProgress(0);
+      }, 2000);
     } catch (err) {
-      setProgress(err instanceof Error ? err.message : "Stitching failed");
+      setCurrentTask(err instanceof Error ? err.message : "Stitching failed");
+      setOverallProgress(0);
+      setCurrentTaskProgress(0);
     } finally {
       setStitching(false);
     }
@@ -178,26 +218,56 @@ export function MovieEditor({
       </div> */}
 
       {scenesWithVideo.length >= 1 && (
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleStitch}
-            disabled={stitching || scenesWithVideo.length < 2}
-            className="px-6 py-3 bg-white text-black rounded-xl font-semibold text-sm hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-2"
-          >
-            {stitching ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-black/20 border-t-black" />
-                Stitching...
-              </>
-            ) : (
-              "Stitch & Download"
-            )}
-          </button>
-          {progress && !stitching && (
-            <span className="text-neutral-400 text-xs">{progress}</span>
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleStitch}
+              disabled={stitching || scenesWithVideo.length < 2}
+              className="px-6 py-3 bg-white text-black rounded-xl font-semibold text-sm hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+            >
+              {stitching ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-black/20 border-t-black" />
+                  Stitching...
+                </>
+              ) : (
+                "Stitch & Download"
+              )}
+            </button>
+          </div>
+
+          {stitching && (
+            <div className="flex flex-col gap-2 bg-neutral-900 border border-neutral-800 rounded-xl p-4">
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-neutral-400">Overall</span>
+                  <span className="text-neutral-500">{overallProgress}%</span>
+                </div>
+                <div className="w-full h-2 bg-neutral-800 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-white rounded-full transition-all duration-300"
+                    style={{ width: `${overallProgress}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-neutral-400">{currentTask}</span>
+                  <span className="text-neutral-500">{currentTaskProgress}%</span>
+                </div>
+                <div className="w-full h-1.5 bg-neutral-800 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-blue-500 rounded-full transition-all duration-300"
+                    style={{ width: `${currentTaskProgress}%` }}
+                  />
+                </div>
+              </div>
+            </div>
           )}
-          {stitching && progress && (
-            <span className="text-neutral-400 text-xs">{progress}</span>
+
+          {currentTask && !stitching && (
+            <span className="text-neutral-400 text-xs">{currentTask}</span>
           )}
         </div>
       )}
