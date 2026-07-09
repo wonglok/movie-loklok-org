@@ -86,8 +86,8 @@ export function MovieEditor({
         await ffmpeg.exec([
           "-i", inputName,
           "-c:v", "libx264",
-          "-preset", "ultrafast",
-          "-crf", "23",
+          "-preset", "veryfast",
+          "-crf", "17",
           "-c:a", "aac",
           "-b:a", "192k",
           "-ar", "44100",
