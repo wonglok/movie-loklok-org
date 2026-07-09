@@ -57,11 +57,9 @@ export function MovieApp() {
   const apiKey = useFolderStore((s) => s.apiKey);
   const folderHandle = useFolderStore((s) => s.folderHandle);
   const folderName = useFolderStore((s) => s.folderName);
-  const setFolder = useFolderStore((s) => s.setFolder);
   const saveApiKey = useFolderStore((s) => s.saveApiKey);
 
   const [error, setError] = useState<string | null>(null);
-  const [savedPath, setSavedPath] = useState<string | null>(null);
   const [generatingCharacters, setGeneratingCharacters] = useState(false);
   const [generatingSelectedImages, setGeneratingSelectedImages] =
     useState(false);
@@ -90,7 +88,6 @@ export function MovieApp() {
   } | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [pickerError, setPickerError] = useState<string | null>(null);
   const [removeTarget, setRemoveTarget] = useState<{
     id: string;
     type: "character" | "scene";
@@ -250,37 +247,10 @@ export function MovieApp() {
     setRemoveTarget(null);
   };
 
-  const handleChangeFolder = async () => {
-    setPickerError(null);
-    try {
-      const handle = await window.showDirectoryPicker();
-      setStory("");
-      setArtStyle("cartoon-3d");
-      setCustomArtStyle("");
-      setLanguage("English");
-      setCharacters([]);
-      setScenes([]);
-      setCharacterImages([]);
-      setSceneImages([]);
-      setSelectedScenes(new Set());
-      setError(null);
-      setSavedPath(null);
-      setHydrated(false);
-      setFolder(handle);
-      await saveApiKey(apiKey ?? "");
-      setShowSettings(false);
-    } catch (err: unknown) {
-      if (err instanceof DOMException && err.name === "AbortError") return;
-      setPickerError(
-        err instanceof Error ? err.message : "Failed to select folder",
-      );
-    }
-  };
-
   const handleExtractCharacters = async () => {
     if (!story.trim() || isGenerating || !apiKey) return;
     setError(null);
-    setSavedPath(null);
+
     setExtracting(true);
     try {
       const extracted = await extractCharacters(story, apiKey, language);
@@ -315,7 +285,7 @@ export function MovieApp() {
   const handleGenerateCharacterImages = async () => {
     if (!characters.length || isGenerating || !apiKey || !folderHandle) return;
     setError(null);
-    setSavedPath(null);
+
     setGeneratingCharacters(true);
     try {
       const imagesDir = await folderHandle.getDirectoryHandle("images", {
@@ -346,7 +316,6 @@ export function MovieApp() {
       setCharacterImages(
         characters.map((c) => c.imageUrl).filter(Boolean) as string[],
       );
-      setSavedPath(`${folderName}/images/character`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Generation failed");
     } finally {
@@ -443,7 +412,7 @@ export function MovieApp() {
   const handleExtractScenes = async () => {
     if (!story.trim() || isGenerating || !apiKey) return;
     setError(null);
-    setSavedPath(null);
+
     setExtractingScenes(true);
     try {
       const extracted = await extractScenes(story, apiKey, language);
@@ -986,14 +955,10 @@ export function MovieApp() {
 
         {showSettings && (
           <SettingsModal
-            folderName={folderName}
-            pickerError={pickerError}
             apiKey={apiKey}
-            onChangeFolder={handleChangeFolder}
             onSaveApiKey={saveApiKey}
             onClose={() => {
               setShowSettings(false);
-              setPickerError(null);
             }}
           />
         )}

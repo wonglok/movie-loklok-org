@@ -1,8 +1,21 @@
 import { create } from "zustand";
 import localforage from "localforage";
 
-const FOLDER_HANDLE_KEY = "fal-folder-handle";
 const API_KEY_STORAGE_KEY = "fal-api-key";
+
+function opfsSupported(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return "storage" in navigator && "getDirectory" in navigator.storage;
+}
+
+async function getOpfsRoot(): Promise<FileSystemDirectoryHandle | null> {
+  if (!opfsSupported()) return null;
+  try {
+    return await navigator.storage.getDirectory();
+  } catch {
+    return null;
+  }
+}
 
 interface FolderState {
   folderHandle: FileSystemDirectoryHandle | null;
@@ -11,13 +24,12 @@ interface FolderState {
   isConfigured: boolean;
   isLoading: boolean;
   error: string | null;
-  setFolder: (handle: FileSystemDirectoryHandle) => void;
   saveApiKey: (key: string) => Promise<void>;
   loadFromStorage: () => Promise<void>;
-  clearFolder: () => Promise<void>;
+  clearData: () => Promise<void>;
 }
 
-export const useFolderStore = create<FolderState>((set, get) => ({
+export const useFolderStore = create<FolderState>((set) => ({
   folderHandle: null,
   folderName: null,
   apiKey: null,
@@ -25,24 +37,9 @@ export const useFolderStore = create<FolderState>((set, get) => ({
   isLoading: true,
   error: null,
 
-  setFolder: (handle: FileSystemDirectoryHandle) => {
-    set({
-      folderHandle: handle,
-      folderName: handle.name,
-      error: null,
-    });
-  },
-
   saveApiKey: async (key: string) => {
-    const handle = get().folderHandle;
-    if (!handle) {
-      set({ error: "No folder selected" });
-      return;
-    }
-
     try {
       await localforage.setItem(API_KEY_STORAGE_KEY, key.trim());
-      await localforage.setItem(FOLDER_HANDLE_KEY, handle);
       set({ apiKey: key.trim(), isConfigured: true, error: null });
     } catch {
       set({ error: "Failed to save API key" });
@@ -51,64 +48,64 @@ export const useFolderStore = create<FolderState>((set, get) => ({
 
   loadFromStorage: async () => {
     try {
-      const [handle, storedKey] = await Promise.all([
-        localforage.getItem<FileSystemDirectoryHandle>(FOLDER_HANDLE_KEY),
+      const [root, storedKey] = await Promise.all([
+        getOpfsRoot(),
         localforage.getItem<string>(API_KEY_STORAGE_KEY),
       ]);
 
-      if (!handle || !storedKey) {
-        set({ isLoading: false });
-        return;
-      }
-
-      const permission = await handle.queryPermission({ mode: "readwrite" });
-
-      if (permission === "granted") {
+      if (!root) {
         set({
-          folderHandle: handle,
-          folderName: handle.name,
-          apiKey: storedKey,
-          isConfigured: true,
           isLoading: false,
+          error: "OPFS is not supported in this browser",
         });
         return;
       }
 
-      if (permission === "prompt") {
-        const newPermission = await handle.requestPermission({
-          mode: "readwrite",
-        });
-        if (newPermission === "granted") {
-          set({
-            folderHandle: handle,
-            folderName: handle.name,
-            apiKey: storedKey,
-            isConfigured: true,
-            isLoading: false,
-          });
-          return;
-        }
-      }
-
-      // Permission denied — clear stale data
-      await Promise.all([
-        localforage.removeItem(FOLDER_HANDLE_KEY),
-        localforage.removeItem(API_KEY_STORAGE_KEY),
-      ]);
-      set({ isLoading: false });
+      set({
+        folderHandle: root,
+        folderName: "Movie Project",
+        apiKey: storedKey,
+        isConfigured: !!storedKey,
+        isLoading: false,
+      });
     } catch {
-      set({ isLoading: false, error: "Failed to load stored data" });
+      set({ isLoading: false, error: "Failed to load storage" });
     }
   },
 
-  clearFolder: async () => {
-    await Promise.all([
-      localforage.removeItem(FOLDER_HANDLE_KEY),
-      localforage.removeItem(API_KEY_STORAGE_KEY),
-    ]);
+  clearData: async () => {
+    const root = await getOpfsRoot();
+    if (root) {
+      try {
+        // Remove known subdirectories and files
+        for (const name of [
+          "movie.json",
+          "character.json",
+          "scene.json",
+          "video.json",
+          "moments.json",
+        ]) {
+          try {
+            await root.removeEntry(name);
+          } catch {
+            // file doesn't exist, ignore
+          }
+        }
+        for (const dir of ["images", "clips"]) {
+          try {
+            await root.removeEntry(dir, { recursive: true });
+          } catch {
+            // dir doesn't exist, ignore
+          }
+        }
+      } catch {
+        // best-effort cleanup
+      }
+    }
+    await localforage.removeItem(API_KEY_STORAGE_KEY);
     set({
-      folderHandle: null,
-      folderName: null,
+      folderHandle: root,
+      folderName: root ? "Movie Project" : null,
       apiKey: null,
       isConfigured: false,
       error: null,

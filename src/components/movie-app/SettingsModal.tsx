@@ -3,19 +3,13 @@
 import { useState, useEffect } from "react";
 
 interface SettingsModalProps {
-  folderName: string | null;
-  pickerError: string | null;
   apiKey: string | null;
-  onChangeFolder: () => void;
   onSaveApiKey: (key: string) => Promise<void>;
   onClose: () => void;
 }
 
 export function SettingsModal({
-  folderName,
-  pickerError,
   apiKey,
-  onChangeFolder,
   onSaveApiKey,
   onClose,
 }: SettingsModalProps) {
@@ -46,8 +40,7 @@ export function SettingsModal({
       <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-8 max-w-md w-full mx-4">
         <h2 className="text-xl font-semibold text-white mb-2">Settings</h2>
         <p className="text-neutral-400 text-sm mb-6">
-          Current workspace:{" "}
-          <span className="text-neutral-300 font-mono">{folderName}</span>
+          All project data is stored privately in your browser.
         </p>
 
         {/* API Key */}
@@ -124,19 +117,6 @@ export function SettingsModal({
             {saving ? "Saving..." : "Save API Key"}
           </button>
         </div>
-
-        {pickerError && (
-          <p className="text-red-400 text-sm mb-4 bg-red-400/10 rounded-lg px-4 py-2">
-            {pickerError}
-          </p>
-        )}
-
-        <button
-          onClick={onChangeFolder}
-          className="w-full px-4 py-3 bg-white text-black rounded-xl font-medium hover:bg-neutral-200 transition-colors mb-3"
-        >
-          Change Workspace Folder
-        </button>
 
         <button
           onClick={onClose}

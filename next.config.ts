@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  allowedDevOrigins: ["laptop.smile-with-jesus.com"] /* config options here */,
   reactCompiler: true,
 };
 
