@@ -327,6 +327,8 @@ export async function extractScenes(
     }[];
   }[]
 > {
+  //
+
   fal.config({ credentials: apiKey });
 
   const result = await fal.subscribe(
@@ -341,9 +343,9 @@ export async function extractScenes(
 - "name": scene name
 - "description": scene description
 - "location": a brief description of where this scene takes place (e.g. "A dimly lit detective's office", "A bustling city street at noon", "A quiet forest clearing")
-- "conversations": an array of objects, each with "person" (the character speaking or voice-over narrator) and "line" (their line of dialogue or narration). Each scene is max 12 seconds, so keep dialogue concise and brief. If a scene would exceed 12 seconds, break it into multiple smaller scenes (e.g. 8s each). If no one speaks, use an empty array.
+- "conversations": an array of objects, each with "person" (the character speaking or voice-over narrator) and "line" (their line of dialogue or narration). Each scene is max 13.5 seconds, so keep dialogue concise. If no one speaks, use an empty array.
 
-No other text.${language ? `\n\nWrite all output in ${language}.` : ""}\n\nStory: ${story}`,
+No other text.${language ? `\n\n Must Write all output in ${language}.` : ""}\n\nStory: ${story}`,
           },
         ],
       },
@@ -550,8 +552,7 @@ export async function regenerateSceneLocation(
         messages: [
           {
             role: "user",
-            content:
-              `Describe the location where this movie scene takes place. Return ONLY a short location description (e.g. "A dimly lit detective's office", "A bustling city street at noon", "A quiet forest clearing"). Keep it under 15 words. No other text.${language ? `\n\nWrite in ${language}.` : ""}
+            content: `Describe the location where this movie scene takes place. Return ONLY a short location description (e.g. "A dimly lit detective's office", "A bustling city street at noon", "A quiet forest clearing"). Keep it under 15 words. No other text.${language ? `\n\nWrite in ${language}.` : ""}
 
 Scene: ${sceneName}
 Description: ${sceneDescription}`,
