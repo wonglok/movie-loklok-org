@@ -26,7 +26,9 @@ export function MovieEditor({
     if (targetIdx < 0 || targetIdx >= scenesWithVideo.length) return;
     const allScenes = [...scenes];
     const a = allScenes.findIndex((s) => s.id === scenesWithVideo[index].id);
-    const b = allScenes.findIndex((s) => s.id === scenesWithVideo[targetIdx].id);
+    const b = allScenes.findIndex(
+      (s) => s.id === scenesWithVideo[targetIdx].id,
+    );
     [allScenes[a], allScenes[b]] = [allScenes[b], allScenes[a]];
     // Re-set the entire array to trigger re-render
     for (const s of allScenes) {
@@ -70,10 +72,14 @@ export function MovieEditor({
       // Run concat
       setProgress("Stitching videos...");
       await ffmpeg.exec([
-        "-f", "concat",
-        "-safe", "0",
-        "-i", "concat.txt",
-        "-c", "copy",
+        "-f",
+        "concat",
+        "-safe",
+        "0",
+        "-i",
+        "concat.txt",
+        "-c",
+        "copy",
         "output.mp4",
       ]);
 
@@ -95,9 +101,7 @@ export function MovieEditor({
       setProgress("Done!");
       setTimeout(() => setProgress(""), 2000);
     } catch (err) {
-      setProgress(
-        err instanceof Error ? err.message : "Stitching failed",
-      );
+      setProgress(err instanceof Error ? err.message : "Stitching failed");
     } finally {
       setStitching(false);
     }
@@ -116,7 +120,7 @@ export function MovieEditor({
         </span>
       </div>
 
-      <div className="flex flex-col gap-2">
+      {/* <div className="flex flex-col gap-2">
         {scenesWithVideo.map((scene, i) => (
           <div
             key={scene.id}
@@ -171,7 +175,7 @@ export function MovieEditor({
             </span>
           </div>
         ))}
-      </div>
+      </div> */}
 
       {scenesWithVideo.length >= 1 && (
         <div className="flex items-center gap-3">
