@@ -1,4 +1,5 @@
 import type { Character, Moment, VideoInfo } from "@/stores/movie-store";
+import JSZip from "jszip";
 
 export async function downloadAndSaveImage(
   url: string,
@@ -184,4 +185,38 @@ export async function writeMomentsJson(
   const writable = await fileHandle.createWritable();
   await writable.write(JSON.stringify(moments, null, 2));
   await writable.close();
+}
+
+async function addDirToZip(
+  zip: JSZip,
+  dirHandle: FileSystemDirectoryHandle,
+  pathPrefix: string = "",
+): Promise<void> {
+  for await (const [name, handle] of dirHandle.entries()) {
+    const fullPath = pathPrefix ? `${pathPrefix}/${name}` : name;
+    if (handle.kind === "file") {
+      const file = await handle.getFile();
+      zip.file(fullPath, file);
+    } else if (handle.kind === "directory") {
+      const subDir = await dirHandle.getDirectoryHandle(name);
+      await addDirToZip(zip, subDir, fullPath);
+    }
+  }
+}
+
+export async function exportProjectAsZip(
+  folderHandle: FileSystemDirectoryHandle,
+  folderName: string,
+): Promise<void> {
+  const zip = new JSZip();
+  await addDirToZip(zip, folderHandle);
+  const blob = await zip.generateAsync({ type: "blob" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${folderName || "movie-project"}.zip`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }

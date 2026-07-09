@@ -23,6 +23,7 @@ import {
   saveAndLoadLocal,
   savePromptFile,
   loadLocalImage,
+  exportProjectAsZip,
 } from "@/lib/fs-helpers";
 import { useAutoSave } from "@/hooks/useAutoSave";
 import { useLocalImages } from "@/hooks/useLocalImages";
@@ -99,6 +100,7 @@ export function MovieApp() {
     "character",
   );
   const [generatingPptx, setGeneratingPptx] = useState(false);
+  const [exportingZip, setExportingZip] = useState(false);
 
   const isGenerating =
     generatingCharacters ||
@@ -612,6 +614,21 @@ export function MovieApp() {
       setError(err instanceof Error ? err.message : "PPTX generation failed");
     } finally {
       setGeneratingPptx(false);
+    }
+  };
+
+  const handleExportZip = async () => {
+    if (exportingZip || !folderHandle) return;
+    setError(null);
+    setExportingZip(true);
+    try {
+      await exportProjectAsZip(folderHandle, folderName ?? "movie-project");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Export failed",
+      );
+    } finally {
+      setExportingZip(false);
     }
   };
 
@@ -1383,6 +1400,49 @@ export function MovieApp() {
           folderHandle={folderHandle}
           updateScene={updateScene}
         />
+
+        {/* Export Section */}
+        {folderHandle && (
+          <section className="flex flex-col items-start gap-2">
+            <h2 className="text-xl font-semibold text-white mb-3">
+              <span className="text-2xl mr-2">&#x1F4E6;</span>
+              Export Project
+            </h2>
+            <p className="text-neutral-500 text-sm mb-1">
+              Download all project files as a zip archive to share or back up
+              your work.
+            </p>
+            <button
+              onClick={handleExportZip}
+              disabled={exportingZip}
+              className="px-6 py-3 bg-white text-black rounded-xl font-semibold text-sm hover:bg-neutral-200 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+            >
+              {exportingZip ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-black/20 border-t-black" />
+                  Exporting...
+                </>
+              ) : (
+                <>
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
+                    />
+                  </svg>
+                  Export & Download ZIP
+                </>
+              )}
+            </button>
+          </section>
+        )}
 
         {/* eBook Section */}
         {(characters.length > 0 || scenes.length > 0) && (

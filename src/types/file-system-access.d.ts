@@ -24,6 +24,9 @@ interface FileSystemDirectoryHandle extends FileSystemHandle {
     options?: { create?: boolean },
   ): Promise<FileSystemDirectoryHandle>;
   removeEntry(name: string, options?: { recursive?: boolean }): Promise<void>;
+  entries(): AsyncIterableIterator<
+    [string, FileSystemDirectoryHandle | FileSystemFileHandle]
+  >;
   values(): AsyncIterableIterator<
     FileSystemDirectoryHandle | FileSystemFileHandle
   >;
