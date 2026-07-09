@@ -91,6 +91,7 @@ interface MovieState {
   setVideoInfo: (info: VideoInfo | null) => void;
   setIsGenerating: (generating: boolean) => void;
   setActiveTab: (tab: "characters" | "scenes") => void;
+  resetState: () => void;
 }
 
 export const useMovieStore = create<MovieState>((set) => ({
@@ -134,4 +135,19 @@ export const useMovieStore = create<MovieState>((set) => ({
   setVideoInfo: (videoInfo) => set({ videoInfo }),
   setIsGenerating: (isGenerating) => set({ isGenerating }),
   setActiveTab: (activeTab) => set({ activeTab }),
+  resetState: () =>
+    set({
+      story: "",
+      artStyle: "cartoon-3d",
+      customArtStyle: "",
+      language: "English",
+      isGenerating: false,
+      characterImages: [],
+      sceneImages: [],
+      characters: [],
+      scenes: [],
+      moments: [],
+      videoInfo: null,
+      activeTab: "characters",
+    }),
 }));

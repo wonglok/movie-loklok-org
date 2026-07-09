@@ -204,6 +204,60 @@ async function addDirToZip(
   }
 }
 
+export interface ProjectMeta {
+  id: string;
+  name: string;
+  createdAt: number;
+}
+
+export interface ProjectsIndex {
+  projects: ProjectMeta[];
+  lastActiveId: string;
+}
+
+export async function readProjectsIndex(
+  root: FileSystemDirectoryHandle,
+): Promise<ProjectsIndex | null> {
+  try {
+    const fileHandle = await root.getFileHandle("projects-index.json");
+    const file = await fileHandle.getFile();
+    const text = await file.text();
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+export async function writeProjectsIndex(
+  root: FileSystemDirectoryHandle,
+  index: ProjectsIndex,
+): Promise<void> {
+  const fileHandle = await root.getFileHandle("projects-index.json", { create: true });
+  const writable = await fileHandle.createWritable();
+  await writable.write(JSON.stringify(index, null, 2));
+  await writable.close();
+}
+
+export async function getProjectDirectory(
+  root: FileSystemDirectoryHandle,
+  projectId: string,
+): Promise<FileSystemDirectoryHandle> {
+  const projectsDir = await root.getDirectoryHandle("projects", { create: true });
+  return await projectsDir.getDirectoryHandle(projectId, { create: true });
+}
+
+export async function removeProjectDirectory(
+  root: FileSystemDirectoryHandle,
+  projectId: string,
+): Promise<void> {
+  try {
+    const projectsDir = await root.getDirectoryHandle("projects");
+    await projectsDir.removeEntry(projectId, { recursive: true });
+  } catch {
+    // directory doesn't exist
+  }
+}
+
 export async function exportProjectAsZip(
   folderHandle: FileSystemDirectoryHandle,
   folderName: string,
