@@ -1121,7 +1121,7 @@ export function MovieApp() {
           </div>
 
           {isSaving && (
-            <p className="text-neutral-100 text-xs mt-3 animate-pulse fixed top-3 left-3">
+            <p className="text-xs mt-3 animate-pulse fixed top-0 right-3 text-amber-500 inline-block">
               Saving...
             </p>
           )}
