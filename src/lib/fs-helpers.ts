@@ -274,3 +274,54 @@ export async function exportProjectAsZip(
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
+export async function exportEntireOpfs(): Promise<void> {
+  const root = await navigator.storage.getDirectory();
+  const zip = new JSZip();
+  await addDirToZip(zip, root);
+  const blob = await zip.generateAsync({ type: "blob" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `movie-studio-backup-${new Date().toISOString().slice(0, 10)}.zip`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+async function removeAllEntries(dir: FileSystemDirectoryHandle): Promise<void> {
+  const keys: string[] = [];
+  for await (const [name] of dir.entries()) {
+    keys.push(name);
+  }
+  await Promise.all(keys.map((name) => dir.removeEntry(name, { recursive: true })));
+}
+
+async function unzipToDir(
+  zip: JSZip,
+  dir: FileSystemDirectoryHandle,
+): Promise<void> {
+  const entries = Object.entries(zip.files);
+  for (const [path, file] of entries) {
+    if (file.dir) continue;
+    const parts = path.split("/");
+    const fileName = parts.pop()!;
+    let currentDir = dir;
+    for (const part of parts) {
+      currentDir = await currentDir.getDirectoryHandle(part, { create: true });
+    }
+    const blob = await file.async("blob");
+    const fileHandle = await currentDir.getFileHandle(fileName, { create: true });
+    const writable = await fileHandle.createWritable();
+    await writable.write(blob);
+    await writable.close();
+  }
+}
+
+export async function importEntireOpfs(zipFile: File): Promise<void> {
+  const root = await navigator.storage.getDirectory();
+  await removeAllEntries(root);
+  const zip = await JSZip.loadAsync(zipFile);
+  await unzipToDir(zip, root);
+}

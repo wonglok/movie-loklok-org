@@ -26,6 +26,8 @@ import {
   savePromptFile,
   loadLocalImage,
   exportProjectAsZip,
+  exportEntireOpfs,
+  importEntireOpfs,
 } from "@/lib/fs-helpers";
 import { useAutoSave } from "@/hooks/useAutoSave";
 import { useLocalImages } from "@/hooks/useLocalImages";
@@ -109,6 +111,8 @@ export function MovieApp() {
   );
   const [generatingPptx, setGeneratingPptx] = useState(false);
   const [exportingZip, setExportingZip] = useState(false);
+  const [exportingBackup, setExportingBackup] = useState(false);
+  const [importingBackup, setImportingBackup] = useState(false);
   const [projectMenuOpen, setProjectMenuOpen] = useState(false);
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
   const [showRenameProjectModal, setShowRenameProjectModal] = useState(false);
@@ -117,6 +121,7 @@ export function MovieApp() {
   const [isProjectSwitching, setIsProjectSwitching] = useState(false);
 
   const hydrationProjectRef = useRef<string | null>(null);
+  const importFileRef = useRef<HTMLInputElement>(null);
 
   // Reset hydrated when folderHandle changes so auto-save pauses during switch
   useEffect(() => {
@@ -649,6 +654,36 @@ export function MovieApp() {
     }
   };
 
+  const handleExportBackup = async () => {
+    if (exportingBackup) return;
+    setError(null);
+    setExportingBackup(true);
+    try {
+      await exportEntireOpfs();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Backup export failed");
+    } finally {
+      setExportingBackup(false);
+    }
+  };
+
+  const handleImportBackup = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || importingBackup) return;
+    setError(null);
+    setImportingBackup(true);
+    try {
+      resetMovieState();
+      await importEntireOpfs(file);
+      await useFolderStore.getState().loadFromStorage();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Backup import failed");
+    } finally {
+      setImportingBackup(false);
+      if (importFileRef.current) importFileRef.current.value = "";
+    }
+  };
+
   const handleSwitchProject = async (projectId: string) => {
     if (projectId === activeProjectId || isProjectSwitching) return;
     setIsProjectSwitching(true);
@@ -976,7 +1011,65 @@ export function MovieApp() {
           {/* Project Selector */}
           <div className="relative mb-6">
             <div className="inline-flex w-full justify-between">
-              <div className="block w-[30px]"></div>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={handleExportBackup}
+                  disabled={exportingBackup || importingBackup}
+                  className="flex items-center gap-1.5 px-2.5 py-2 text-neutral-500 hover:text-white transition-colors rounded-xl hover:bg-neutral-800 disabled:opacity-30"
+                  title="Backup entire file system"
+                >
+                  {exportingBackup ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-neutral-400/30 border-t-neutral-400" />
+                  ) : (
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={1.5}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
+                      />
+                    </svg>
+                  )}
+                  <span className="text-xs font-medium">Backup</span>
+                </button>
+                <button
+                  onClick={() => importFileRef.current?.click()}
+                  disabled={exportingBackup || importingBackup}
+                  className="flex items-center gap-1.5 px-2.5 py-2 text-neutral-500 hover:text-white transition-colors rounded-xl hover:bg-neutral-800 disabled:opacity-30"
+                  title="Restore from backup"
+                >
+                  {importingBackup ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-neutral-400/30 border-t-neutral-400" />
+                  ) : (
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={1.5}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-4.5-4.5L12 16.5m0 0L7.5 12m4.5 4.5V3"
+                      />
+                    </svg>
+                  )}
+                  <span className="text-xs font-medium">Restore</span>
+                </button>
+                <input
+                  ref={importFileRef}
+                  type="file"
+                  accept=".zip"
+                  onChange={handleImportBackup}
+                  className="hidden"
+                />
+              </div>
               <button
                 onClick={() => setProjectMenuOpen(!projectMenuOpen)}
                 className="flex items-center gap-2 px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-xl text-white text-sm font-medium hover:bg-neutral-700 transition-colors mx-auto"
