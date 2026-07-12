@@ -285,3 +285,49 @@ export async function exportWorkspaceAsZip(
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
+async function removeDirContents(
+  parent: FileSystemDirectoryHandle,
+): Promise<void> {
+  for await (const [name] of parent.entries()) {
+    await parent.removeEntry(name, { recursive: true });
+  }
+}
+
+async function extractZipToDir(
+  zip: JSZip,
+  dirHandle: FileSystemDirectoryHandle,
+): Promise<void> {
+  const entries = Object.entries(zip.files);
+  for (const [path, file] of entries) {
+    if (file.dir) continue;
+    const parts = path.split("/");
+    const fileName = parts.pop()!;
+    let currentDir = dirHandle;
+    for (const part of parts) {
+      currentDir = await currentDir.getDirectoryHandle(part, { create: true });
+    }
+    const blob = await file.async("blob");
+    const fileHandle = await currentDir.getFileHandle(fileName, { create: true });
+    const writable = await fileHandle.createWritable();
+    await writable.write(blob);
+    await writable.close();
+  }
+}
+
+export async function importWorkspaceFromZip(
+  folderHandle: FileSystemDirectoryHandle,
+): Promise<void> {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = ".zip";
+  const file = await new Promise<File | null>((resolve) => {
+    input.onchange = () => resolve(input.files?.[0] ?? null);
+    input.oncancel = () => resolve(null);
+    input.click();
+  });
+  if (!file) return;
+  const zip = await JSZip.loadAsync(file);
+  await removeDirContents(folderHandle);
+  await extractZipToDir(zip, folderHandle);
+}

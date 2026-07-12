@@ -5,6 +5,7 @@ import { useProjectStore, type ProjectMeta } from "@/stores/project-store";
 import { useMovieStore } from "@/stores/movie-store";
 import { useFolderStore } from "@/stores/folder-store";
 import { RemoveConfirmModal } from "./RemoveConfirmModal";
+import { exportWorkspaceAsZip, importWorkspaceFromZip } from "@/lib/fs-helpers";
 
 export function ProjectSwitcher() {
   const projects = useProjectStore((s) => s.projects);
@@ -15,8 +16,10 @@ export function ProjectSwitcher() {
   const renameProject = useProjectStore((s) => s.renameProject);
   const duplicateProject = useProjectStore((s) => s.duplicateProject);
   const setActiveProject = useProjectStore((s) => s.setActiveProject);
+  const loadProjects = useProjectStore((s) => s.loadProjects);
   const resetProject = useMovieStore((s) => s.resetProject);
   const folderHandle = useFolderStore((s) => s.folderHandle);
+  const folderName = useFolderStore((s) => s.folderName);
   const setActiveProjectId = useFolderStore((s) => s.setActiveProjectId);
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -26,6 +29,8 @@ export function ProjectSwitcher() {
   const [renameValue, setRenameValue] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<ProjectMeta | null>(null);
   const [contextProject, setContextProject] = useState<string | null>(null);
+  const [exportingAll, setExportingAll] = useState(false);
+  const [importingAll, setImportingAll] = useState(false);
 
   const activeProject = projects.find((p) => p.id === activeProjectId);
 
@@ -64,6 +69,30 @@ export function ProjectSwitcher() {
     await setActiveProjectId(newId);
     setContextProject(null);
     setMenuOpen(false);
+  };
+
+  const handleExportAll = async () => {
+    if (!folderHandle || exportingAll) return;
+    setExportingAll(true);
+    try {
+      const name = typeof folderName === "string" ? folderName : "movie-workspace";
+      await exportWorkspaceAsZip(folderHandle, name);
+    } finally {
+      setExportingAll(false);
+    }
+  };
+
+  const handleImportAll = async () => {
+    if (!folderHandle || importingAll) return;
+    setImportingAll(true);
+    try {
+      await importWorkspaceFromZip(folderHandle);
+      resetProject();
+      await loadProjects(folderHandle);
+      setMenuOpen(false);
+    } finally {
+      setImportingAll(false);
+    }
   };
 
   return (
@@ -258,6 +287,59 @@ export function ProjectSwitcher() {
                     New Project
                   </button>
                 )}
+              </div>
+
+              <div className="border-t border-neutral-800 p-2 flex gap-1">
+                <button
+                  onClick={handleExportAll}
+                  disabled={exportingAll || projects.length === 0}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 text-neutral-400 text-xs hover:text-white hover:bg-neutral-800 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="Export all projects as ZIP"
+                >
+                  {exportingAll ? (
+                    <div className="animate-spin rounded-full h-3.5 w-3.5 border border-neutral-400 border-t-white" />
+                  ) : (
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
+                      />
+                    </svg>
+                  )}
+                  {exportingAll ? "Exporting..." : "Export All"}
+                </button>
+                <button
+                  onClick={handleImportAll}
+                  disabled={importingAll}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 text-neutral-400 text-xs hover:text-white hover:bg-neutral-800 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="Import projects from ZIP"
+                >
+                  {importingAll ? (
+                    <div className="animate-spin rounded-full h-3.5 w-3.5 border border-neutral-400 border-t-white" />
+                  ) : (
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-4.5-4.5L12 16.5m0 0L7.5 12m4.5 4.5V3"
+                      />
+                    </svg>
+                  )}
+                  {importingAll ? "Importing..." : "Import All"}
+                </button>
               </div>
             </div>
           </>
