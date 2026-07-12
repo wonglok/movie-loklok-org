@@ -18,6 +18,7 @@ export function ProjectSwitcher() {
   const setActiveProject = useProjectStore((s) => s.setActiveProject);
   const loadProjects = useProjectStore((s) => s.loadProjects);
   const resetProject = useMovieStore((s) => s.resetProject);
+  const isGenerating = useMovieStore((s) => s.isGenerating);
   const folderHandle = useFolderStore((s) => s.folderHandle);
   const folderName = useFolderStore((s) => s.folderName);
   const setActiveProjectId = useFolderStore((s) => s.setActiveProjectId);
@@ -42,7 +43,7 @@ export function ProjectSwitcher() {
   };
 
   const handleSwitch = async (id: string) => {
-    if (id === activeProjectId) return;
+    if (id === activeProjectId || isGenerating) return;
     resetProject();
     setActiveProject(id);
     await setActiveProjectId(id);
@@ -63,7 +64,7 @@ export function ProjectSwitcher() {
   };
 
   const handleDuplicate = async (id: string) => {
-    if (!folderHandle) return;
+    if (!folderHandle || isGenerating) return;
     const newId = await duplicateProject(folderHandle, id);
     resetProject();
     await setActiveProjectId(newId);
@@ -97,10 +98,22 @@ export function ProjectSwitcher() {
 
   return (
     <>
+      {isGenerating && (
+        <div className="flex items-center gap-2 rounded-lg bg-amber-500/10 border border-amber-500/30 px-4 py-2 text-sm text-amber-200">
+          <svg className="w-4 h-4 shrink-0 animate-spin" viewBox="0 0 24 24" fill="none">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          <span>Generation in progress — please do not switch projects</span>
+        </div>
+      )}
       <div className="relative">
         <button
           onClick={() => setMenuOpen(!menuOpen)}
-          className="flex items-center gap-2 px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-xl text-white text-sm hover:border-neutral-600 transition-colors"
+          disabled={isGenerating}
+          className={`flex items-center gap-2 px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-xl text-white text-sm hover:border-neutral-600 transition-colors ${
+            isGenerating ? "cursor-not-allowed opacity-50" : ""
+          }`}
         >
           <span className="text-neutral-400">
             {isLoading
@@ -156,7 +169,10 @@ export function ProjectSwitcher() {
                     ) : (
                       <button
                         onClick={() => handleSwitch(p.id)}
+                        disabled={isGenerating}
                         className={`flex-1 text-left text-sm truncate ${
+                          isGenerating ? "cursor-not-allowed opacity-50" : ""
+                        } ${
                           p.id === activeProjectId
                             ? "text-white font-medium"
                             : "text-neutral-400"
@@ -195,7 +211,10 @@ export function ProjectSwitcher() {
                           e.stopPropagation();
                           handleDuplicate(p.id);
                         }}
-                        className="p-1 text-neutral-500 hover:text-white transition-colors rounded"
+                        disabled={isGenerating}
+                        className={`p-1 text-neutral-500 hover:text-white transition-colors rounded ${
+                          isGenerating ? "cursor-not-allowed opacity-50" : ""
+                        }`}
                         title="Duplicate"
                       >
                         <svg
