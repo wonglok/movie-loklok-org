@@ -62,6 +62,7 @@ export function MovieApp() {
   const setScenes = useMovieStore((s) => s.setScenes);
   const updateScene = useMovieStore((s) => s.updateScene);
   const setProjectId = useMovieStore((s) => s.setProjectId);
+  const setIsGenerating = useMovieStore((s) => s.setIsGenerating);
   const resetProject = useMovieStore((s) => s.resetProject);
   const apiKey = useFolderStore((s) => s.apiKey);
   const folderHandle = useFolderStore((s) => s.folderHandle);
@@ -125,6 +126,11 @@ export function MovieApp() {
     generatingSelectedVideos ||
     generatingSelectedScripts ||
     selectedProgress !== null;
+
+  useEffect(() => {
+    setIsGenerating(isGenerating);
+  }, [isGenerating, setIsGenerating]);
+
   const effectiveStyle = resolveStyle(customArtStyle, artStyle);
   const hasCharacterImages = characters.some(
     (c) => c.sourceUrl || c.imageFilename,
