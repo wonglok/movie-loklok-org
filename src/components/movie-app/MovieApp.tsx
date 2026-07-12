@@ -38,6 +38,7 @@ import { CharacterCard } from "./CharacterCard";
 import { SceneCard } from "./SceneCard";
 import { MovieEditor } from "./MovieEditor";
 import { ProjectSwitcher } from "./ProjectSwitcher";
+import { ProjectTabs } from "./ProjectTabs";
 import { AgentProgressPanel } from "./AgentProgressPanel";
 import QRCode from "react-qr-code";
 // import Strands from "../backgrounds/Strands";
@@ -1030,6 +1031,12 @@ export function MovieApp() {
             }}
           />
         )}
+
+        <section>
+          <div className="text-white">
+            <ProjectTabs />
+          </div>
+        </section>
 
         {/* No Project State */}
         {hydrated && folderHandle && projects.length === 0 && (
