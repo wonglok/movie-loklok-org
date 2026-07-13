@@ -18,10 +18,18 @@ export async function resolveCharacterRefs(
       urls.push(char.sourceUrl);
     } else if (char.imageFilename && folderHandle && projectId) {
       try {
-        const projectsDir = await folderHandle.getDirectoryHandle("projects", { create: true });
-        const projectDir = await projectsDir.getDirectoryHandle(projectId, { create: true });
-        const imagesDir = await projectDir.getDirectoryHandle("images", { create: true });
-        const charDir = await imagesDir.getDirectoryHandle("character", { create: true });
+        const projectsDir = await folderHandle.getDirectoryHandle("projects", {
+          create: true,
+        });
+        const projectDir = await projectsDir.getDirectoryHandle(projectId, {
+          create: true,
+        });
+        const imagesDir = await projectDir.getDirectoryHandle("images", {
+          create: true,
+        });
+        const charDir = await imagesDir.getDirectoryHandle("character", {
+          create: true,
+        });
         const fileHandle = await charDir.getFileHandle(char.imageFilename);
         const file = await fileHandle.getFile();
         const uploadedUrl = await fal.storage.upload(file);
@@ -79,7 +87,7 @@ export async function generateSceneImage(
       num_images: 1,
       aspect_ratio: "auto",
       output_format: "png",
-      safety_tolerance: "4",
+      safety_tolerance: "6",
       image_urls: imageUrls,
     },
     logs: true,
