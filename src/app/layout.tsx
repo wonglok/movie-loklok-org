@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "video.loklok.org",
-  description: "video.loklok.org",
+  title: "agent.video.loklok.org",
+  description: "agent.video.loklok.org",
 
   icons: {
     icon: [
