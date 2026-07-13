@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import type { Character } from "@/stores/movie-store";
-import { getProjectImagesDir, getProjectClipsDir } from "@/lib/fs-helpers";
-import { fal } from "@fal-ai/client";
 
 interface CharacterCardProps {
   char: Character;
@@ -14,8 +12,6 @@ interface CharacterCardProps {
   onRemove: (id: string) => void;
   onPreview: (id: string) => void;
   folderHandle: FileSystemDirectoryHandle | null;
-  projectId: string | null;
-  apiKey: string | null;
   updateCharacter: (id: string, updates: Partial<Character>) => void;
 }
 
@@ -28,8 +24,6 @@ export function CharacterCard({
   onRemove,
   onPreview,
   folderHandle,
-  projectId,
-  apiKey,
   updateCharacter,
 }: CharacterCardProps) {
   const [showVideo, setShowVideo] = useState(false);
@@ -134,41 +128,34 @@ export function CharacterCard({
               className="hidden"
               onChange={async (e) => {
                 const file = e.target.files?.[0];
-                if (!file || !folderHandle || !projectId) return;
+                if (!file || !folderHandle) return;
                 try {
-                  const imagesDir = await getProjectImagesDir(folderHandle, projectId);
+                  const imagesDir = await folderHandle.getDirectoryHandle(
+                    "images",
+                    { create: true },
+                  );
                   const characterDir = await imagesDir.getDirectoryHandle(
                     "character",
                     { create: true },
                   );
                   const uploadId = crypto.randomUUID();
                   const filename = `${uploadId}.png`;
-                  const fileHandle = await characterDir.getFileHandle(filename, {
-                    create: true,
-                  });
+                  const fileHandle = await characterDir.getFileHandle(
+                    filename,
+                    {
+                      create: true,
+                    },
+                  );
                   const writable = await fileHandle.createWritable();
                   await writable.write(file);
                   await writable.close();
                   if (char.imageUrl?.startsWith("blob:")) {
                     URL.revokeObjectURL(char.imageUrl);
                   }
-                  const savedFile = await fileHandle.getFile();
-                  const localUrl = URL.createObjectURL(savedFile);
-
-                  let sourceUrl: string | null = null;
-                  if (apiKey) {
-                    try {
-                      fal.config({ credentials: apiKey });
-                      sourceUrl = await fal.storage.upload(file);
-                    } catch {
-                      // fal.ai upload failed, keep sourceUrl null
-                    }
-                  }
-
+                  const localUrl = URL.createObjectURL(file);
                   updateCharacter(char.id, {
                     imageUrl: localUrl,
                     imageFilename: filename,
-                    sourceUrl,
                   });
                 } catch {
                   // upload failed, ignore
@@ -277,9 +264,11 @@ export function CharacterCard({
             className="hidden"
             onChange={async (e) => {
               const file = e.target.files?.[0];
-              if (!file || !folderHandle || !projectId) return;
+              if (!file || !folderHandle) return;
               try {
-                const clipsDir = await getProjectClipsDir(folderHandle, projectId);
+                const clipsDir = await folderHandle.getDirectoryHandle("clips", {
+                  create: true,
+                });
                 const uploadId = crypto.randomUUID();
                 const filename = `${uploadId}.mp4`;
                 const fileHandle = await clipsDir.getFileHandle(filename, {
@@ -291,9 +280,7 @@ export function CharacterCard({
                 if (char.videoUrl?.startsWith("blob:")) {
                   URL.revokeObjectURL(char.videoUrl);
                 }
-                const savedFile = await fileHandle.getFile();
-                const localUrl = URL.createObjectURL(savedFile);
-
+                const localUrl = URL.createObjectURL(file);
                 updateCharacter(char.id, {
                   videoUrl: localUrl,
                   videoFilename: filename,

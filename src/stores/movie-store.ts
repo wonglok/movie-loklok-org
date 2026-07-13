@@ -64,7 +64,6 @@ export const ART_STYLES: { key: ArtStyle; label: string; emoji: string }[] = [
 ];
 
 interface MovieState {
-  projectId: string | null;
   story: string;
   artStyle: ArtStyle;
   customArtStyle: string;
@@ -77,7 +76,6 @@ interface MovieState {
   moments: Moment[];
   videoInfo: VideoInfo | null;
   activeTab: "characters" | "scenes";
-  setProjectId: (projectId: string | null) => void;
   setStory: (story: string) => void;
   setArtStyle: (style: ArtStyle) => void;
   setCustomArtStyle: (style: string) => void;
@@ -93,28 +91,21 @@ interface MovieState {
   setVideoInfo: (info: VideoInfo | null) => void;
   setIsGenerating: (generating: boolean) => void;
   setActiveTab: (tab: "characters" | "scenes") => void;
-  resetProject: () => void;
 }
 
-const initialState = {
-  projectId: null as string | null,
+export const useMovieStore = create<MovieState>((set) => ({
   story: "",
-  artStyle: "cartoon-3d" as ArtStyle,
+  artStyle: "cartoon-3d",
   customArtStyle: "",
   language: "English",
   isGenerating: false,
-  characterImages: [] as string[],
-  sceneImages: [] as string[],
-  characters: [] as Character[],
-  scenes: [] as Character[],
-  moments: [] as Moment[],
-  videoInfo: null as VideoInfo | null,
-  activeTab: "characters" as "characters" | "scenes",
-};
-
-export const useMovieStore = create<MovieState>((set) => ({
-  ...initialState,
-  setProjectId: (projectId) => set({ projectId }),
+  characterImages: [],
+  sceneImages: [],
+  characters: [],
+  scenes: [],
+  moments: [],
+  videoInfo: null,
+  activeTab: "characters",
   setStory: (story) => set({ story }),
   setArtStyle: (artStyle) => set({ artStyle }),
   setCustomArtStyle: (customArtStyle) => set({ customArtStyle }),
@@ -143,5 +134,4 @@ export const useMovieStore = create<MovieState>((set) => ({
   setVideoInfo: (videoInfo) => set({ videoInfo }),
   setIsGenerating: (isGenerating) => set({ isGenerating }),
   setActiveTab: (activeTab) => set({ activeTab }),
-  resetProject: () => set({ ...initialState }),
 }));

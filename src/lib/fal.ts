@@ -8,7 +8,6 @@ export async function resolveCharacterRefs(
   characters: Character[],
   folderHandle: FileSystemDirectoryHandle | null,
   apiKey: string,
-  projectId?: string,
 ): Promise<string[]> {
   fal.config({ credentials: apiKey });
   const urls: string[] = [];
@@ -16,15 +15,9 @@ export async function resolveCharacterRefs(
   for (const char of characters) {
     if (char.sourceUrl) {
       urls.push(char.sourceUrl);
-    } else if (char.imageFilename && folderHandle && projectId) {
+    } else if (char.imageFilename && folderHandle) {
       try {
-        const projectsDir = await folderHandle.getDirectoryHandle("projects", {
-          create: true,
-        });
-        const projectDir = await projectsDir.getDirectoryHandle(projectId, {
-          create: true,
-        });
-        const imagesDir = await projectDir.getDirectoryHandle("images", {
+        const imagesDir = await folderHandle.getDirectoryHandle("images", {
           create: true,
         });
         const charDir = await imagesDir.getDirectoryHandle("character", {

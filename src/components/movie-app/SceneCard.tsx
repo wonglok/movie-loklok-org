@@ -3,8 +3,6 @@
 import { useState } from "react";
 import type { Character, Conversation } from "@/stores/movie-store";
 import { ASPECT_OPTIONS, RESOLUTION_OPTIONS } from "@/stores/movie-store";
-import { getProjectImagesDir } from "@/lib/fs-helpers";
-import { fal } from "@fal-ai/client";
 
 interface SceneCardProps {
   scene: Character;
@@ -23,8 +21,6 @@ interface SceneCardProps {
   onRemove: (id: string) => void;
   onPreview: (id: string) => void;
   folderHandle: FileSystemDirectoryHandle | null;
-  projectId: string | null;
-  apiKey: string | null;
   updateScene: (id: string, updates: Partial<Character>) => void;
   availableReferences: { id: string; name: string }[];
 }
@@ -46,8 +42,6 @@ export function SceneCard({
   onRemove,
   onPreview,
   folderHandle,
-  projectId,
-  apiKey,
   updateScene,
   availableReferences,
 }: SceneCardProps) {
@@ -154,30 +148,14 @@ export function SceneCard({
             className="w-full bg-transparent text-neutral-400 text-xs leading-relaxed focus:outline-none placeholder-neutral-600 resize-none blender-scrollbar"
           />
           <div className="flex items-center gap-1.5">
-            <svg
-              className="w-3 h-3 shrink-0 text-neutral-500"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
-              />
+            <svg className="w-3 h-3 shrink-0 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
             </svg>
             <input
               type="text"
               value={scene.location}
-              onChange={(e) =>
-                updateScene(scene.id, { location: e.target.value })
-              }
+              onChange={(e) => updateScene(scene.id, { location: e.target.value })}
               placeholder="Location..."
               className="flex-1 bg-transparent text-neutral-400 text-xs focus:outline-none placeholder-neutral-600"
             />
@@ -266,11 +244,11 @@ export function SceneCard({
               className="hidden"
               onChange={async (e) => {
                 const file = e.target.files?.[0];
-                if (!file || !folderHandle || !projectId) return;
+                if (!file || !folderHandle) return;
                 try {
-                  const imagesDir = await getProjectImagesDir(
-                    folderHandle,
-                    projectId,
+                  const imagesDir = await folderHandle.getDirectoryHandle(
+                    "images",
+                    { create: true },
                   );
                   const sceneDirHandle = await imagesDir.getDirectoryHandle(
                     "scene",
@@ -280,9 +258,7 @@ export function SceneCard({
                   const filename = `${uploadId}.png`;
                   const fileHandle = await sceneDirHandle.getFileHandle(
                     filename,
-                    {
-                      create: true,
-                    },
+                    { create: true },
                   );
                   const writable = await fileHandle.createWritable();
                   await writable.write(file);
@@ -290,23 +266,10 @@ export function SceneCard({
                   if (scene.imageUrl?.startsWith("blob:")) {
                     URL.revokeObjectURL(scene.imageUrl);
                   }
-                  const savedFile = await fileHandle.getFile();
-                  const localUrl = URL.createObjectURL(savedFile);
-
-                  let sourceUrl: string | null = null;
-                  if (apiKey) {
-                    try {
-                      fal.config({ credentials: apiKey });
-                      sourceUrl = await fal.storage.upload(file);
-                    } catch {
-                      // fal.ai upload failed, keep sourceUrl null
-                    }
-                  }
-
+                  const localUrl = URL.createObjectURL(file);
                   updateScene(scene.id, {
                     imageUrl: localUrl,
                     imageFilename: filename,
-                    sourceUrl,
                   });
                 } catch {
                   // upload failed, ignore
@@ -421,10 +384,7 @@ export function SceneCard({
                             videoReferenceIds: next,
                           });
                         }}
-                        disabled={
-                          !isChecked &&
-                          (scene.videoReferenceIds ?? []).length >= 3
-                        }
+                        disabled={!isChecked && (scene.videoReferenceIds ?? []).length >= 3}
                         className="w-3 h-3 rounded border-neutral-600 bg-neutral-700 accent-(--blender-accent) cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                       />
                       <span className="text-neutral-400 text-[10px] truncate max-w-[80px]">

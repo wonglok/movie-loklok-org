@@ -1,16 +1,6 @@
 import type { Character, Moment, VideoInfo } from "@/stores/movie-store";
 import JSZip from "jszip";
 
-async function getProjectDir(
-  folderHandle: FileSystemDirectoryHandle,
-  projectId: string,
-): Promise<FileSystemDirectoryHandle> {
-  const projectsDir = await folderHandle.getDirectoryHandle("projects", {
-    create: true,
-  });
-  return projectsDir.getDirectoryHandle(projectId, { create: true });
-}
-
 export async function downloadAndSaveImage(
   url: string,
   filename: string,
@@ -61,7 +51,6 @@ export async function savePromptFile(
 
 export async function readMovieJson(
   folderHandle: FileSystemDirectoryHandle,
-  projectId: string,
 ): Promise<{
   story?: string;
   artStyle?: string;
@@ -69,8 +58,7 @@ export async function readMovieJson(
   language?: string;
 } | null> {
   try {
-    const projectDir = await getProjectDir(folderHandle, projectId);
-    const fileHandle = await projectDir.getFileHandle("movie.json");
+    const fileHandle = await folderHandle.getFileHandle("movie.json");
     const file = await fileHandle.getFile();
     const text = await file.text();
     return JSON.parse(text);
@@ -81,7 +69,6 @@ export async function readMovieJson(
 
 export async function writeMovieJson(
   folderHandle: FileSystemDirectoryHandle,
-  projectId: string,
   data: {
     story: string;
     artStyle: string;
@@ -89,8 +76,7 @@ export async function writeMovieJson(
     language: string;
   },
 ): Promise<void> {
-  const projectDir = await getProjectDir(folderHandle, projectId);
-  const fileHandle = await projectDir.getFileHandle("movie.json", {
+  const fileHandle = await folderHandle.getFileHandle("movie.json", {
     create: true,
   });
   const writable = await fileHandle.createWritable();
@@ -100,11 +86,9 @@ export async function writeMovieJson(
 
 export async function readCharactersJson(
   folderHandle: FileSystemDirectoryHandle,
-  projectId: string,
 ): Promise<Character[] | null> {
   try {
-    const projectDir = await getProjectDir(folderHandle, projectId);
-    const fileHandle = await projectDir.getFileHandle("character.json");
+    const fileHandle = await folderHandle.getFileHandle("character.json");
     const file = await fileHandle.getFile();
     const text = await file.text();
     return JSON.parse(text);
@@ -115,12 +99,10 @@ export async function readCharactersJson(
 
 export async function writeCharactersJson(
   folderHandle: FileSystemDirectoryHandle,
-  projectId: string,
   characters: Character[],
 ): Promise<void> {
   const toSave = characters.map((c) => ({ ...c, imageUrl: null, videoUrl: null }));
-  const projectDir = await getProjectDir(folderHandle, projectId);
-  const fileHandle = await projectDir.getFileHandle("character.json", {
+  const fileHandle = await folderHandle.getFileHandle("character.json", {
     create: true,
   });
   const writable = await fileHandle.createWritable();
@@ -130,11 +112,9 @@ export async function writeCharactersJson(
 
 export async function readScenesJson(
   folderHandle: FileSystemDirectoryHandle,
-  projectId: string,
 ): Promise<Character[] | null> {
   try {
-    const projectDir = await getProjectDir(folderHandle, projectId);
-    const fileHandle = await projectDir.getFileHandle("scene.json");
+    const fileHandle = await folderHandle.getFileHandle("scene.json");
     const file = await fileHandle.getFile();
     const text = await file.text();
     return JSON.parse(text);
@@ -145,12 +125,10 @@ export async function readScenesJson(
 
 export async function writeScenesJson(
   folderHandle: FileSystemDirectoryHandle,
-  projectId: string,
   scenes: Character[],
 ): Promise<void> {
   const toSave = scenes.map((c) => ({ ...c, imageUrl: null, videoUrl: null }));
-  const projectDir = await getProjectDir(folderHandle, projectId);
-  const fileHandle = await projectDir.getFileHandle("scene.json", {
+  const fileHandle = await folderHandle.getFileHandle("scene.json", {
     create: true,
   });
   const writable = await fileHandle.createWritable();
@@ -160,11 +138,9 @@ export async function writeScenesJson(
 
 export async function readVideoJson(
   folderHandle: FileSystemDirectoryHandle,
-  projectId: string,
 ): Promise<VideoInfo | null> {
   try {
-    const projectDir = await getProjectDir(folderHandle, projectId);
-    const fileHandle = await projectDir.getFileHandle("video.json");
+    const fileHandle = await folderHandle.getFileHandle("video.json");
     const file = await fileHandle.getFile();
     const text = await file.text();
     return JSON.parse(text);
@@ -175,12 +151,10 @@ export async function readVideoJson(
 
 export async function writeVideoJson(
   folderHandle: FileSystemDirectoryHandle,
-  projectId: string,
   videoInfo: VideoInfo | null,
 ): Promise<void> {
   if (!videoInfo) return;
-  const projectDir = await getProjectDir(folderHandle, projectId);
-  const fileHandle = await projectDir.getFileHandle("video.json", {
+  const fileHandle = await folderHandle.getFileHandle("video.json", {
     create: true,
   });
   const writable = await fileHandle.createWritable();
@@ -190,11 +164,9 @@ export async function writeVideoJson(
 
 export async function readMomentsJson(
   folderHandle: FileSystemDirectoryHandle,
-  projectId: string,
 ): Promise<Moment[] | null> {
   try {
-    const projectDir = await getProjectDir(folderHandle, projectId);
-    const fileHandle = await projectDir.getFileHandle("moments.json");
+    const fileHandle = await folderHandle.getFileHandle("moments.json");
     const file = await fileHandle.getFile();
     const text = await file.text();
     return JSON.parse(text);
@@ -205,32 +177,14 @@ export async function readMomentsJson(
 
 export async function writeMomentsJson(
   folderHandle: FileSystemDirectoryHandle,
-  projectId: string,
   moments: Moment[],
 ): Promise<void> {
-  const projectDir = await getProjectDir(folderHandle, projectId);
-  const fileHandle = await projectDir.getFileHandle("moments.json", {
+  const fileHandle = await folderHandle.getFileHandle("moments.json", {
     create: true,
   });
   const writable = await fileHandle.createWritable();
   await writable.write(JSON.stringify(moments, null, 2));
   await writable.close();
-}
-
-export async function getProjectImagesDir(
-  folderHandle: FileSystemDirectoryHandle,
-  projectId: string,
-): Promise<FileSystemDirectoryHandle> {
-  const projectDir = await getProjectDir(folderHandle, projectId);
-  return projectDir.getDirectoryHandle("images", { create: true });
-}
-
-export async function getProjectClipsDir(
-  folderHandle: FileSystemDirectoryHandle,
-  projectId: string,
-): Promise<FileSystemDirectoryHandle> {
-  const projectDir = await getProjectDir(folderHandle, projectId);
-  return projectDir.getDirectoryHandle("clips", { create: true });
 }
 
 async function addDirToZip(
@@ -252,12 +206,10 @@ async function addDirToZip(
 
 export async function exportProjectAsZip(
   folderHandle: FileSystemDirectoryHandle,
-  projectId: string,
   folderName: string,
 ): Promise<void> {
-  const projectDir = await getProjectDir(folderHandle, projectId);
   const zip = new JSZip();
-  await addDirToZip(zip, projectDir);
+  await addDirToZip(zip, folderHandle);
   const blob = await zip.generateAsync({ type: "blob" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -267,102 +219,4 @@ export async function exportProjectAsZip(
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-}
-
-export async function exportWorkspaceAsZip(
-  folderHandle: FileSystemDirectoryHandle,
-  folderName: string,
-): Promise<void> {
-  const zip = new JSZip();
-  await addDirToZip(zip, folderHandle);
-  const blob = await zip.generateAsync({ type: "blob" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${folderName || "movie-workspace"}.zip`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-async function removeDirContents(
-  parent: FileSystemDirectoryHandle,
-): Promise<void> {
-  for await (const [name] of parent.entries()) {
-    await parent.removeEntry(name, { recursive: true });
-  }
-}
-
-async function extractZipToDir(
-  zip: JSZip,
-  dirHandle: FileSystemDirectoryHandle,
-): Promise<void> {
-  const entries = Object.entries(zip.files);
-  for (const [path, file] of entries) {
-    if (file.dir) continue;
-    const parts = path.split("/");
-    const fileName = parts.pop()!;
-    let currentDir = dirHandle;
-    for (const part of parts) {
-      currentDir = await currentDir.getDirectoryHandle(part, { create: true });
-    }
-    const blob = await file.async("blob");
-    const fileHandle = await currentDir.getFileHandle(fileName, { create: true });
-    const writable = await fileHandle.createWritable();
-    await writable.write(blob);
-    await writable.close();
-  }
-}
-
-export async function pickAndExtractProjectZip(
-  folderHandle: FileSystemDirectoryHandle,
-): Promise<{ id: string; name: string; createdAt: string; updatedAt: string } | null> {
-  const input = document.createElement("input");
-  input.type = "file";
-  input.accept = ".zip";
-  const file = await new Promise<File | null>((resolve) => {
-    input.onchange = () => resolve(input.files?.[0] ?? null);
-    input.oncancel = () => resolve(null);
-    input.click();
-  });
-  if (!file) return null;
-
-  const zip = await JSZip.loadAsync(file);
-
-  let name = "Imported Project";
-  let createdAt = new Date().toISOString();
-  let updatedAt = new Date().toISOString();
-
-  const projectJsonFile = zip.file("project.json");
-  if (projectJsonFile) {
-    const text = await projectJsonFile.async("text");
-    const data = JSON.parse(text);
-    name = data.name || name;
-    createdAt = data.createdAt || createdAt;
-    updatedAt = data.updatedAt || updatedAt;
-  }
-
-  const id = crypto.randomUUID();
-  const projectDir = await getProjectDir(folderHandle, id);
-  await extractZipToDir(zip, projectDir);
-
-  return { id, name, createdAt, updatedAt };
-}
-
-export async function importWorkspaceFromZip(
-  folderHandle: FileSystemDirectoryHandle,
-): Promise<void> {
-  const input = document.createElement("input");
-  input.type = "file";
-  input.accept = ".zip";
-  const file = await new Promise<File | null>((resolve) => {
-    input.onchange = () => resolve(input.files?.[0] ?? null);
-    input.oncancel = () => resolve(null);
-    input.click();
-  });
-  if (!file) return;
-  const zip = await JSZip.loadAsync(file);
-  await removeDirContents(folderHandle);
-  await extractZipToDir(zip, folderHandle);
 }

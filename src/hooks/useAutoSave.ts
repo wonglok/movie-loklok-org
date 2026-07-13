@@ -8,7 +8,6 @@ import {
 
 export function useAutoSave(
   folderHandle: FileSystemDirectoryHandle | null,
-  projectId: string | null,
   hydrated: boolean,
   story: string,
   artStyle: string,
@@ -24,12 +23,12 @@ export function useAutoSave(
   const sceneDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (!hydrated || !folderHandle || !projectId) return;
+    if (!hydrated || !folderHandle) return;
 
     if (movieDebounceRef.current) clearTimeout(movieDebounceRef.current);
     setIsSaving(true);
     movieDebounceRef.current = setTimeout(() => {
-      writeMovieJson(folderHandle, projectId, {
+      writeMovieJson(folderHandle, {
         story,
         artStyle,
         customArtStyle,
@@ -38,25 +37,25 @@ export function useAutoSave(
         .catch(() => {})
         .finally(() => setIsSaving(false));
     }, 500);
-  }, [story, artStyle, customArtStyle, language, hydrated, folderHandle, projectId]);
+  }, [story, artStyle, customArtStyle, language, hydrated, folderHandle]);
 
   useEffect(() => {
-    if (!hydrated || !folderHandle || !projectId) return;
+    if (!hydrated || !folderHandle) return;
 
     if (charDebounceRef.current) clearTimeout(charDebounceRef.current);
     charDebounceRef.current = setTimeout(() => {
-      writeCharactersJson(folderHandle, projectId, characters).catch(() => {});
+      writeCharactersJson(folderHandle, characters).catch(() => {});
     }, 500);
-  }, [characters, hydrated, folderHandle, projectId]);
+  }, [characters, hydrated, folderHandle]);
 
   useEffect(() => {
-    if (!hydrated || !folderHandle || !projectId) return;
+    if (!hydrated || !folderHandle) return;
 
     if (sceneDebounceRef.current) clearTimeout(sceneDebounceRef.current);
     sceneDebounceRef.current = setTimeout(() => {
-      writeScenesJson(folderHandle, projectId, scenes).catch(() => {});
+      writeScenesJson(folderHandle, scenes).catch(() => {});
     }, 500);
-  }, [scenes, hydrated, folderHandle, projectId]);
+  }, [scenes, hydrated, folderHandle]);
 
   return { isSaving };
 }
