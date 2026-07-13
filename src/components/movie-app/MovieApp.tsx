@@ -74,6 +74,7 @@ export function MovieApp() {
   const activeProjectId = useProjectStore((s) => s.activeProjectId);
   const projects = useProjectStore((s) => s.projects);
   const createProject = useProjectStore((s) => s.createProject);
+  const importProject = useProjectStore((s) => s.importProject);
 
   const [error, setError] = useState<string | null>(null);
   const [generatingCharacters, setGeneratingCharacters] = useState(false);
@@ -1017,6 +1018,20 @@ export function MovieApp() {
           <p className="text-neutral-400 text-lg max-w-md mx-auto leading-relaxed">
             Bring your story to life with AI-generated characters and scenes
           </p>
+          <div className="mt-6">
+            <button
+              onClick={async () => {
+                if (!folderHandle) return;
+                await importProject(folderHandle);
+                await setActiveProjectId(
+                  useProjectStore.getState().activeProjectId,
+                );
+              }}
+              className="px-5 py-2.5 bg-neutral-800 border border-neutral-700 rounded-xl text-neutral-300 text-sm hover:bg-neutral-700 hover:text-white transition-all"
+            >
+              Import New Project from ZIP File
+            </button>
+          </div>
           {isSaving && (
             <p className="text-neutral-100 text-xs mt-3 animate-pulse fixed top-3 left-3">
               Saving...

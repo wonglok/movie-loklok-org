@@ -315,6 +315,41 @@ async function extractZipToDir(
   }
 }
 
+export async function pickAndExtractProjectZip(
+  folderHandle: FileSystemDirectoryHandle,
+): Promise<{ id: string; name: string; createdAt: string; updatedAt: string } | null> {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = ".zip";
+  const file = await new Promise<File | null>((resolve) => {
+    input.onchange = () => resolve(input.files?.[0] ?? null);
+    input.oncancel = () => resolve(null);
+    input.click();
+  });
+  if (!file) return null;
+
+  const zip = await JSZip.loadAsync(file);
+
+  let name = "Imported Project";
+  let createdAt = new Date().toISOString();
+  let updatedAt = new Date().toISOString();
+
+  const projectJsonFile = zip.file("project.json");
+  if (projectJsonFile) {
+    const text = await projectJsonFile.async("text");
+    const data = JSON.parse(text);
+    name = data.name || name;
+    createdAt = data.createdAt || createdAt;
+    updatedAt = data.updatedAt || updatedAt;
+  }
+
+  const id = crypto.randomUUID();
+  const projectDir = await getProjectDir(folderHandle, id);
+  await extractZipToDir(zip, projectDir);
+
+  return { id, name, createdAt, updatedAt };
+}
+
 export async function importWorkspaceFromZip(
   folderHandle: FileSystemDirectoryHandle,
 ): Promise<void> {

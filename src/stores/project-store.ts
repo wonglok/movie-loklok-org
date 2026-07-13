@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { pickAndExtractProjectZip } from "@/lib/fs-helpers";
 
 export interface ProjectMeta {
   id: string;
@@ -30,6 +31,9 @@ interface ProjectState {
     folderHandle: FileSystemDirectoryHandle,
     id: string,
   ) => Promise<string>;
+  importProject: (
+    folderHandle: FileSystemDirectoryHandle,
+  ) => Promise<string | null>;
   setActiveProject: (id: string) => void;
 }
 
@@ -239,6 +243,18 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       activeProjectId: newId,
     }));
     return newId;
+  },
+
+  importProject: async (folderHandle) => {
+    const result = await pickAndExtractProjectZip(folderHandle);
+    if (!result) return null;
+    const { id, name, createdAt, updatedAt } = result;
+    const newProject: ProjectMeta = { id, name, createdAt, updatedAt };
+    set((state) => ({
+      projects: [newProject, ...state.projects],
+      activeProjectId: id,
+    }));
+    return id;
   },
 
   setActiveProject: (id) => set({ activeProjectId: id }),
