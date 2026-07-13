@@ -597,9 +597,9 @@ export async function tagSceneCharacters(
         messages: [
           {
             role: "user",
-            content: `Given a movie story and its characters and scenes, determine which characters appear in each scene. For each scene, return the character IDs of characters that are present (max 3 per scene). If a character is mentioned by name or clearly involved in the scene description, include them. If uncertain, include characters that make narrative sense.
+            content: `Given a movie story and its characters and scenes, determine which characters appear in each scene. For each scene, return the character IDs of characters that are present (at least 1, max 3 per scene). EVERY scene MUST have at least one character — if a character is mentioned by name or clearly involved in the scene description, include them. If no character is explicitly mentioned, pick the character that makes the most narrative sense for that scene.
 
-Return ONLY a valid JSON object mapping scene IDs to arrays of character IDs. Example: {"scene-id-1": ["char-id-1", "char-id-2"], "scene-id-2": ["char-id-3"]}. No other text.
+Return ONLY a valid JSON object mapping EVERY scene ID to an array of character IDs. Example: {"scene-id-1": ["char-id-1", "char-id-2"], "scene-id-2": ["char-id-3"]}. No other text.
 
 Story:
 ${story}
@@ -630,10 +630,15 @@ ${sceneList}`,
 
   // Validate and cap at 3 characters per scene
   const validCharIds = new Set(characters.map((c) => c.id));
+  const fallbackId = characters[0]?.id ?? null;
   const out: Record<string, string[]> = {};
-  for (const [sceneId, charIds] of Object.entries(raw)) {
-    if (!scenes.some((s) => s.id === sceneId)) continue;
-    out[sceneId] = charIds.filter((id) => validCharIds.has(id)).slice(0, 3);
+
+  for (const scene of scenes) {
+    const charIds = (raw[scene.id] || [])
+      .filter((id) => validCharIds.has(id))
+      .slice(0, 3);
+    // Ensure at least 1 character per scene — fall back to the first character
+    out[scene.id] = charIds.length > 0 ? charIds : (fallbackId ? [fallbackId] : []);
   }
   return out;
 }
