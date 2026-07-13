@@ -3,16 +3,19 @@ import localforage from "localforage";
 
 const FOLDER_HANDLE_KEY = "fal-folder-handle";
 const API_KEY_STORAGE_KEY = "fal-api-key";
+const ACTIVE_PROJECT_KEY = "fal-active-project";
 
 interface FolderState {
   folderHandle: FileSystemDirectoryHandle | null;
   folderName: string | null;
   apiKey: string | null;
+  activeProjectId: string | null;
   isConfigured: boolean;
   isLoading: boolean;
   error: string | null;
   setFolder: (handle: FileSystemDirectoryHandle) => void;
   saveApiKey: (key: string) => Promise<void>;
+  setActiveProjectId: (id: string | null) => Promise<void>;
   loadFromStorage: () => Promise<void>;
   clearFolder: () => Promise<void>;
 }
@@ -21,6 +24,7 @@ export const useFolderStore = create<FolderState>((set, get) => ({
   folderHandle: null,
   folderName: null,
   apiKey: null,
+  activeProjectId: null,
   isConfigured: false,
   isLoading: true,
   error: null,
@@ -49,11 +53,21 @@ export const useFolderStore = create<FolderState>((set, get) => ({
     }
   },
 
+  setActiveProjectId: async (id: string | null) => {
+    if (id) {
+      await localforage.setItem(ACTIVE_PROJECT_KEY, id);
+    } else {
+      await localforage.removeItem(ACTIVE_PROJECT_KEY);
+    }
+    set({ activeProjectId: id });
+  },
+
   loadFromStorage: async () => {
     try {
-      const [handle, storedKey] = await Promise.all([
+      const [handle, storedKey, storedProjectId] = await Promise.all([
         localforage.getItem<FileSystemDirectoryHandle>(FOLDER_HANDLE_KEY),
         localforage.getItem<string>(API_KEY_STORAGE_KEY),
+        localforage.getItem<string>(ACTIVE_PROJECT_KEY),
       ]);
 
       if (!handle || !storedKey) {
@@ -68,6 +82,7 @@ export const useFolderStore = create<FolderState>((set, get) => ({
           folderHandle: handle,
           folderName: handle.name,
           apiKey: storedKey,
+          activeProjectId: storedProjectId ?? null,
           isConfigured: true,
           isLoading: false,
         });
@@ -83,6 +98,7 @@ export const useFolderStore = create<FolderState>((set, get) => ({
             folderHandle: handle,
             folderName: handle.name,
             apiKey: storedKey,
+            activeProjectId: storedProjectId ?? null,
             isConfigured: true,
             isLoading: false,
           });
@@ -94,6 +110,7 @@ export const useFolderStore = create<FolderState>((set, get) => ({
       await Promise.all([
         localforage.removeItem(FOLDER_HANDLE_KEY),
         localforage.removeItem(API_KEY_STORAGE_KEY),
+        localforage.removeItem(ACTIVE_PROJECT_KEY),
       ]);
       set({ isLoading: false });
     } catch {
@@ -105,11 +122,13 @@ export const useFolderStore = create<FolderState>((set, get) => ({
     await Promise.all([
       localforage.removeItem(FOLDER_HANDLE_KEY),
       localforage.removeItem(API_KEY_STORAGE_KEY),
+      localforage.removeItem(ACTIVE_PROJECT_KEY),
     ]);
     set({
       folderHandle: null,
       folderName: null,
       apiKey: null,
+      activeProjectId: null,
       isConfigured: false,
       error: null,
     });

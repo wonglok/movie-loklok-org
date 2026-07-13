@@ -1,9 +1,10 @@
 import { useEffect } from "react";
 import type { Character } from "@/stores/movie-store";
-import { loadLocalImage } from "@/lib/fs-helpers";
+import { loadLocalImage, getProjectImagesDir } from "@/lib/fs-helpers";
 
 export function useLocalImages(
   folderHandle: FileSystemDirectoryHandle | null,
+  projectId: string | null,
   hydrated: boolean,
   characters: Character[],
   scenes: Character[],
@@ -11,13 +12,11 @@ export function useLocalImages(
   updateScene: (id: string, u: Partial<Character>) => void,
 ) {
   useEffect(() => {
-    if (!hydrated || !folderHandle) return;
+    if (!hydrated || !folderHandle || !projectId) return;
 
     (async () => {
       try {
-        const imagesDir = await folderHandle.getDirectoryHandle("images", {
-          create: true,
-        });
+        const imagesDir = await getProjectImagesDir(folderHandle, projectId);
         const characterDir = await imagesDir.getDirectoryHandle("character", {
           create: true,
         });
@@ -59,5 +58,5 @@ export function useLocalImages(
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated]);
+  }, [hydrated, projectId]);
 }

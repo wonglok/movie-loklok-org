@@ -8,6 +8,7 @@ import {
 
 export function useAutoSave(
   folderHandle: FileSystemDirectoryHandle | null,
+  projectId: string | null,
   hydrated: boolean,
   story: string,
   artStyle: string,
@@ -23,12 +24,12 @@ export function useAutoSave(
   const sceneDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (!hydrated || !folderHandle) return;
+    if (!hydrated || !folderHandle || !projectId) return;
 
     if (movieDebounceRef.current) clearTimeout(movieDebounceRef.current);
     setIsSaving(true);
     movieDebounceRef.current = setTimeout(() => {
-      writeMovieJson(folderHandle, {
+      writeMovieJson(folderHandle, projectId, {
         story,
         artStyle,
         customArtStyle,
@@ -37,25 +38,25 @@ export function useAutoSave(
         .catch(() => {})
         .finally(() => setIsSaving(false));
     }, 500);
-  }, [story, artStyle, customArtStyle, language, hydrated, folderHandle]);
+  }, [story, artStyle, customArtStyle, language, hydrated, folderHandle, projectId]);
 
   useEffect(() => {
-    if (!hydrated || !folderHandle) return;
+    if (!hydrated || !folderHandle || !projectId) return;
 
     if (charDebounceRef.current) clearTimeout(charDebounceRef.current);
     charDebounceRef.current = setTimeout(() => {
-      writeCharactersJson(folderHandle, characters).catch(() => {});
+      writeCharactersJson(folderHandle, projectId, characters).catch(() => {});
     }, 500);
-  }, [characters, hydrated, folderHandle]);
+  }, [characters, hydrated, folderHandle, projectId]);
 
   useEffect(() => {
-    if (!hydrated || !folderHandle) return;
+    if (!hydrated || !folderHandle || !projectId) return;
 
     if (sceneDebounceRef.current) clearTimeout(sceneDebounceRef.current);
     sceneDebounceRef.current = setTimeout(() => {
-      writeScenesJson(folderHandle, scenes).catch(() => {});
+      writeScenesJson(folderHandle, projectId, scenes).catch(() => {});
     }, 500);
-  }, [scenes, hydrated, folderHandle]);
+  }, [scenes, hydrated, folderHandle, projectId]);
 
   return { isSaving };
 }
