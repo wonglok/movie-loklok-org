@@ -28,35 +28,7 @@ export function ProjectTabs() {
   };
 
   return (
-    <div>
-      {isGenerating && (
-        <div className="max-w-5xl mx-auto px-6 pt-2">
-          <div className="flex items-center gap-2 rounded-lg bg-amber-500/10 border border-amber-500/30 px-4 py-2 text-sm text-amber-200">
-            <svg
-              className="w-4 h-4 shrink-0 animate-spin"
-              viewBox="0 0 24 24"
-              fill="none"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-              />
-            </svg>
-            <span>Generation in progress — please do not switch tabs</span>
-          </div>
-        </div>
-      )}
-
-      <div className="w-full border-b border-neutral-800 bg-neutral-950 rounded-full">
+    <div className="w-full border-b border-neutral-800 bg-neutral-950 rounded-full">
         <div className="max-w-5xl mx-auto px-6 flex items-center gap-0.5 overflow-x-auto blender-scrollbar">
           {projects.map((p) => {
             const isActive = p.id === activeProjectId;
@@ -144,7 +116,6 @@ export function ProjectTabs() {
           })}
         </div>
       </div>
-    </div>
   );
 }
 
