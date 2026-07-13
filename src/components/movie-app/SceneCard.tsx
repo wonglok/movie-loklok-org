@@ -154,14 +154,30 @@ export function SceneCard({
             className="w-full bg-transparent text-neutral-400 text-xs leading-relaxed focus:outline-none placeholder-neutral-600 resize-none blender-scrollbar"
           />
           <div className="flex items-center gap-1.5">
-            <svg className="w-3 h-3 shrink-0 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+            <svg
+              className="w-3 h-3 shrink-0 text-neutral-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
+              />
             </svg>
             <input
               type="text"
               value={scene.location}
-              onChange={(e) => updateScene(scene.id, { location: e.target.value })}
+              onChange={(e) =>
+                updateScene(scene.id, { location: e.target.value })
+              }
               placeholder="Location..."
               className="flex-1 bg-transparent text-neutral-400 text-xs focus:outline-none placeholder-neutral-600"
             />
@@ -252,16 +268,22 @@ export function SceneCard({
                 const file = e.target.files?.[0];
                 if (!file || !folderHandle || !projectId) return;
                 try {
-                  const imagesDir = await getProjectImagesDir(folderHandle, projectId);
+                  const imagesDir = await getProjectImagesDir(
+                    folderHandle,
+                    projectId,
+                  );
                   const sceneDirHandle = await imagesDir.getDirectoryHandle(
                     "scene",
                     { create: true },
                   );
                   const uploadId = crypto.randomUUID();
                   const filename = `${uploadId}.png`;
-                  const fileHandle = await sceneDirHandle.getFileHandle(filename, {
-                    create: true,
-                  });
+                  const fileHandle = await sceneDirHandle.getFileHandle(
+                    filename,
+                    {
+                      create: true,
+                    },
+                  );
                   const writable = await fileHandle.createWritable();
                   await writable.write(file);
                   await writable.close();
@@ -399,7 +421,10 @@ export function SceneCard({
                             videoReferenceIds: next,
                           });
                         }}
-                        disabled={!isChecked && (scene.videoReferenceIds ?? []).length >= 3}
+                        disabled={
+                          !isChecked &&
+                          (scene.videoReferenceIds ?? []).length >= 3
+                        }
                         className="w-3 h-3 rounded border-neutral-600 bg-neutral-700 accent-(--blender-accent) cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                       />
                       <span className="text-neutral-400 text-[10px] truncate max-w-[80px]">
