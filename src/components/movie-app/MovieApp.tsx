@@ -968,7 +968,7 @@ export function MovieApp() {
           </button>
           <div className="flex justify-center mb-6">
             <div className="bg-white p-3 rounded-xl">
-              <QRCode value={`https://many.video.loklok.org`} size={350} />
+              <QRCode value={`https://many.video.loklok.org`} size={200} />
             </div>
 
             {/* <div className="h-[256px] w-[256px] rotate-z-45">

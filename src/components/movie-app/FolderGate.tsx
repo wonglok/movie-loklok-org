@@ -23,6 +23,15 @@ export function FolderGate({ children }: { children: ReactNode }) {
     return "showDirectoryPicker" in window;
   });
 
+  const isSafariMacOS = (() => {
+    if (typeof window === "undefined") return false;
+    const ua = navigator.userAgent;
+    const isMac = /Macintosh|Mac OS X/i.test(ua);
+    const isSafari =
+      /Safari/i.test(ua) && !/Chrome|Chromium|Edge|OPR/i.test(ua);
+    return isMac && isSafari;
+  })();
+
   useEffect(() => {
     loadFromStorage();
   }, [loadFromStorage]);
@@ -175,8 +184,9 @@ export function FolderGate({ children }: { children: ReactNode }) {
 
           {!browserSupported && (
             <p className="text-amber-400 text-sm mb-4 bg-amber-400/10 rounded-lg px-4 py-2">
-              Your browser does not support the File System Access API. Please
-              use Chrome, Edge, or Opera.
+              {isSafariMacOS
+                ? "Safari on macOS does not support the File System Access API. Please switch to Google Chrome on your Mac."
+                : "Your browser does not support the File System Access API. Please use Chrome, Edge, or Opera."}
             </p>
           )}
 
