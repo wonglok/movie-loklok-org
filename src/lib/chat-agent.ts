@@ -4,7 +4,7 @@ import { useMovieStore } from "@/stores/movie-store";
 import { useProjectStore } from "@/stores/project-store";
 import { useFolderStore } from "@/stores/folder-store";
 
-const MAX_TOOL_ROUNDS = 8;
+const MAX_TOOL_ROUNDS = 500;
 
 function buildSystemPrompt(tools: ToolDef[]): string {
   const toolDescriptions = tools
@@ -84,7 +84,10 @@ interface LLMMessage {
   tool_call_id?: string;
 }
 
-async function callLLM(messages: LLMMessage[], apiKey: string): Promise<string> {
+async function callLLM(
+  messages: LLMMessage[],
+  apiKey: string,
+): Promise<string> {
   fal.config({ credentials: apiKey });
 
   const result = await fal.subscribe(
@@ -111,7 +114,9 @@ async function callLLM(messages: LLMMessage[], apiKey: string): Promise<string> 
   return data.choices[0].message.content;
 }
 
-function parseToolCalls(content: string): { tool: string; arguments: Record<string, unknown> }[] {
+function parseToolCalls(
+  content: string,
+): { tool: string; arguments: Record<string, unknown> }[] {
   const calls: { tool: string; arguments: Record<string, unknown> }[] = [];
   const regex = /```tool\n([\s\S]*?)```/g;
   let match;
@@ -134,7 +139,12 @@ function stripToolBlocks(content: string): string {
 
 export interface AgentResponse {
   text: string;
-  toolCalls: { name: string; arguments: Record<string, unknown>; result: string; error?: string }[];
+  toolCalls: {
+    name: string;
+    arguments: Record<string, unknown>;
+    result: string;
+    error?: string;
+  }[];
 }
 
 export async function sendChatMessage(
@@ -161,7 +171,12 @@ export async function sendChatMessage(
   // Add current user message
   messages.push({ role: "user", content: userMessage });
 
-  const allToolCalls: { name: string; arguments: Record<string, unknown>; result: string; error?: string }[] = [];
+  const allToolCalls: {
+    name: string;
+    arguments: Record<string, unknown>;
+    result: string;
+    error?: string;
+  }[] = [];
 
   let round = 0;
   while (round < MAX_TOOL_ROUNDS) {
@@ -183,7 +198,12 @@ export async function sendChatMessage(
       if (!tool) {
         const errMsg = `Error: unknown tool "${tc.tool}". Available: ${tools.map((t) => t.name).join(", ")}.`;
         messages.push({ role: "tool", content: errMsg, tool_call_id: tc.tool });
-        allToolCalls.push({ name: tc.tool, arguments: tc.arguments, result: "", error: errMsg });
+        allToolCalls.push({
+          name: tc.tool,
+          arguments: tc.arguments,
+          result: "",
+          error: errMsg,
+        });
         continue;
       }
 
@@ -193,8 +213,17 @@ export async function sendChatMessage(
         allToolCalls.push({ name: tc.tool, arguments: tc.arguments, result });
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : "Unknown error";
-        messages.push({ role: "tool", content: `Error: ${errMsg}`, tool_call_id: tc.tool });
-        allToolCalls.push({ name: tc.tool, arguments: tc.arguments, result: "", error: errMsg });
+        messages.push({
+          role: "tool",
+          content: `Error: ${errMsg}`,
+          tool_call_id: tc.tool,
+        });
+        allToolCalls.push({
+          name: tc.tool,
+          arguments: tc.arguments,
+          result: "",
+          error: errMsg,
+        });
       }
     }
 
