@@ -87,7 +87,7 @@ export async function generateSceneImage(
       num_images: 1,
       aspect_ratio: "auto",
       output_format: "png",
-      safety_tolerance: "6",
+      safety_tolerance: "4",
       image_urls: imageUrls,
     },
     logs: true,
