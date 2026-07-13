@@ -40,6 +40,8 @@ import { MovieEditor } from "./MovieEditor";
 import { ProjectSwitcher } from "./ProjectSwitcher";
 import { ProjectTabs } from "./ProjectTabs";
 import { AgentProgressPanel } from "./AgentProgressPanel";
+import { ChatPanel } from "./ChatPanel";
+import { useChatStore } from "@/stores/chat-store";
 import QRCode from "react-qr-code";
 // import Strands from "../backgrounds/Strands";
 
@@ -118,6 +120,8 @@ export function MovieApp() {
   const [exportingZip, setExportingZip] = useState(false);
   const [creatingFirstProject, setCreatingFirstProject] = useState(false);
   const [firstProjectName, setFirstProjectName] = useState("");
+
+  const chatOpen = useChatStore((s) => s.isOpen);
 
   const isGenerating =
     generatingCharacters ||
@@ -931,12 +935,9 @@ export function MovieApp() {
 
   return (
     <div className="h-full overflow-y-auto blender-scrollbar">
-      {/* {isGenerating && (
-        <div className="fixed top-0 left-1/2 -translate-x-1/2 z-50 mt-3 px-5 py-2 bg-orange-500/90 backdrop-blur-sm text-white text-sm font-semibold rounded-full shadow-lg shadow-orange-500/20 animate-pulse">
-          Generation in progress, do not refresh.
-        </div>
-      )} */}
-      <div className="max-w-5xl mx-auto px-6 py-12 flex flex-col gap-16">
+      <ChatPanel />
+      <div className={`transition-all duration-300 ${chatOpen ? "ml-[360px]" : ""}`}>
+        <div className="max-w-5xl mx-auto px-6 py-12 flex flex-col gap-16">
         {/* Header */}
         <section className="relative text-center">
           <div className="absolute top-0 left-0">
@@ -1664,6 +1665,7 @@ export function MovieApp() {
           )}
       </div>
       <AgentProgressPanel />
+    </div>
     </div>
   );
 }
