@@ -10,6 +10,7 @@ import {
   uploadAndGenerateVideo,
   regenerateSceneConversations,
   estimateSceneMetadata,
+  tagSceneCharacters,
 } from "@/lib/fal";
 import { resolveStyle } from "@/lib/style";
 import {
@@ -507,8 +508,46 @@ export function createTools(): ToolDef[] {
     },
 
     {
+      name: "auto_tag_scene_characters",
+      description: "Use AI to automatically analyze the story and determine which characters appear in each scene. Updates every scene's characterIds. Call this after extracting scenes and before generating scene images.",
+      parameters: {},
+      execute: async () => {
+        const apiKey = getApiKey();
+        if (!apiKey) return "Error: No API key configured.";
+
+        const store = useMovieStore.getState();
+        if (!store.story.trim()) return "Error: Story is empty.";
+        if (!store.characters.length) return "Error: No characters. Extract characters first.";
+        if (!store.scenes.length) return "Error: No scenes. Extract scenes first.";
+
+        const mapping = await tagSceneCharacters(
+          store.story,
+          store.characters.map((c) => ({ id: c.id, name: c.name, description: c.description })),
+          store.scenes.map((s) => ({ id: s.id, name: s.name, description: s.description })),
+          apiKey,
+        );
+
+        let tagged = 0;
+        for (const [sceneId, charIds] of Object.entries(mapping)) {
+          store.updateScene(sceneId, { characterIds: charIds });
+          tagged++;
+        }
+
+        const summary = Object.entries(mapping)
+          .map(([sid, cids]) => {
+            const sceneName = store.scenes.find((s) => s.id === sid)?.name || sid;
+            const charNames = cids.map((cid) => store.characters.find((c) => c.id === cid)?.name || cid).join(", ");
+            return `  ${sceneName}: ${charNames || "none"}`;
+          })
+          .join("\n");
+
+        return `Tagged characters for ${tagged} scene(s):\n${summary}`;
+      },
+    },
+
+    {
       name: "update_scene_characters",
-      description: "Set which characters appear in a scene. Use this to tag characters as involved in a scene before generating images. Max 3 characters per scene for image generation.",
+      description: "Manually set which characters appear in a scene. Use auto_tag_scene_characters for automatic detection, or this for manual adjustments. Max 3 characters per scene.",
       parameters: {
         type: "object",
         properties: {

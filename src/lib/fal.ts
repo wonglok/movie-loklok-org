@@ -572,3 +572,68 @@ Description: ${sceneDescription}`,
   };
   return data.choices[0].message.content.trim();
 }
+
+export async function tagSceneCharacters(
+  story: string,
+  characters: { id: string; name: string; description: string }[],
+  scenes: { id: string; name: string; description: string }[],
+  apiKey: string,
+): Promise<Record<string, string[]>> {
+  fal.config({ credentials: apiKey });
+
+  const charList = characters
+    .map((c, i) => `${i}: id="${c.id}" name="${c.name}" description="${c.description}"`)
+    .join("\n");
+
+  const sceneList = scenes
+    .map((s, i) => `${i}: id="${s.id}" name="${s.name}" description="${s.description}"`)
+    .join("\n");
+
+  const result = await fal.subscribe(
+    "openrouter/router/openai/v1/chat/completions",
+    {
+      input: {
+        model: "google/gemma-4-26b-a4b-it",
+        messages: [
+          {
+            role: "user",
+            content: `Given a movie story and its characters and scenes, determine which characters appear in each scene. For each scene, return the character IDs of characters that are present (max 3 per scene). If a character is mentioned by name or clearly involved in the scene description, include them. If uncertain, include characters that make narrative sense.
+
+Return ONLY a valid JSON object mapping scene IDs to arrays of character IDs. Example: {"scene-id-1": ["char-id-1", "char-id-2"], "scene-id-2": ["char-id-3"]}. No other text.
+
+Story:
+${story}
+
+Characters:
+${charList}
+
+Scenes:
+${sceneList}`,
+          },
+        ],
+      },
+      logs: true,
+      onQueueUpdate: (update) => {
+        if (update.status === "IN_PROGRESS") {
+          update.logs.map((log) => log.message).forEach(console.log);
+        }
+      },
+    },
+  );
+
+  const data = result.data as {
+    choices: { message: { content: string } }[];
+  };
+  const text = data.choices[0].message.content;
+  const json = text.replace(/```json|```/g, "").trim();
+  const raw = JSON.parse(json) as Record<string, string[]>;
+
+  // Validate and cap at 3 characters per scene
+  const validCharIds = new Set(characters.map((c) => c.id));
+  const out: Record<string, string[]> = {};
+  for (const [sceneId, charIds] of Object.entries(raw)) {
+    if (!scenes.some((s) => s.id === sceneId)) continue;
+    out[sceneId] = charIds.filter((id) => validCharIds.has(id)).slice(0, 3);
+  }
+  return out;
+}
