@@ -418,7 +418,11 @@ export function MovieApp() {
           filename,
           characterDir,
         );
-        updateCharacter(id, { imageUrl: localUrl, imageFilename: filename });
+        updateCharacter(id, {
+          imageUrl: localUrl,
+          imageFilename: filename,
+          sourceUrl: result.url,
+        });
         await savePromptFile(result.prompt, `${imageId}.txt`, characterDir);
       } else {
         updateCharacter(id, { imageUrl: result.url, sourceUrl: result.url });
@@ -1292,6 +1296,8 @@ export function MovieApp() {
                           setPreviewType("character");
                         }}
                         folderHandle={folderHandle}
+                        projectId={projectId}
+                        apiKey={apiKey}
                         updateCharacter={updateCharacter}
                       />
                     ))}
@@ -1509,6 +1515,8 @@ export function MovieApp() {
                               setPreviewType("scene");
                             }}
                             folderHandle={folderHandle}
+                            projectId={projectId}
+                            apiKey={apiKey}
                             updateScene={updateScene}
                             availableReferences={characters
                               .filter((c) => c.videoFilename)
