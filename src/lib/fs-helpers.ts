@@ -217,6 +217,35 @@ export async function writeMomentsJson(
   await writable.close();
 }
 
+export async function readChatJson(
+  folderHandle: FileSystemDirectoryHandle,
+  projectId: string,
+): Promise<import("@/stores/chat-store").ChatMessage[] | null> {
+  try {
+    const projectDir = await getProjectDir(folderHandle, projectId);
+    const fileHandle = await projectDir.getFileHandle("chat.json");
+    const file = await fileHandle.getFile();
+    const text = await file.text();
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+export async function writeChatJson(
+  folderHandle: FileSystemDirectoryHandle,
+  projectId: string,
+  messages: import("@/stores/chat-store").ChatMessage[],
+): Promise<void> {
+  const projectDir = await getProjectDir(folderHandle, projectId);
+  const fileHandle = await projectDir.getFileHandle("chat.json", {
+    create: true,
+  });
+  const writable = await fileHandle.createWritable();
+  await writable.write(JSON.stringify(messages, null, 2));
+  await writable.close();
+}
+
 export async function getProjectImagesDir(
   folderHandle: FileSystemDirectoryHandle,
   projectId: string,

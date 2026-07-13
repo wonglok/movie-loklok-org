@@ -21,6 +21,7 @@ import {
   readMovieJson,
   readCharactersJson,
   readScenesJson,
+  readChatJson,
   saveAndLoadLocal,
   savePromptFile,
   loadLocalImage,
@@ -198,10 +199,11 @@ export function MovieApp() {
 
     (async () => {
       try {
-        const [movieData, charData, sceneData] = await Promise.all([
+        const [movieData, charData, sceneData, chatData] = await Promise.all([
           readMovieJson(folderHandle, activeProjectId),
           readCharactersJson(folderHandle, activeProjectId),
           readScenesJson(folderHandle, activeProjectId),
+          readChatJson(folderHandle, activeProjectId),
         ]);
         resetProject();
         setProjectId(activeProjectId);
@@ -218,6 +220,9 @@ export function MovieApp() {
         }
         if (charData) setCharacters(charData);
         if (sceneData) setScenes(sceneData);
+        // Load chat history for this project
+        useChatStore.getState().setMessages(chatData ?? []);
+        useChatStore.getState().setSaveHandle({ folderHandle, projectId: activeProjectId });
       } catch {
         /* use defaults */
       }
@@ -263,6 +268,15 @@ export function MovieApp() {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated, projectId]);
+
+  // Auto-save chat messages when they change
+  useEffect(() => {
+    if (!hydrated || !folderHandle || !projectId) return;
+    const timer = setTimeout(() => {
+      useChatStore.getState().persistMessages();
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [hydrated, folderHandle, projectId, useChatStore((s) => s.messages)]);
 
   // Enter key to confirm removal
   useEffect(() => {

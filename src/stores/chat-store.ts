@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { writeChatJson } from "@/lib/fs-helpers";
 
 export interface ToolCall {
   id: string;
@@ -23,6 +24,10 @@ interface ChatState {
   isOpen: boolean;
   isSending: boolean;
   error: string | null;
+  saveHandle: {
+    folderHandle: FileSystemDirectoryHandle;
+    projectId: string;
+  } | null;
 
   setInput: (input: string) => void;
   toggleOpen: () => void;
@@ -37,14 +42,18 @@ interface ChatState {
   setIsSending: (sending: boolean) => void;
   setError: (error: string | null) => void;
   clearMessages: () => void;
+  setMessages: (messages: ChatMessage[]) => void;
+  setSaveHandle: (handle: { folderHandle: FileSystemDirectoryHandle; projectId: string } | null) => void;
+  persistMessages: () => Promise<void>;
 }
 
-export const useChatStore = create<ChatState>((set) => ({
+export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
   input: "",
   isOpen: false,
   isSending: false,
   error: null,
+  saveHandle: null,
 
   setInput: (input) => set({ input }),
 
@@ -78,4 +87,18 @@ export const useChatStore = create<ChatState>((set) => ({
   setError: (error) => set({ error }),
 
   clearMessages: () => set({ messages: [], error: null }),
+
+  setMessages: (messages) => set({ messages }),
+
+  setSaveHandle: (handle) => set({ saveHandle: handle }),
+
+  persistMessages: async () => {
+    const { saveHandle, messages } = get();
+    if (!saveHandle) return;
+    try {
+      await writeChatJson(saveHandle.folderHandle, saveHandle.projectId, messages);
+    } catch {
+      // silently fail — will retry on next change
+    }
+  },
 }));
