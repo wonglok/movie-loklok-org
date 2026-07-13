@@ -23,6 +23,7 @@ interface SceneCardProps {
   folderHandle: FileSystemDirectoryHandle | null;
   updateScene: (id: string, updates: Partial<Character>) => void;
   availableReferences: { id: string; name: string }[];
+  availableCharacters: { id: string; name: string; hasImage: boolean }[];
 }
 
 export function SceneCard({
@@ -44,6 +45,7 @@ export function SceneCard({
   folderHandle,
   updateScene,
   availableReferences,
+  availableCharacters,
 }: SceneCardProps) {
   const conversations = scene.conversations || [];
   const [showVideo, setShowVideo] = useState(false);
@@ -317,6 +319,49 @@ export function SceneCard({
           </div>
         </div>
       </div>
+
+      {/* Characters in this scene */}
+      {availableCharacters.length > 0 && (
+        <div className="border-t border-neutral-800 px-4 py-2.5 flex flex-col gap-1.5">
+          <span className="text-neutral-500 text-[10px] font-medium">
+            Characters in Scene
+          </span>
+          <div className="flex flex-wrap gap-1.5">
+            {availableCharacters.map((ch) => {
+              const isChecked = (scene.characterIds ?? []).includes(ch.id);
+              return (
+                <label
+                  key={ch.id}
+                  className={`flex items-center gap-1 px-2 py-0.5 rounded cursor-pointer transition-colors text-[10px] ${
+                    isChecked
+                      ? "bg-(--blender-accent)/10 text-white"
+                      : "bg-neutral-800 text-neutral-500 hover:bg-neutral-700/70 hover:text-neutral-300"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={() => {
+                      const ids = scene.characterIds ?? [];
+                      const next = isChecked
+                        ? ids.filter((cid) => cid !== ch.id)
+                        : [...ids, ch.id];
+                      updateScene(scene.id, { characterIds: next });
+                    }}
+                    className="w-3 h-3 rounded border-neutral-600 bg-neutral-700 accent-(--blender-accent) cursor-pointer"
+                  />
+                  <span className="truncate max-w-[80px]">
+                    {ch.name}
+                    {!ch.hasImage && (
+                      <span className="text-neutral-600 ml-0.5" title="No image yet">*</span>
+                    )}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Footer: Video generation */}
       {scene.imageFilename && (

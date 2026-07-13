@@ -20,6 +20,7 @@ export interface Character {
   videoResolution: "480p" | "720p" | "1080p" | string;
   videoAspect: "16:9" | "9:16" | "4:3" | "1:1" | "3:4" | string;
   videoReferenceIds: string[];
+  characterIds: string[];
   conversations: Conversation[];
 }
 

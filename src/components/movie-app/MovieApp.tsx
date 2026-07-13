@@ -360,6 +360,7 @@ export function MovieApp() {
           videoResolution: "480p",
           videoAspect: "9:16",
           videoReferenceIds: [],
+          characterIds: [],
           conversations: [],
         })),
       ]);
@@ -516,6 +517,7 @@ export function MovieApp() {
           videoResolution: "480p",
           videoAspect: "9:16",
           videoReferenceIds: [],
+          characterIds: [],
           conversations: s.conversations || [],
         })),
       );
@@ -532,17 +534,22 @@ export function MovieApp() {
     setError(null);
     setImageRegenId(id);
     try {
+      // Only reference characters selected for this scene
+      const sceneCharIds = new Set(scene.characterIds ?? []);
+      const sceneChars = sceneCharIds.size > 0
+        ? characters.filter((c) => sceneCharIds.has(c.id))
+        : [];
       const charRefs = await resolveCharacterRefs(
-        characters,
+        sceneChars,
         folderHandle,
         apiKey,
         projectId ?? undefined,
       );
-      const charNames = characters
+      const charNames = sceneChars
         .filter((c) => c.name)
         .map((c) => c.name)
         .join(", ");
-      const imagePrompt = `Cinematic movie keyframe, ${effectiveStyle} animation style. Featuring characters: ${charNames || "original characters"}. Scene: ${scene.name}. ${scene.description}. Location: ${scene.location || "unspecified"}. Characters must maintain consistent appearance and design. Wide establishing shot, dramatic lighting, film composition.`;
+      const imagePrompt = `Cinematic movie keyframe, ${effectiveStyle} animation style.${charNames ? ` Featuring characters: ${charNames}.` : ""} Scene: ${scene.name}. ${scene.description}. Location: ${scene.location || "unspecified"}.${charNames ? " Characters must maintain consistent appearance and design." : ""} Wide establishing shot, dramatic lighting, film composition.`;
       const result = await generateSceneImage(imagePrompt, apiKey, charRefs);
       if (folderHandle && projectId) {
         const imagesDir = await getProjectImagesDir(folderHandle, projectId);
@@ -790,22 +797,27 @@ export function MovieApp() {
       const sceneDir = await imagesDir.getDirectoryHandle("scene", {
         create: true,
       });
-      const charRefs = await resolveCharacterRefs(
-        characters,
-        folderHandle,
-        apiKey,
-        projectId,
-      );
-      const charNames = characters
-        .filter((c) => c.name)
-        .map((c) => c.name)
-        .join(", ");
       let done = 0;
       await Promise.all(
         Array.from(selectedScenes).map(async (id) => {
           const scene = scenes.find((s) => s.id === id);
           if (!scene) return;
-          const prompt = `Cinematic movie keyframe, ${effectiveStyle} animation style. Featuring characters: ${charNames || "original characters"}. Scene: ${scene.name}. ${scene.description}. Location: ${scene.location || "unspecified"}. Characters must maintain consistent appearance and design. Wide establishing shot, dramatic lighting, film composition.`;
+          // Only reference characters selected for this scene
+          const sceneCharIds = new Set(scene.characterIds ?? []);
+          const sceneChars = sceneCharIds.size > 0
+            ? characters.filter((c) => sceneCharIds.has(c.id))
+            : [];
+          const charRefs = await resolveCharacterRefs(
+            sceneChars,
+            folderHandle,
+            apiKey,
+            projectId,
+          );
+          const charNames = sceneChars
+            .filter((c) => c.name)
+            .map((c) => c.name)
+            .join(", ");
+          const prompt = `Cinematic movie keyframe, ${effectiveStyle} animation style.${charNames ? ` Featuring characters: ${charNames}.` : ""} Scene: ${scene.name}. ${scene.description}. Location: ${scene.location || "unspecified"}.${charNames ? " Characters must maintain consistent appearance and design." : ""} Wide establishing shot, dramatic lighting, film composition.`;
           const result = await generateSceneImage(prompt, apiKey, charRefs);
           const imageId = crypto.randomUUID();
           const filename = `${imageId}.png`;
@@ -1332,6 +1344,7 @@ export function MovieApp() {
                               videoResolution: "480p",
                               videoAspect: "9:16",
                               videoReferenceIds: [],
+                              characterIds: [],
                               conversations: [],
                             },
                           ])
@@ -1536,6 +1549,13 @@ export function MovieApp() {
                               availableReferences={characters
                                 .filter((c) => c.videoFilename)
                                 .map((c) => ({ id: c.id, name: c.name }))}
+                              availableCharacters={characters
+                                .filter((c) => c.name)
+                                .map((c) => ({
+                                  id: c.id,
+                                  name: c.name,
+                                  hasImage: !!c.imageFilename,
+                                }))}
                             />
                           ))}
                         </div>
@@ -1558,6 +1578,7 @@ export function MovieApp() {
                                   videoResolution: "480p",
                                   videoAspect: "9:16",
                                   videoReferenceIds: [],
+                                  characterIds: [],
                                   conversations: [],
                                 },
                               ])

@@ -212,6 +212,7 @@ export function createTools(): ToolDef[] {
           videoResolution: "480p" as const,
           videoAspect: "9:16" as const,
           videoReferenceIds: [],
+          characterIds: [],
           conversations: [],
         };
         store.setCharacters([...store.characters, newChar]);
@@ -316,6 +317,7 @@ export function createTools(): ToolDef[] {
           videoResolution: "480p" as const,
           videoAspect: "9:16" as const,
           videoReferenceIds: [],
+          characterIds: [],
           conversations: [],
         };
         store.setScenes([...store.scenes, newScene]);
@@ -367,6 +369,7 @@ export function createTools(): ToolDef[] {
           videoResolution: "480p" as const,
           videoAspect: "9:16" as const,
           videoReferenceIds: [] as string[],
+          characterIds: [] as string[],
           conversations: [],
         }));
         store.setCharacters([...store.characters, ...newChars]);
@@ -396,6 +399,7 @@ export function createTools(): ToolDef[] {
           videoResolution: "480p" as const,
           videoAspect: "9:16" as const,
           videoReferenceIds: [] as string[],
+          characterIds: [] as string[],
         }));
         store.setScenes(newScenes);
         return `Extracted ${newScenes.length} scenes: ${newScenes.map((s) => s.name).join(", ")}.`;
@@ -470,15 +474,22 @@ export function createTools(): ToolDef[] {
         if (!targets.length) return "All specified scenes already have images or no scenes found.";
 
         const effectiveStyle = resolveStyle(store.customArtStyle, store.artStyle);
-        const charRefs = await resolveCharacterRefs(store.characters, folderHandle, apiKey, projectId);
-        const charNames = store.characters.filter((c) => c.name).map((c) => c.name).join(", ");
         const imagesDir = await getProjectImagesDir(folderHandle, projectId);
         const sceneDir = await imagesDir.getDirectoryHandle("scene", { create: true });
 
         let done = 0;
         const results: string[] = [];
         for (const scene of targets) {
-          const prompt = `Cinematic movie keyframe, ${effectiveStyle} animation style. Featuring characters: ${charNames || "original characters"}. Scene: ${scene.name}. ${scene.description}. Location: ${scene.location || "unspecified"}. Characters must maintain consistent appearance and design. Wide establishing shot, dramatic lighting, film composition.`;
+          // Only reference characters selected for this scene (max 3)
+          const sceneCharIds = new Set((scene.characterIds ?? []).slice(0, 3));
+          const sceneChars = sceneCharIds.size > 0
+            ? store.characters.filter((c) => sceneCharIds.has(c.id))
+            : [];
+          const charRefs = sceneChars.length > 0
+            ? await resolveCharacterRefs(sceneChars, folderHandle, apiKey, projectId)
+            : [];
+          const charNames = sceneChars.filter((c) => c.name).map((c) => c.name).join(", ");
+          const prompt = `Cinematic movie keyframe, ${effectiveStyle} animation style.${charNames ? ` Featuring characters: ${charNames}.` : ""} Scene: ${scene.name}. ${scene.description}. Location: ${scene.location || "unspecified"}.${charNames ? " Characters must maintain consistent appearance and design." : ""} Wide establishing shot, dramatic lighting, film composition.`;
           const result = await generateSceneImage(prompt, apiKey, charRefs);
           const imageId = crypto.randomUUID();
           const filename = `${imageId}.png`;
@@ -492,6 +503,34 @@ export function createTools(): ToolDef[] {
         const updated = useMovieStore.getState().scenes;
         store.setSceneImages(updated.map((s) => s.imageUrl).filter(Boolean) as string[]);
         return `Generated images for ${done} scene(s):\n${results.join("\n")}`;
+      },
+    },
+
+    {
+      name: "update_scene_characters",
+      description: "Set which characters appear in a scene. Use this to tag characters as involved in a scene before generating images. Max 3 characters per scene for image generation.",
+      parameters: {
+        type: "object",
+        properties: {
+          scene_id: { type: "string", description: "The scene ID." },
+          character_ids: {
+            type: "array",
+            items: { type: "string" },
+            description: "List of character IDs that appear in this scene. Max 3.",
+          },
+        },
+        required: ["scene_id", "character_ids"],
+      },
+      execute: async (args) => {
+        const id = args.scene_id as string;
+        const charIds = (args.character_ids as string[]).slice(0, 3);
+        const store = useMovieStore.getState();
+        const scene = store.scenes.find((s) => s.id === id);
+        if (!scene) return `Error: scene with ID "${id}" not found.`;
+        const validIds = charIds.filter((cid) => store.characters.some((c) => c.id === cid));
+        store.updateScene(id, { characterIds: validIds });
+        const names = validIds.map((cid) => store.characters.find((c) => c.id === cid)?.name || cid).join(", ");
+        return `Scene "${scene.name}" now has ${validIds.length} character(s): ${names || "none"}.`;
       },
     },
 
