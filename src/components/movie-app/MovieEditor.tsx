@@ -67,8 +67,9 @@ export function MovieEditor({
       const totalSteps = clips.length + 1; // normalize each + concat
       progressRef.current = { step: 0, total: totalSteps };
 
-      // Step 1: normalize each clip to a uniform mp4
+      // Step 1: normalize each clip to a uniform mp4, skipping failures
       const normLines: string[] = [];
+      const skipped: string[] = [];
       for (let i = 0; i < clips.length; i++) {
         const scene = clips[i];
         const taskLabel = `Converting clip ${i + 1} of ${clips.length}`;
@@ -76,29 +77,38 @@ export function MovieEditor({
         setCurrentTaskProgress(0);
         progressRef.current = { step: i, total: totalSteps };
 
-        const fileHandle = await clipsDir.getFileHandle(scene.videoFilename!);
-        const file = await fileHandle.getFile();
-        const inputName = `raw_${i}.mp4`;
-        const normName = `norm_${i}.mp4`;
+        try {
+          const fileHandle = await clipsDir.getFileHandle(scene.videoFilename!);
+          const file = await fileHandle.getFile();
+          const inputName = `raw_${i}.mp4`;
+          const normName = `norm_${i}.mp4`;
 
-        await ffmpeg.writeFile(inputName, await fetchFile(file));
+          await ffmpeg.writeFile(inputName, await fetchFile(file));
 
-        await ffmpeg.exec([
-          "-i", inputName,
-          "-c:v", "libx264",
-          "-preset", "veryfast",
-          "-crf", "17",
-          "-c:a", "aac",
-          "-b:a", "192k",
-          "-ar", "44100",
-          "-ac", "2",
-          "-pix_fmt", "yuv420p",
-          "-movflags", "+faststart",
-          normName,
-        ]);
+          await ffmpeg.exec([
+            "-i", inputName,
+            "-c:v", "libx264",
+            "-preset", "veryfast",
+            "-crf", "17",
+            "-c:a", "aac",
+            "-b:a", "192k",
+            "-ar", "44100",
+            "-ac", "2",
+            "-pix_fmt", "yuv420p",
+            "-movflags", "+faststart",
+            normName,
+          ]);
 
-        await ffmpeg.deleteFile(inputName);
-        normLines.push(`file '${normName}'`);
+          await ffmpeg.deleteFile(inputName);
+          normLines.push(`file '${normName}'`);
+        } catch {
+          skipped.push(scene.name || `Scene ${i + 1}`);
+          // Skip this clip and continue with the rest
+        }
+      }
+
+      if (normLines.length === 0) {
+        throw new Error("No clips could be processed. All files are missing or unreadable.");
       }
 
       // Step 2: concat normalized clips with stream copy
@@ -132,12 +142,16 @@ export function MovieEditor({
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      setCurrentTask("Done!");
+      if (skipped.length > 0) {
+        setCurrentTask(`Done! (${skipped.length} clip(s) skipped: ${skipped.join(", ")})`);
+      } else {
+        setCurrentTask("Done!");
+      }
       setTimeout(() => {
         setCurrentTask("");
         setOverallProgress(0);
         setCurrentTaskProgress(0);
-      }, 2000);
+      }, 4000);
     } catch (err) {
       setCurrentTask(err instanceof Error ? err.message : "Stitching failed");
       setOverallProgress(0);
