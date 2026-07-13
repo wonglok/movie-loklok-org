@@ -294,20 +294,9 @@ export function CharacterCard({
                 const savedFile = await fileHandle.getFile();
                 const localUrl = URL.createObjectURL(savedFile);
 
-                let sourceUrl: string | null = null;
-                if (apiKey) {
-                  try {
-                    fal.config({ credentials: apiKey });
-                    sourceUrl = await fal.storage.upload(file);
-                  } catch {
-                    // fal.ai upload failed, keep sourceUrl null
-                  }
-                }
-
                 updateCharacter(char.id, {
                   videoUrl: localUrl,
                   videoFilename: filename,
-                  sourceUrl,
                 });
               } catch {
                 // upload failed, ignore
