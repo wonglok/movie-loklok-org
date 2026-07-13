@@ -434,6 +434,9 @@ export function createTools(): ToolDef[] {
           done++;
           results.push(`${char.name}: done`);
         }
+        // Sync the characterImages array used by the UI
+        const updated = useMovieStore.getState().characters;
+        store.setCharacterImages(updated.map((c) => c.imageUrl).filter(Boolean) as string[]);
         return `Generated images for ${done} character(s):\n${results.join("\n")}`;
       },
     },
@@ -485,6 +488,9 @@ export function createTools(): ToolDef[] {
           done++;
           results.push(`${scene.name}: done`);
         }
+        // Sync the sceneImages array used by the UI
+        const updated = useMovieStore.getState().scenes;
+        store.setSceneImages(updated.map((s) => s.imageUrl).filter(Boolean) as string[]);
         return `Generated images for ${done} scene(s):\n${results.join("\n")}`;
       },
     },
@@ -546,17 +552,51 @@ export function createTools(): ToolDef[] {
         if (!scene) return `Error: scene "${args.scene_id}" not found.`;
         if (!scene.imageFilename) return "Error: Scene has no image. Generate the scene image first.";
 
+        // Load the scene image file from the project's images/scene/ directory
         const imagesDir = await getProjectImagesDir(folderHandle, projectId);
         const sceneDir = await imagesDir.getDirectoryHandle("scene", { create: true });
         const fileHandle = await sceneDir.getFileHandle(scene.imageFilename);
         const file = await fileHandle.getFile();
 
+        // Resolve character reference video files from clips/ directory
+        const referenceIds = scene.videoReferenceIds?.length ? new Set(scene.videoReferenceIds) : null;
+        const videoFiles: File[] = [];
+        try {
+          const clipsDir = await getProjectClipsDir(folderHandle, projectId);
+          for (const char of store.characters) {
+            if (!char.videoFilename) continue;
+            if (referenceIds && !referenceIds.has(char.id)) continue;
+            try {
+              const vfHandle = await clipsDir.getFileHandle(char.videoFilename);
+              videoFiles.push(await vfHandle.getFile());
+            } catch {
+              // file not found, skip
+            }
+          }
+        } catch {
+          // clips folder not accessible, continue without reference videos
+        }
+
         const dialogueLines = (scene.conversations || [])
           .map((c) => `${c.person} says: "${c.line}"`)
           .join("\n");
-        const prompt = `Scene Title: ${scene.name}.\n\nScene Description: ${scene.description}\n\nScene Location: ${scene.location || "unspecified"}\n\nDuration: ${scene.videoDuration}s.\nNo background music. Language & Tone: ${store.language}.\nMust speak the dialogue lines.\n\n${dialogueLines ? `Dialogue lines:\n${dialogueLines}` : ""}`;
+        const prompt = `Scene Title: ${scene.name}. \n\n
 
-        const remoteUrl = await uploadAndGenerateVideo(file, prompt, apiKey, scene.videoResolution, scene.videoAspect);
+      Scene Description: ${scene.description}\n\nScene Location: ${scene.location || "unspecified"}\n\nDuration: ${scene.videoDuration}s.
+      No background music. Language & Tone: ${store.language}.
+      Must speak the dialogue lines. MUST ignore the words in the attached video.
+      The attached video is designed for tone reference.  \n\n ${
+        dialogueLines ? `\n\nDialogue lines:\n${dialogueLines}` : ""
+      }`;
+
+        const remoteUrl = await uploadAndGenerateVideo(
+          file,
+          prompt,
+          apiKey,
+          scene.videoResolution,
+          scene.videoAspect,
+          videoFiles.length ? videoFiles : undefined,
+        );
         const clipsDir = await getProjectClipsDir(folderHandle, projectId);
         const videoFilename = `${crypto.randomUUID()}.mp4`;
         const localUrl = await saveAndLoadLocal(remoteUrl, videoFilename, clipsDir);
