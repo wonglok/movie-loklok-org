@@ -536,9 +536,10 @@ export function MovieApp() {
     try {
       // Only reference characters selected for this scene
       const sceneCharIds = new Set(scene.characterIds ?? []);
-      const sceneChars = sceneCharIds.size > 0
-        ? characters.filter((c) => sceneCharIds.has(c.id))
-        : [];
+      const sceneChars =
+        sceneCharIds.size > 0
+          ? characters.filter((c) => sceneCharIds.has(c.id))
+          : [];
       const charRefs = await resolveCharacterRefs(
         sceneChars,
         folderHandle,
@@ -804,9 +805,10 @@ export function MovieApp() {
           if (!scene) return;
           // Only reference characters selected for this scene
           const sceneCharIds = new Set(scene.characterIds ?? []);
-          const sceneChars = sceneCharIds.size > 0
-            ? characters.filter((c) => sceneCharIds.has(c.id))
-            : [];
+          const sceneChars =
+            sceneCharIds.size > 0
+              ? characters.filter((c) => sceneCharIds.has(c.id))
+              : [];
           const charRefs = await resolveCharacterRefs(
             sceneChars,
             folderHandle,
