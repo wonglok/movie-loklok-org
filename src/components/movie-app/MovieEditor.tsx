@@ -2,6 +2,8 @@
 
 import { useState, useCallback, useRef } from "react";
 import type { Character } from "@/stores/movie-store";
+import { useMovieStore } from "@/stores/movie-store";
+import { getProjectClipsDir } from "@/lib/fs-helpers";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile } from "@ffmpeg/util";
 
@@ -41,7 +43,8 @@ export function MovieEditor({
   };
 
   const handleStitch = useCallback(async () => {
-    if (!folderHandle || scenesWithVideo.length < 2) return;
+    const projectId = useMovieStore.getState().projectId;
+    if (!folderHandle || !projectId || scenesWithVideo.length < 2) return;
     setStitching(true);
     setOverallProgress(0);
     setCurrentTaskProgress(0);
@@ -61,7 +64,7 @@ export function MovieEditor({
 
       await ffmpeg.load();
 
-      const clipsDir = await folderHandle.getDirectoryHandle("clips");
+      const clipsDir = await getProjectClipsDir(folderHandle, projectId);
 
       const clips = scenesWithVideo.filter((s) => s.videoFilename);
       const totalSteps = clips.length + 1; // normalize each + concat
