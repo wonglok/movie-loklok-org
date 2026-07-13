@@ -206,6 +206,7 @@ export function CharacterCard({
                 </svg>
                 Play Ref
               </button>
+
               {showVideo && (
                 <div
                   className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"
@@ -266,9 +267,12 @@ export function CharacterCard({
               const file = e.target.files?.[0];
               if (!file || !folderHandle) return;
               try {
-                const clipsDir = await folderHandle.getDirectoryHandle("clips", {
-                  create: true,
-                });
+                const clipsDir = await folderHandle.getDirectoryHandle(
+                  "clips",
+                  {
+                    create: true,
+                  },
+                );
                 const uploadId = crypto.randomUUID();
                 const filename = `${uploadId}.mp4`;
                 const fileHandle = await clipsDir.getFileHandle(filename, {
