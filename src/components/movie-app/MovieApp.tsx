@@ -968,10 +968,7 @@ export function MovieApp() {
           </button>
           <div className="flex justify-center mb-6">
             <div className="bg-white p-3 rounded-xl">
-              <QRCode
-                value={`https://github.com/wonglok/movie-loklok-org`}
-                size={350}
-              />
+              <QRCode value={`https://many.video.loklok.org`} size={350} />
             </div>
 
             {/* <div className="h-[256px] w-[256px] rotate-z-45">
@@ -996,11 +993,10 @@ export function MovieApp() {
                 hueShift={0}
               ></Strands>
             </div> */}
-
-            {/*
-             */}
           </div>
-          <div className="text-white mb-3 font-bold">VIDEO.LOKLOK.ORG</div>
+          <div className="text-blue-300 underline mb-3 font-bold">
+            https://many.video.loklok.org
+          </div>
           <div className="text-white mb-3 font-bold">
             <a
               href={`https://github.com/wonglok/movie-loklok-org`}
@@ -1013,7 +1009,7 @@ export function MovieApp() {
             </a>
           </div>
           <h1 className="text-5xl font-bold text-white mb-4 tracking-tight">
-            Simple Movie Studio
+            AI Video Studio
           </h1>
           <p className="text-neutral-400 text-lg max-w-md mx-auto leading-relaxed">
             Bring your story to life with AI-generated characters and scenes
