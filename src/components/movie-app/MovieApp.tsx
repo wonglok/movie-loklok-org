@@ -1014,20 +1014,6 @@ export function MovieApp() {
           <p className="text-neutral-400 text-lg max-w-md mx-auto leading-relaxed">
             Bring your story to life with AI-generated characters and scenes
           </p>
-          <div className="mt-6">
-            <button
-              onClick={async () => {
-                if (!folderHandle) return;
-                await importProject(folderHandle);
-                await setActiveProjectId(
-                  useProjectStore.getState().activeProjectId,
-                );
-              }}
-              className="px-5 py-2.5 bg-neutral-800 border border-neutral-700 rounded-xl text-neutral-300 text-sm hover:bg-neutral-700 hover:text-white transition-all"
-            >
-              Import New Project from ZIP File
-            </button>
-          </div>
           {isSaving && (
             <p className="text-neutral-100 text-xs mt-3 animate-pulse fixed top-3 left-3">
               Saving...
@@ -1573,35 +1559,62 @@ export function MovieApp() {
                     Download all project files as a zip archive to share or back
                     up your work.
                   </p>
-                  <button
-                    onClick={handleExportZip}
-                    disabled={exportingZip}
-                    className="px-6 py-3 bg-white text-black rounded-xl font-semibold text-sm hover:bg-neutral-200 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-2"
-                  >
-                    {exportingZip ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-black/20 border-t-black" />
-                        Exporting...
-                      </>
-                    ) : (
-                      <>
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={2}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
-                          />
-                        </svg>
-                        Export & Download ZIP
-                      </>
-                    )}
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handleExportZip}
+                      disabled={exportingZip}
+                      className="px-6 py-3 bg-white text-black rounded-xl font-semibold text-sm hover:bg-neutral-200 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                    >
+                      {exportingZip ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-black/20 border-t-black" />
+                          Exporting...
+                        </>
+                      ) : (
+                        <>
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
+                            />
+                          </svg>
+                          Export & Download ZIP
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!folderHandle) return;
+                        await importProject(folderHandle);
+                        await setActiveProjectId(
+                          useProjectStore.getState().activeProjectId,
+                        );
+                      }}
+                      className="px-6 py-3 bg-white text-black rounded-xl font-semibold text-sm hover:bg-neutral-200 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M7.5 12L12 7.5m0 0l4.5 4.5M12 7.5V21"
+                        />
+                      </svg>
+                      Import New Project from ZIP File
+                    </button>
+                  </div>
                 </section>
               )}
 
