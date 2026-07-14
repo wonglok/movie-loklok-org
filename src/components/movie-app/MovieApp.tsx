@@ -427,7 +427,7 @@ export function MovieApp() {
     setError(null);
     setRegeneratingIds((prev) => new Set(prev).add(id));
     try {
-      const prompt = `Character design reference sheet, ${effectiveStyle} animation style. Character name: ${char.name}. ${char.description}. Full body, clean character turnaround, consistent design.`;
+      const prompt = `Face Image. ${effectiveStyle} style. Character name: ${char.name}. ${char.description}. MUST NOT draw any text. Close-up portrait zoomed in on the character's face, single front-facing view only, no multiple views, no turnaround. Neutral facial expression. Grey background.`;
       const result = await generateImage(prompt, apiKey);
       if (folderHandle && projectId) {
         const imagesDir = await getProjectImagesDir(folderHandle, projectId);
@@ -506,7 +506,16 @@ export function MovieApp() {
     setError(null);
     setExtractingScenes(true);
     try {
-      const extracted = await extractScenes(story, apiKey, language, characters.map((c) => ({ id: c.id, name: c.name, description: c.description })));
+      const extracted = await extractScenes(
+        story,
+        apiKey,
+        language,
+        characters.map((c) => ({
+          id: c.id,
+          name: c.name,
+          description: c.description,
+        })),
+      );
       setScenes(
         extracted.map((s) => ({
           id: crypto.randomUUID(),
