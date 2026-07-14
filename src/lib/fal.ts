@@ -18,10 +18,18 @@ export async function resolveCharacterRefs(
       urls.push(char.sourceUrl);
     } else if (char.imageFilename && folderHandle && projectId) {
       try {
-        const projectsDir = await folderHandle.getDirectoryHandle("projects", { create: true });
-        const projectDir = await projectsDir.getDirectoryHandle(projectId, { create: true });
-        const imagesDir = await projectDir.getDirectoryHandle("images", { create: true });
-        const charDir = await imagesDir.getDirectoryHandle("character", { create: true });
+        const projectsDir = await folderHandle.getDirectoryHandle("projects", {
+          create: true,
+        });
+        const projectDir = await projectsDir.getDirectoryHandle(projectId, {
+          create: true,
+        });
+        const imagesDir = await projectDir.getDirectoryHandle("images", {
+          create: true,
+        });
+        const charDir = await imagesDir.getDirectoryHandle("character", {
+          create: true,
+        });
         const fileHandle = await charDir.getFileHandle(char.imageFilename);
         const file = await fileHandle.getFile();
         const uploadedUrl = await fal.storage.upload(file);
@@ -244,71 +252,71 @@ export async function uploadAndGenerateVideo(
   return data.video?.url ?? data.url ?? "";
 }
 
-export async function extractMoments(
-  story: string,
-  scenes: { id: string; name: string; description: string }[],
-  apiKey: string,
-): Promise<
-  {
-    id: string;
-    sceneId: string;
-    name: string;
-    description: string;
-    duration: number;
-    cameraAngle: string;
-    cameraMovement: string;
-  }[]
-> {
-  fal.config({ credentials: apiKey });
+// export async function extractMoments(
+//   story: string,
+//   scenes: { id: string; name: string; description: string }[],
+//   apiKey: string,
+// ): Promise<
+//   {
+//     id: string;
+//     sceneId: string;
+//     name: string;
+//     description: string;
+//     duration: number;
+//     cameraAngle: string;
+//     cameraMovement: string;
+//   }[]
+// > {
+//   fal.config({ credentials: apiKey });
 
-  const scenesContext = scenes
-    .map((s, i) => `Scene ${i}: ${s.name} - ${s.description}`)
-    .join("\n");
+//   const scenesContext = scenes
+//     .map((s, i) => `Scene ${i}: ${s.name} - ${s.description}`)
+//     .join("\n");
 
-  const result = await fal.subscribe(
-    "openrouter/router/openai/v1/chat/completions",
-    {
-      input: {
-        model: "deepseek/deepseek-v4-pro",
-        messages: [
-          {
-            role: "user",
-            content: `Extract key moments/shots from each scene of this movie story. Return ONLY a valid JSON array of objects with these fields: "sceneIndex" (number matching the scene number below), "name" (shot name), "description" (what happens in this moment), "duration" (shot length in seconds, a number like 5), "cameraAngle" (e.g. "Eye level", "Low angle", "High angle", "Dutch angle", "Overhead"), "cameraMovement" (e.g. "Static", "Slow pan", "Dolly in", "Tracking shot", "Handheld"). No other text.\n\nStory: ${story}\n\nScenes:\n${scenesContext}`,
-          },
-        ],
-      },
-      logs: true,
-      onQueueUpdate: (update) => {
-        if (update.status === "IN_PROGRESS") {
-          update.logs.map((log) => log.message).forEach(console.log);
-        }
-      },
-    },
-  );
+//   const result = await fal.subscribe(
+//     "openrouter/router/openai/v1/chat/completions",
+//     {
+//       input: {
+//         model: "deepseek/deepseek-v4-pro",
+//         messages: [
+//           {
+//             role: "user",
+//             content: `Extract key moments/shots from each scene of this movie story. Return ONLY a valid JSON array of objects with these fields: "sceneIndex" (number matching the scene number below), "name" (shot name), "description" (what happens in this moment), "duration" (shot length in seconds, a number like 5), "cameraAngle" (e.g. "Eye level", "Low angle", "High angle", "Dutch angle", "Overhead"), "cameraMovement" (e.g. "Static", "Slow pan", "Dolly in", "Tracking shot", "Handheld"). No other text.\n\nStory: ${story}\n\nScenes:\n${scenesContext}`,
+//           },
+//         ],
+//       },
+//       logs: true,
+//       onQueueUpdate: (update) => {
+//         if (update.status === "IN_PROGRESS") {
+//           update.logs.map((log) => log.message).forEach(console.log);
+//         }
+//       },
+//     },
+//   );
 
-  const data = result.data as {
-    choices: { message: { content: string } }[];
-  };
-  const text = data.choices[0].message.content;
-  const json = text.replace(/```json|```/g, "").trim();
-  const raw = JSON.parse(json) as {
-    sceneIndex: number;
-    name: string;
-    description: string;
-    duration: number;
-    cameraAngle: string;
-    cameraMovement: string;
-  }[];
-  return raw.map((m) => ({
-    id: crypto.randomUUID(),
-    sceneId: scenes[m.sceneIndex]?.id ?? "",
-    name: m.name,
-    description: m.description,
-    duration: m.duration,
-    cameraAngle: m.cameraAngle,
-    cameraMovement: m.cameraMovement,
-  }));
-}
+//   const data = result.data as {
+//     choices: { message: { content: string } }[];
+//   };
+//   const text = data.choices[0].message.content;
+//   const json = text.replace(/```json|```/g, "").trim();
+//   const raw = JSON.parse(json) as {
+//     sceneIndex: number;
+//     name: string;
+//     description: string;
+//     duration: number;
+//     cameraAngle: string;
+//     cameraMovement: string;
+//   }[];
+//   return raw.map((m) => ({
+//     id: crypto.randomUUID(),
+//     sceneId: scenes[m.sceneIndex]?.id ?? "",
+//     name: m.name,
+//     description: m.description,
+//     duration: m.duration,
+//     cameraAngle: m.cameraAngle,
+//     cameraMovement: m.cameraMovement,
+//   }));
+// }
 
 export async function extractScenes(
   story: string,
@@ -591,11 +599,17 @@ export async function tagSceneCharacters(
   fal.config({ credentials: apiKey });
 
   const charList = characters
-    .map((c, i) => `${i}: id="${c.id}" name="${c.name}" description="${c.description}"`)
+    .map(
+      (c, i) =>
+        `${i}: id="${c.id}" name="${c.name}" description="${c.description}"`,
+    )
     .join("\n");
 
   const sceneList = scenes
-    .map((s, i) => `${i}: id="${s.id}" name="${s.name}" description="${s.description}"`)
+    .map(
+      (s, i) =>
+        `${i}: id="${s.id}" name="${s.name}" description="${s.description}"`,
+    )
     .join("\n");
 
   const result = await fal.subscribe(
@@ -647,7 +661,8 @@ ${sceneList}`,
       .filter((id) => validCharIds.has(id))
       .slice(0, 3);
     // Ensure at least 1 character per scene — fall back to the first character
-    out[scene.id] = charIds.length > 0 ? charIds : (fallbackId ? [fallbackId] : []);
+    out[scene.id] =
+      charIds.length > 0 ? charIds : fallbackId ? [fallbackId] : [];
   }
   return out;
 }
