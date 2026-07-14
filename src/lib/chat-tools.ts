@@ -500,6 +500,61 @@ export function createTools(): ToolDef[] {
     },
 
     {
+      name: "regenerate_character_image",
+      description:
+        "Regenerate the AI image for a specific character. Use this when a character already has an image but the user wants to replace or improve it.",
+      parameters: {
+        type: "object",
+        properties: {
+          character_id: {
+            type: "string",
+            description: "The ID of the character to regenerate the image for.",
+          },
+        },
+        required: ["character_id"],
+      },
+      execute: async (args) => {
+        const apiKey = getApiKey();
+        const folderHandle = getFolderHandle();
+        const projectId = getProjectId();
+        if (!apiKey) return "Error: No API key configured.";
+        if (!folderHandle || !projectId)
+          return "Error: No workspace or project selected.";
+
+        const store = useMovieStore.getState();
+        const char = store.characters.find(
+          (c) => c.id === (args.character_id as string),
+        );
+        if (!char)
+          return `Error: character with ID "${args.character_id}" not found.`;
+
+        const effectiveStyle = resolveStyle(store.customArtStyle, store.artStyle);
+        const imagesDir = await getProjectImagesDir(folderHandle, projectId);
+        const charDir = await imagesDir.getDirectoryHandle("character", {
+          create: true,
+        });
+
+        const prompt = `Face Image. ${effectiveStyle} style. Character name: ${char.name}. ${char.description}. MUST NOT draw any text. Close-up portrait zoomed in on the character's face, single front-facing view only, no multiple views, no turnaround. Neutral facial expression. Grey background.`;
+        const result = await generateImage(prompt, apiKey);
+        const imageId = crypto.randomUUID();
+        const filename = `${imageId}.png`;
+        const localUrl = await saveAndLoadLocal(result.url, filename, charDir);
+        store.updateCharacter(char.id, {
+          imageUrl: localUrl,
+          imageFilename: filename,
+          sourceUrl: result.url,
+        });
+        await savePromptFile(result.prompt, `${imageId}.txt`, charDir);
+
+        const updated = useMovieStore.getState().characters;
+        store.setCharacterImages(
+          updated.map((c) => c.imageUrl).filter(Boolean) as string[],
+        );
+        return `Regenerated image for character "${char.name}".`;
+      },
+    },
+
+    {
       name: "generate_scene_images",
       description:
         "Generate AI images for all scenes that don't have one yet, or for specific scene IDs.",
