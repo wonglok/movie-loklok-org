@@ -472,7 +472,7 @@ export function createTools(): ToolDef[] {
         let done = 0;
         const results: string[] = [];
         for (const char of chars) {
-          const prompt = `Face Image. ${effectiveStyle} style. Character name: ${char.name}. ${char.description}. MUST NOT draw any text. zoom to show the character's face. grey background. clean character turnaround, consistent design.`;
+          const prompt = `Face Image. ${effectiveStyle} style. Character name: ${char.name}. ${char.description}. MUST NOT draw any text. Close-up portrait zoomed in on the character's face, single front-facing view only, no multiple views, no turnaround. Neutral facial expression. Grey background.`;
           const result = await generateImage(prompt, apiKey);
           const imageId = crypto.randomUUID();
           const filename = `${imageId}.png`;
