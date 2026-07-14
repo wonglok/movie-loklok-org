@@ -19,6 +19,7 @@ import {
   saveAndLoadLocal,
   savePromptFile,
   readCharactersJson,
+  readScenesJson,
   exportProjectAsZip,
 } from "@/lib/fs-helpers";
 
@@ -459,7 +460,17 @@ export function createTools(): ToolDef[] {
           return "Error: No workspace or project selected.";
 
         const store = useMovieStore.getState();
-        const chars = store.characters.filter((c) => !c.imageFilename);
+
+        // Reload latest character data from disk so we use the freshest names/descriptions
+        let latestChars = store.characters;
+        try {
+          const fromDisk = await readCharactersJson(folderHandle, projectId);
+          if (fromDisk) latestChars = fromDisk;
+        } catch {
+          // fall back to in-memory characters if disk read fails
+        }
+
+        const chars = latestChars.filter((c) => !c.imageFilename);
         if (!chars.length) return "All characters already have images.";
 
         const effectiveStyle = resolveStyle(

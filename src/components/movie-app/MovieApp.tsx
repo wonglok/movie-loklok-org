@@ -388,12 +388,20 @@ export function MovieApp() {
     setError(null);
     setGeneratingCharacters(true);
     try {
+      // Reload latest character data from disk so we use the freshest names/descriptions
+      let latestChars = characters;
+      try {
+        const fromDisk = await readCharactersJson(folderHandle, projectId);
+        if (fromDisk) latestChars = fromDisk;
+      } catch {
+        // fall back to in-memory characters if disk read fails
+      }
       const imagesDir = await getProjectImagesDir(folderHandle, projectId);
       const characterDir = await imagesDir.getDirectoryHandle("character", {
         create: true,
       });
       await Promise.all(
-        characters.map(async (char) => {
+        latestChars.map(async (char) => {
           const prompt = `Face Image. ${effectiveStyle} style. Character name: ${char.name}. ${char.description}. MUST NOT draw any text. zoom to show the character's face. grey background. clean character turnaround, consistent design.`;
           const result = await generateImage(prompt, apiKey);
           const imageId = crypto.randomUUID();
@@ -422,7 +430,17 @@ export function MovieApp() {
   };
 
   const handleRegenerateCharacter = async (id: string) => {
-    const char = characters.find((c) => c.id === id);
+    // Reload latest character data from disk so we use the freshest name/description
+    let latestChars = characters;
+    if (folderHandle && projectId) {
+      try {
+        const fromDisk = await readCharactersJson(folderHandle, projectId);
+        if (fromDisk) latestChars = fromDisk;
+      } catch {
+        // fall back to in-memory characters if disk read fails
+      }
+    }
+    const char = latestChars.find((c) => c.id === id);
     if (!char || !apiKey) return;
     setError(null);
     setRegeneratingIds((prev) => new Set(prev).add(id));
@@ -541,21 +559,25 @@ export function MovieApp() {
   };
 
   const handleRegenerateSceneImage = async (id: string) => {
-    const scene = scenes.find((s) => s.id === id);
-    if (!scene || !apiKey) return;
+    if (!apiKey) return;
     setError(null);
     setImageRegenId(id);
     try {
-      // Reload latest character data from disk so we use the freshest images
+      // Reload latest data from disk so we use the freshest characters, scenes, and images
       let latestChars = characters;
+      let latestScenes = scenes;
       if (folderHandle && projectId) {
         try {
-          const fromDisk = await readCharactersJson(folderHandle, projectId);
-          if (fromDisk) latestChars = fromDisk;
+          const charsFromDisk = await readCharactersJson(folderHandle, projectId);
+          if (charsFromDisk) latestChars = charsFromDisk;
+          const scenesFromDisk = await readScenesJson(folderHandle, projectId);
+          if (scenesFromDisk) latestScenes = scenesFromDisk;
         } catch {
-          // fall back to in-memory characters if disk read fails
+          // fall back to in-memory data if disk read fails
         }
       }
+      const scene = latestScenes.find((s) => s.id === id);
+      if (!scene) return;
       // Only reference characters selected for this scene
       const sceneCharIds = new Set(scene.characterIds ?? []);
       const sceneChars =
@@ -816,13 +838,16 @@ export function MovieApp() {
     const total = selectedScenes.size;
     setSelectedProgress({ current: 0, total });
     try {
-      // Reload latest character data from disk so we use the freshest images
+      // Reload latest data from disk so we use the freshest characters, scenes, and images
       let latestChars = characters;
+      let latestScenes = scenes;
       try {
-        const fromDisk = await readCharactersJson(folderHandle, projectId);
-        if (fromDisk) latestChars = fromDisk;
+        const charsFromDisk = await readCharactersJson(folderHandle, projectId);
+        if (charsFromDisk) latestChars = charsFromDisk;
+        const scenesFromDisk = await readScenesJson(folderHandle, projectId);
+        if (scenesFromDisk) latestScenes = scenesFromDisk;
       } catch {
-        // fall back to in-memory characters if disk read fails
+        // fall back to in-memory data if disk read fails
       }
       const imagesDir = await getProjectImagesDir(folderHandle, projectId);
       const sceneDir = await imagesDir.getDirectoryHandle("scene", {
@@ -831,7 +856,7 @@ export function MovieApp() {
       let done = 0;
       await Promise.all(
         Array.from(selectedScenes).map(async (id) => {
-          const scene = scenes.find((s) => s.id === id);
+          const scene = latestScenes.find((s) => s.id === id);
           if (!scene) return;
           // Only reference characters selected for this scene
           const sceneCharIds = new Set(scene.characterIds ?? []);
