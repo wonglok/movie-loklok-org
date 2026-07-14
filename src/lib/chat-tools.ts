@@ -963,7 +963,7 @@ export function createTools(): ToolDef[] {
           const clipsDir = await getProjectClipsDir(folderHandle, projectId);
           for (const char of latestChars) {
             if (!char.videoFilename) continue;
-            if (referenceIds && !referenceIds.has(char.id)) continue;
+            if (!referenceIds || !referenceIds.has(char.id)) continue;
             try {
               const vfHandle = await clipsDir.getFileHandle(char.videoFilename);
               videoFiles.push(await vfHandle.getFile());

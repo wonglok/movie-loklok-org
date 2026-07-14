@@ -807,7 +807,7 @@ export function MovieApp() {
       const clipsDir = await getProjectClipsDir(folderHandle, projectId);
       for (const char of chars) {
         if (!char.videoFilename) continue;
-        if (referenceIds && !ids.has(char.id)) continue;
+        if (!referenceIds || !ids.has(char.id)) continue;
         try {
           const fileHandle = await clipsDir.getFileHandle(char.videoFilename);
           files.push(await fileHandle.getFile());
