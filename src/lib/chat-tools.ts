@@ -535,7 +535,17 @@ export function createTools(): ToolDef[] {
           return "Error: No workspace or project selected.";
 
         const store = useMovieStore.getState();
-        const char = store.characters.find(
+
+        // Reload latest character data from disk so we use the freshest name/description
+        let latestChars = store.characters;
+        try {
+          const fromDisk = await readCharactersJson(folderHandle, projectId);
+          if (fromDisk) latestChars = fromDisk;
+        } catch {
+          // fall back to in-memory characters if disk read fails
+        }
+
+        const char = latestChars.find(
           (c) => c.id === (args.character_id as string),
         );
         if (!char)
@@ -650,10 +660,23 @@ export function createTools(): ToolDef[] {
           return "Error: No workspace or project selected.";
 
         const store = useMovieStore.getState();
+
+        // Reload latest data from disk so we use the freshest characters, scenes, and images
+        let latestChars = store.characters;
+        let latestScenes = store.scenes;
+        try {
+          const charsFromDisk = await readCharactersJson(folderHandle, projectId);
+          if (charsFromDisk) latestChars = charsFromDisk;
+          const scenesFromDisk = await readScenesJson(folderHandle, projectId);
+          if (scenesFromDisk) latestScenes = scenesFromDisk;
+        } catch {
+          // fall back to in-memory data if disk read fails
+        }
+
         const targetIds = args.scene_ids as string[] | undefined;
-        let targets = store.scenes.filter((s) => !s.imageFilename);
+        let targets = latestScenes.filter((s) => !s.imageFilename);
         if (targetIds?.length) {
-          targets = store.scenes.filter((s) => targetIds.includes(s.id));
+          targets = latestScenes.filter((s) => targetIds.includes(s.id));
         }
         if (!targets.length)
           return "All specified scenes already have images or no scenes found.";
@@ -666,15 +689,6 @@ export function createTools(): ToolDef[] {
         const sceneDir = await imagesDir.getDirectoryHandle("scene", {
           create: true,
         });
-
-        // Reload latest character data from disk so we use the freshest images
-        let latestChars = store.characters;
-        try {
-          const fromDisk = await readCharactersJson(folderHandle, projectId);
-          if (fromDisk) latestChars = fromDisk;
-        } catch {
-          // fall back to in-memory characters if disk read fails
-        }
 
         let done = 0;
         const results: string[] = [];
