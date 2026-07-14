@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { useChatStore, type ChatMessage, type ToolCall } from "@/stores/chat-store";
 import { useFolderStore } from "@/stores/folder-store";
 import { sendChatMessage } from "@/lib/chat-agent";
@@ -44,6 +46,132 @@ function ToolCallBubble({ tc }: { tc: ToolCall }) {
   );
 }
 
+const markdownComponents = (isUser: boolean) => ({
+  code({ node, className, children, ...props }: any) {
+    const inline = !className;
+    if (inline) {
+      return (
+        <code
+          className={`px-1 py-0.5 rounded text-xs font-mono ${
+            isUser ? "bg-black/10 text-black" : "bg-neutral-700 text-neutral-200"
+          }`}
+          {...props}
+        >
+          {children}
+        </code>
+      );
+    }
+    return (
+      <pre
+        className={`text-xs rounded-lg p-3 overflow-x-auto font-mono ${
+          isUser ? "bg-black/10 text-black" : "bg-neutral-900 text-neutral-200"
+        }`}
+      >
+        <code className={className} {...props}>
+          {children}
+        </code>
+      </pre>
+    );
+  },
+  a({ children, href, ...props }: any) {
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`underline ${
+          isUser ? "text-blue-700" : "text-blue-400"
+        }`}
+        {...props}
+      >
+        {children}
+      </a>
+    );
+  },
+  ul({ children, ...props }: any) {
+    return (
+      <ul className="list-disc pl-5 my-1 space-y-0.5" {...props}>
+        {children}
+      </ul>
+    );
+  },
+  ol({ children, ...props }: any) {
+    return (
+      <ol className="list-decimal pl-5 my-1 space-y-0.5" {...props}>
+        {children}
+      </ol>
+    );
+  },
+  p({ children, ...props }: any) {
+    return (
+      <p className="my-1 first:mt-0 last:mb-0" {...props}>
+        {children}
+      </p>
+    );
+  },
+  strong({ children, ...props }: any) {
+    return (
+      <strong className="font-semibold" {...props}>
+        {children}
+      </strong>
+    );
+  },
+  h1({ children, ...props }: any) {
+    return <h1 className="text-base font-semibold mt-3 mb-1" {...props}>{children}</h1>;
+  },
+  h2({ children, ...props }: any) {
+    return <h2 className="text-sm font-semibold mt-2 mb-1" {...props}>{children}</h2>;
+  },
+  h3({ children, ...props }: any) {
+    return <h3 className="text-sm font-medium mt-2 mb-1" {...props}>{children}</h3>;
+  },
+  table({ children, ...props }: any) {
+    return (
+      <div className="overflow-x-auto my-2">
+        <table
+          className={`w-full text-xs border-collapse ${
+            isUser ? "border-black/20" : "border-neutral-600"
+          }`}
+          {...props}
+        >
+          {children}
+        </table>
+      </div>
+    );
+  },
+  thead({ children, ...props }: any) {
+    return (
+      <thead className={isUser ? "bg-black/5" : "bg-neutral-700/50"} {...props}>
+        {children}
+      </thead>
+    );
+  },
+  th({ children, ...props }: any) {
+    return (
+      <th
+        className={`border px-2 py-1 text-left font-semibold ${
+          isUser ? "border-black/20" : "border-neutral-600"
+        }`}
+        {...props}
+      >
+        {children}
+      </th>
+    );
+  },
+  td({ children, ...props }: any) {
+    return (
+      <td
+        className={`border px-2 py-1 ${
+          isUser ? "border-black/20" : "border-neutral-600"
+        }`}
+        {...props}
+      >
+        {children}
+      </td>
+    );
+  },
+});
+
 function MessageBubble({ msg }: { msg: ChatMessage }) {
   const isUser = msg.role === "user";
 
@@ -56,7 +184,9 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
             : "bg-neutral-800 border border-neutral-700/50 text-neutral-200"
         }`}
       >
-        <div className="whitespace-pre-wrap">{msg.content}</div>
+        <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents(isUser)}>
+          {msg.content}
+        </ReactMarkdown>
         {msg.toolCalls && msg.toolCalls.length > 0 && (
           <div className="mt-1">
             {msg.toolCalls.map((tc) => (
