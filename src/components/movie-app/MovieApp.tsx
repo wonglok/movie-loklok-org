@@ -442,7 +442,7 @@ export function MovieApp() {
           filename,
           characterDir,
         );
-        updateCharacter(id, { imageUrl: localUrl, imageFilename: filename });
+        updateCharacter(id, { imageUrl: localUrl, imageFilename: filename, sourceUrl: result.url });
         await savePromptFile(result.prompt, `${imageId}.txt`, characterDir);
       } else {
         updateCharacter(id, { imageUrl: result.url, sourceUrl: result.url });
@@ -546,11 +546,21 @@ export function MovieApp() {
     setError(null);
     setImageRegenId(id);
     try {
+      // Reload latest character data from disk so we use the freshest images
+      let latestChars = characters;
+      if (folderHandle && projectId) {
+        try {
+          const fromDisk = await readCharactersJson(folderHandle, projectId);
+          if (fromDisk) latestChars = fromDisk;
+        } catch {
+          // fall back to in-memory characters if disk read fails
+        }
+      }
       // Only reference characters selected for this scene
       const sceneCharIds = new Set(scene.characterIds ?? []);
       const sceneChars =
         sceneCharIds.size > 0
-          ? characters.filter((c) => sceneCharIds.has(c.id))
+          ? latestChars.filter((c) => sceneCharIds.has(c.id))
           : [];
       const charRefs = await resolveCharacterRefs(
         sceneChars,
@@ -806,6 +816,14 @@ export function MovieApp() {
     const total = selectedScenes.size;
     setSelectedProgress({ current: 0, total });
     try {
+      // Reload latest character data from disk so we use the freshest images
+      let latestChars = characters;
+      try {
+        const fromDisk = await readCharactersJson(folderHandle, projectId);
+        if (fromDisk) latestChars = fromDisk;
+      } catch {
+        // fall back to in-memory characters if disk read fails
+      }
       const imagesDir = await getProjectImagesDir(folderHandle, projectId);
       const sceneDir = await imagesDir.getDirectoryHandle("scene", {
         create: true,
@@ -819,7 +837,7 @@ export function MovieApp() {
           const sceneCharIds = new Set(scene.characterIds ?? []);
           const sceneChars =
             sceneCharIds.size > 0
-              ? characters.filter((c) => sceneCharIds.has(c.id))
+              ? latestChars.filter((c) => sceneCharIds.has(c.id))
               : [];
           const charRefs = await resolveCharacterRefs(
             sceneChars,

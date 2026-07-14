@@ -18,6 +18,7 @@ import {
   getProjectClipsDir,
   saveAndLoadLocal,
   savePromptFile,
+  readCharactersJson,
   exportProjectAsZip,
 } from "@/lib/fs-helpers";
 
@@ -655,6 +656,15 @@ export function createTools(): ToolDef[] {
           create: true,
         });
 
+        // Reload latest character data from disk so we use the freshest images
+        let latestChars = store.characters;
+        try {
+          const fromDisk = await readCharactersJson(folderHandle, projectId);
+          if (fromDisk) latestChars = fromDisk;
+        } catch {
+          // fall back to in-memory characters if disk read fails
+        }
+
         let done = 0;
         const results: string[] = [];
         for (const scene of targets) {
@@ -662,7 +672,7 @@ export function createTools(): ToolDef[] {
           const sceneCharIds = new Set((scene.characterIds ?? []).slice(0, 3));
           const sceneChars =
             sceneCharIds.size > 0
-              ? store.characters.filter((c) => sceneCharIds.has(c.id))
+              ? latestChars.filter((c) => sceneCharIds.has(c.id))
               : [];
           const charRefs =
             sceneChars.length > 0
