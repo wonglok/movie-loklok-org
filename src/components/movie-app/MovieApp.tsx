@@ -477,7 +477,17 @@ export function MovieApp() {
   };
 
   const handleGenerateReferenceVideo = async (id: string) => {
-    const char = characters.find((c) => c.id === id);
+    // Reload latest character data from disk so we use the freshest name/description
+    let latestChars = characters;
+    if (folderHandle && projectId) {
+      try {
+        const fromDisk = await readCharactersJson(folderHandle, projectId);
+        if (fromDisk) latestChars = fromDisk;
+      } catch {
+        // fall back to in-memory characters if disk read fails
+      }
+    }
+    const char = latestChars.find((c) => c.id === id);
     if (!char?.imageFilename || !folderHandle || !apiKey || !projectId) return;
     setError(null);
     setReferenceVideoGeneratingIds((prev) => new Set(prev).add(id));
@@ -743,13 +753,15 @@ export function MovieApp() {
 
   const getCharacterVideoFiles = async (
     referenceIds?: string[],
+    charsOverride?: typeof characters,
   ): Promise<File[]> => {
     if (!folderHandle || !projectId) return [];
     const ids = new Set(referenceIds);
+    const chars = charsOverride ?? characters;
     const files: File[] = [];
     try {
       const clipsDir = await getProjectClipsDir(folderHandle, projectId);
-      for (const char of characters) {
+      for (const char of chars) {
         if (!char.videoFilename) continue;
         if (referenceIds && !ids.has(char.id)) continue;
         try {
@@ -766,16 +778,28 @@ export function MovieApp() {
   };
 
   const handleGenerateSceneVideo = async (id: string) => {
-    const scene = scenes.find((s) => s.id === id);
-    if (!scene?.imageFilename || !folderHandle || !apiKey || !projectId) return;
+    if (!folderHandle || !apiKey || !projectId) return;
+    // Reload latest data from disk so we use the freshest scenes and character videos
+    let latestChars = characters;
+    let latestScenes = scenes;
+    try {
+      const charsFromDisk = await readCharactersJson(folderHandle, projectId);
+      if (charsFromDisk) latestChars = charsFromDisk;
+      const scenesFromDisk = await readScenesJson(folderHandle, projectId);
+      if (scenesFromDisk) latestScenes = scenesFromDisk;
+    } catch {
+      // fall back to in-memory data if disk read fails
+    }
+    const scene = latestScenes.find((s) => s.id === id);
+    if (!scene?.imageFilename) return;
     setError(null);
     setGeneratingVideoId(id);
     try {
       const imagesDir = await getProjectImagesDir(folderHandle, projectId);
-      const sceneDir = await imagesDir.getDirectoryHandle("scene", {
+      const sceneDirHandle = await imagesDir.getDirectoryHandle("scene", {
         create: true,
       });
-      const fileHandle = await sceneDir.getFileHandle(scene.imageFilename);
+      const fileHandle = await sceneDirHandle.getFileHandle(scene.imageFilename);
       const file = await fileHandle.getFile();
       const dialogueLines = (scene.conversations || [])
         .map((c) => `${c.person} says: "${c.line}"`)
@@ -798,6 +822,7 @@ export function MovieApp() {
           (scene.videoReferenceIds?.length ?? 0)
             ? scene.videoReferenceIds!
             : undefined,
+          latestChars,
         ),
       );
       const clipsDir = await getProjectClipsDir(folderHandle, projectId!);
@@ -916,6 +941,17 @@ export function MovieApp() {
     const total = selectedScenes.size;
     setSelectedProgress({ current: 0, total });
     try {
+      // Reload latest data from disk so we use the freshest scenes and character videos
+      let latestChars = characters;
+      let latestScenes = scenes;
+      try {
+        const charsFromDisk = await readCharactersJson(folderHandle, projectId);
+        if (charsFromDisk) latestChars = charsFromDisk;
+        const scenesFromDisk = await readScenesJson(folderHandle, projectId);
+        if (scenesFromDisk) latestScenes = scenesFromDisk;
+      } catch {
+        // fall back to in-memory data if disk read fails
+      }
       const imagesDir = await getProjectImagesDir(folderHandle, projectId);
       const sceneDir = await imagesDir.getDirectoryHandle("scene", {
         create: true,
@@ -924,7 +960,7 @@ export function MovieApp() {
       let done = 0;
       await Promise.all(
         Array.from(selectedScenes).map(async (id) => {
-          const scene = scenes.find((s) => s.id === id);
+          const scene = latestScenes.find((s) => s.id === id);
           if (!scene?.imageFilename) return;
           const fileHandle = await sceneDir.getFileHandle(scene.imageFilename);
           const file = await fileHandle.getFile();
@@ -948,6 +984,7 @@ export function MovieApp() {
               (scene.videoReferenceIds?.length ?? 0)
                 ? scene.videoReferenceIds!
                 : undefined,
+              latestChars,
             ),
           );
           const videoFilename = `${crypto.randomUUID()}.mp4`;

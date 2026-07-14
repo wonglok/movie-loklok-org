@@ -600,7 +600,17 @@ export function createTools(): ToolDef[] {
           return "Error: No workspace or project selected.";
 
         const store = useMovieStore.getState();
-        const char = store.characters.find(
+
+        // Reload latest character data from disk so we use the freshest name/description
+        let latestChars = store.characters;
+        try {
+          const fromDisk = await readCharactersJson(folderHandle, projectId);
+          if (fromDisk) latestChars = fromDisk;
+        } catch {
+          // fall back to in-memory characters if disk read fails
+        }
+
+        const char = latestChars.find(
           (c) => c.id === (args.character_id as string),
         );
         if (!char)
