@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef } from "react";
 import type { Character } from "@/stores/movie-store";
 import { useMovieStore } from "@/stores/movie-store";
-import { getProjectClipsDir } from "@/lib/fs-helpers";
+import { getProjectClipsDir, getProjectImagesDir, archiveFile } from "@/lib/fs-helpers";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile } from "@ffmpeg/util";
 
@@ -22,6 +22,8 @@ export function MovieEditor({
   const [currentTask, setCurrentTask] = useState("");
   const [overallProgress, setOverallProgress] = useState(0);
   const [currentTaskProgress, setCurrentTaskProgress] = useState(0);
+  const [extractingFrame, setExtractingFrame] = useState(false);
+  const [frameExtractMsg, setFrameExtractMsg] = useState("");
 
   const progressRef = useRef({ step: 0, total: 0 });
 
@@ -164,6 +166,68 @@ export function MovieEditor({
     }
   }, [folderHandle, scenesWithVideo]);
 
+  const handleExtractFirstFrame = useCallback(async () => {
+    const projectId = useMovieStore.getState().projectId;
+    if (!folderHandle || !projectId || scenesWithVideo.length === 0) return;
+
+    const firstScene = scenesWithVideo[0];
+    setExtractingFrame(true);
+    setFrameExtractMsg("");
+
+    try {
+      const ffmpeg = new FFmpeg();
+      await ffmpeg.load();
+
+      const clipsDir = await getProjectClipsDir(folderHandle, projectId);
+      const fileHandle = await clipsDir.getFileHandle(firstScene.videoFilename!);
+      const file = await fileHandle.getFile();
+      const inputName = "extract_input.mp4";
+      const outputName = "extract_frame.png";
+
+      await ffmpeg.writeFile(inputName, await fetchFile(file));
+      await ffmpeg.exec(["-i", inputName, "-vframes", "1", "-q:v", "2", outputName]);
+
+      const data = (await ffmpeg.readFile(outputName)) as Uint8Array;
+
+      const imagesDir = await getProjectImagesDir(folderHandle, projectId);
+      const sceneDir = await imagesDir.getDirectoryHandle("scene", { create: true });
+      const archiveDir = await imagesDir.getDirectoryHandle("_archive", { create: true });
+
+      if (firstScene.imageFilename) {
+        await archiveFile(firstScene.imageFilename, sceneDir, archiveDir);
+        await archiveFile(firstScene.imageFilename.replace(/\.png$/, ".txt"), sceneDir, archiveDir);
+      }
+
+      const filename = `${crypto.randomUUID()}.png`;
+      const blob = new Blob([new Uint8Array(data)], { type: "image/png" });
+      const imgFileHandle = await sceneDir.getFileHandle(filename, { create: true });
+      const writable = await imgFileHandle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+
+      const localUrl = URL.createObjectURL(blob);
+      updateScene(firstScene.id, { imageUrl: localUrl, imageFilename: filename });
+
+      // Trigger download
+      const a = document.createElement("a");
+      a.href = localUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      await ffmpeg.deleteFile(inputName);
+      await ffmpeg.deleteFile(outputName);
+
+      setFrameExtractMsg("Frame extracted and downloaded!");
+      setTimeout(() => setFrameExtractMsg(""), 3000);
+    } catch (err) {
+      setFrameExtractMsg(err instanceof Error ? err.message : "Frame extraction failed");
+    } finally {
+      setExtractingFrame(false);
+    }
+  }, [folderHandle, scenesWithVideo, updateScene]);
+
   if (scenesWithVideo.length === 0) return null;
 
   return (
@@ -238,6 +302,20 @@ export function MovieEditor({
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-3">
             <button
+              onClick={handleExtractFirstFrame}
+              disabled={extractingFrame || stitching || scenesWithVideo.length === 0}
+              className="px-6 py-3 bg-white text-black rounded-xl font-semibold text-sm hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+            >
+              {extractingFrame ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-neutral-400 border-t-neutral-200" />
+                  Extracting...
+                </>
+              ) : (
+                "Extract Frame"
+              )}
+            </button>
+            <button
               onClick={handleStitch}
               disabled={stitching || scenesWithVideo.length < 2}
               className="px-6 py-3 bg-white text-black rounded-xl font-semibold text-sm hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-2"
@@ -252,6 +330,10 @@ export function MovieEditor({
               )}
             </button>
           </div>
+
+          {frameExtractMsg && !extractingFrame && (
+            <span className="text-neutral-400 text-xs">{frameExtractMsg}</span>
+          )}
 
           {stitching && (
             <div className="flex flex-col gap-2 bg-neutral-900 border border-neutral-800 rounded-xl p-4">
