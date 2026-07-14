@@ -669,6 +669,7 @@ export function MovieApp() {
         updateScene(id, {
           imageUrl: localUrl,
           imageFilename: filename,
+          sourceUrl: result.url,
         });
         await savePromptFile(result.prompt, `${imageId}.txt`, sceneDir);
       } else {
@@ -1551,6 +1552,7 @@ export function MovieApp() {
                             setPreviewType("character");
                           }}
                           folderHandle={folderHandle}
+                          projectId={projectId}
                           updateCharacter={updateCharacter}
                         />
                       ))}
@@ -1775,6 +1777,7 @@ export function MovieApp() {
                                 setPreviewType("scene");
                               }}
                               folderHandle={folderHandle}
+                              projectId={projectId}
                               updateScene={updateScene}
                               availableReferences={characters
                                 .filter((c) => c.videoFilename)

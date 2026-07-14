@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Character } from "@/stores/movie-store";
-import { archiveFile } from "@/lib/fs-helpers";
+import { archiveFile, getProjectImagesDir, getProjectClipsDir } from "@/lib/fs-helpers";
 
 interface CharacterCardProps {
   char: Character;
@@ -13,6 +13,7 @@ interface CharacterCardProps {
   onRemove: (id: string) => void;
   onPreview: (id: string) => void;
   folderHandle: FileSystemDirectoryHandle | null;
+  projectId: string | null;
   updateCharacter: (id: string, updates: Partial<Character>) => void;
 }
 
@@ -25,6 +26,7 @@ export function CharacterCard({
   onRemove,
   onPreview,
   folderHandle,
+  projectId,
   updateCharacter,
 }: CharacterCardProps) {
   const [showVideo, setShowVideo] = useState(false);
@@ -131,10 +133,9 @@ export function CharacterCard({
                 const file = e.target.files?.[0];
                 if (!file || !folderHandle) return;
                 try {
-                  const imagesDir = await folderHandle.getDirectoryHandle(
-                    "images",
-                    { create: true },
-                  );
+                  const imagesDir = projectId
+                    ? await getProjectImagesDir(folderHandle, projectId)
+                    : await folderHandle.getDirectoryHandle("images", { create: true });
                   const characterDir = await imagesDir.getDirectoryHandle(
                     "character",
                     { create: true },
@@ -273,12 +274,9 @@ export function CharacterCard({
               const file = e.target.files?.[0];
               if (!file || !folderHandle) return;
               try {
-                const clipsDir = await folderHandle.getDirectoryHandle(
-                  "clips",
-                  {
-                    create: true,
-                  },
-                );
+                const clipsDir = projectId
+                  ? await getProjectClipsDir(folderHandle, projectId)
+                  : await folderHandle.getDirectoryHandle("clips", { create: true });
                 const clipsArchiveDir = await clipsDir.getDirectoryHandle("_archive", { create: true });
                 // Archive old reference video if this character already has one
                 if (char.videoFilename) {

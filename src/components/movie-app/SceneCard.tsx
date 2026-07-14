@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { Character, Conversation } from "@/stores/movie-store";
 import { ASPECT_OPTIONS, RESOLUTION_OPTIONS } from "@/stores/movie-store";
-import { archiveFile } from "@/lib/fs-helpers";
+import { archiveFile, getProjectImagesDir } from "@/lib/fs-helpers";
 
 interface SceneCardProps {
   scene: Character;
@@ -22,6 +22,7 @@ interface SceneCardProps {
   onRemove: (id: string) => void;
   onPreview: (id: string) => void;
   folderHandle: FileSystemDirectoryHandle | null;
+  projectId: string | null;
   updateScene: (id: string, updates: Partial<Character>) => void;
   availableReferences: { id: string; name: string }[];
   availableCharacters: { id: string; name: string; hasImage: boolean }[];
@@ -44,6 +45,7 @@ export function SceneCard({
   onRemove,
   onPreview,
   folderHandle,
+  projectId,
   updateScene,
   availableReferences,
   availableCharacters,
@@ -265,18 +267,26 @@ export function SceneCard({
                 const file = e.target.files?.[0];
                 if (!file || !folderHandle) return;
                 try {
-                  const imagesDir = await folderHandle.getDirectoryHandle(
-                    "images",
-                    { create: true },
-                  );
+                  const imagesDir = projectId
+                    ? await getProjectImagesDir(folderHandle, projectId)
+                    : await folderHandle.getDirectoryHandle("images", {
+                        create: true,
+                      });
                   const sceneDirHandle = await imagesDir.getDirectoryHandle(
                     "scene",
                     { create: true },
                   );
-                  const archiveDir = await imagesDir.getDirectoryHandle("_archive", { create: true });
+                  const archiveDir = await imagesDir.getDirectoryHandle(
+                    "_archive",
+                    { create: true },
+                  );
                   // Archive old scene image if this scene already has one
                   if (scene.imageFilename) {
-                    await archiveFile(scene.imageFilename, sceneDirHandle, archiveDir);
+                    await archiveFile(
+                      scene.imageFilename,
+                      sceneDirHandle,
+                      archiveDir,
+                    );
                   }
                   const uploadId = crypto.randomUUID();
                   const filename = `${uploadId}.png`;
