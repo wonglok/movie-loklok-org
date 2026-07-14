@@ -48,6 +48,24 @@ export async function loadLocalImage(
   }
 }
 
+export async function archiveFile(
+  filename: string,
+  sourceDir: FileSystemDirectoryHandle,
+  archiveDir: FileSystemDirectoryHandle,
+): Promise<void> {
+  try {
+    const fileHandle = await sourceDir.getFileHandle(filename);
+    const file = await fileHandle.getFile();
+    const archiveFileHandle = await archiveDir.getFileHandle(filename, { create: true });
+    const writable = await archiveFileHandle.createWritable();
+    await writable.write(file);
+    await writable.close();
+    await sourceDir.removeEntry(filename);
+  } catch {
+    // file may not exist or already archived — ignore
+  }
+}
+
 export async function savePromptFile(
   prompt: string,
   filename: string,

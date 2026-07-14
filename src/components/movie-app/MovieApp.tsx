@@ -28,6 +28,7 @@ import {
   exportProjectAsZip,
   getProjectImagesDir,
   getProjectClipsDir,
+  archiveFile,
 } from "@/lib/fs-helpers";
 import { useAutoSave } from "@/hooks/useAutoSave";
 import { useLocalImages } from "@/hooks/useLocalImages";
@@ -400,8 +401,14 @@ export function MovieApp() {
       const characterDir = await imagesDir.getDirectoryHandle("character", {
         create: true,
       });
+      const archiveDir = await imagesDir.getDirectoryHandle("_archive", { create: true });
       await Promise.all(
         latestChars.map(async (char) => {
+          // Archive old image if this character already has one
+          if (char.imageFilename) {
+            await archiveFile(char.imageFilename, characterDir, archiveDir);
+            await archiveFile(char.imageFilename.replace(/\.png$/, ".txt"), characterDir, archiveDir);
+          }
           const prompt = `Face Image. ${effectiveStyle} style. Character name: ${char.name}. ${char.description}. MUST NOT draw any text. zoom to show the character's face. grey background. clean character turnaround, consistent design.`;
           const result = await generateImage(prompt, apiKey);
           const imageId = crypto.randomUUID();
@@ -452,6 +459,12 @@ export function MovieApp() {
         const characterDir = await imagesDir.getDirectoryHandle("character", {
           create: true,
         });
+        const archiveDir = await imagesDir.getDirectoryHandle("_archive", { create: true });
+        // Archive old image if this character already has one
+        if (char.imageFilename) {
+          await archiveFile(char.imageFilename, characterDir, archiveDir);
+          await archiveFile(char.imageFilename.replace(/\.png$/, ".txt"), characterDir, archiveDir);
+        }
         const imageId = crypto.randomUUID();
         const filename = `${imageId}.png`;
         if (char.imageUrl) URL.revokeObjectURL(char.imageUrl);
@@ -611,6 +624,12 @@ export function MovieApp() {
         const sceneDir = await imagesDir.getDirectoryHandle("scene", {
           create: true,
         });
+        const archiveDir = await imagesDir.getDirectoryHandle("_archive", { create: true });
+        // Archive old scene image if this scene already has one
+        if (scene.imageFilename) {
+          await archiveFile(scene.imageFilename, sceneDir, archiveDir);
+          await archiveFile(scene.imageFilename.replace(/\.png$/, ".txt"), sceneDir, archiveDir);
+        }
         const imageId = crypto.randomUUID();
         const filename = `${imageId}.png`;
         if (scene.imageUrl) URL.revokeObjectURL(scene.imageUrl);
@@ -878,6 +897,7 @@ export function MovieApp() {
       const sceneDir = await imagesDir.getDirectoryHandle("scene", {
         create: true,
       });
+      const archiveDir = await imagesDir.getDirectoryHandle("_archive", { create: true });
       let done = 0;
       await Promise.all(
         Array.from(selectedScenes).map(async (id) => {
@@ -901,6 +921,11 @@ export function MovieApp() {
             .join(", ");
           const prompt = `Cinematic movie keyframe, ${effectiveStyle} animation style.${charNames ? ` Featuring characters: ${charNames}.` : ""} Scene: ${scene.name}. ${scene.description}. Location: ${scene.location || "unspecified"}.${charNames ? " Characters must maintain consistent appearance and design." : ""} Wide establishing shot, dramatic lighting, film composition.`;
           const result = await generateSceneImage(prompt, apiKey, charRefs);
+          // Archive old scene image if this scene already has one
+          if (scene.imageFilename) {
+            await archiveFile(scene.imageFilename, sceneDir, archiveDir);
+            await archiveFile(scene.imageFilename.replace(/\.png$/, ".txt"), sceneDir, archiveDir);
+          }
           const imageId = crypto.randomUUID();
           const filename = `${imageId}.png`;
           const localUrl = await saveAndLoadLocal(
