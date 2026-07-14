@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { Character, Conversation } from "@/stores/movie-store";
 import { ASPECT_OPTIONS, RESOLUTION_OPTIONS } from "@/stores/movie-store";
+import { archiveFile } from "@/lib/fs-helpers";
 
 interface SceneCardProps {
   scene: Character;
@@ -272,6 +273,11 @@ export function SceneCard({
                     "scene",
                     { create: true },
                   );
+                  const archiveDir = await imagesDir.getDirectoryHandle("_archive", { create: true });
+                  // Archive old scene image if this scene already has one
+                  if (scene.imageFilename) {
+                    await archiveFile(scene.imageFilename, sceneDirHandle, archiveDir);
+                  }
                   const uploadId = crypto.randomUUID();
                   const filename = `${uploadId}.png`;
                   const fileHandle = await sceneDirHandle.getFileHandle(

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Character } from "@/stores/movie-store";
+import { archiveFile } from "@/lib/fs-helpers";
 
 interface CharacterCardProps {
   char: Character;
@@ -138,6 +139,11 @@ export function CharacterCard({
                     "character",
                     { create: true },
                   );
+                  const archiveDir = await imagesDir.getDirectoryHandle("_archive", { create: true });
+                  // Archive old image if this character already has one
+                  if (char.imageFilename) {
+                    await archiveFile(char.imageFilename, characterDir, archiveDir);
+                  }
                   const uploadId = crypto.randomUUID();
                   const filename = `${uploadId}.png`;
                   const fileHandle = await characterDir.getFileHandle(
@@ -273,6 +279,11 @@ export function CharacterCard({
                     create: true,
                   },
                 );
+                const clipsArchiveDir = await clipsDir.getDirectoryHandle("_archive", { create: true });
+                // Archive old reference video if this character already has one
+                if (char.videoFilename) {
+                  await archiveFile(char.videoFilename, clipsDir, clipsArchiveDir);
+                }
                 const uploadId = crypto.randomUUID();
                 const filename = `${uploadId}.mp4`;
                 const fileHandle = await clipsDir.getFileHandle(filename, {
