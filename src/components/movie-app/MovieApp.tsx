@@ -401,13 +401,19 @@ export function MovieApp() {
       const characterDir = await imagesDir.getDirectoryHandle("character", {
         create: true,
       });
-      const archiveDir = await imagesDir.getDirectoryHandle("_archive", { create: true });
+      const archiveDir = await imagesDir.getDirectoryHandle("_archive", {
+        create: true,
+      });
       await Promise.all(
         latestChars.map(async (char) => {
           // Archive old image if this character already has one
           if (char.imageFilename) {
             await archiveFile(char.imageFilename, characterDir, archiveDir);
-            await archiveFile(char.imageFilename.replace(/\.png$/, ".txt"), characterDir, archiveDir);
+            await archiveFile(
+              char.imageFilename.replace(/\.png$/, ".txt"),
+              characterDir,
+              archiveDir,
+            );
           }
           const prompt = `Face Image. ${effectiveStyle} style. Character name: ${char.name}. ${char.description}. MUST NOT draw any text. zoom to show the character's face. grey background. clean character turnaround, consistent design.`;
           const result = await generateImage(prompt, apiKey);
@@ -459,11 +465,17 @@ export function MovieApp() {
         const characterDir = await imagesDir.getDirectoryHandle("character", {
           create: true,
         });
-        const archiveDir = await imagesDir.getDirectoryHandle("_archive", { create: true });
+        const archiveDir = await imagesDir.getDirectoryHandle("_archive", {
+          create: true,
+        });
         // Archive old image if this character already has one
         if (char.imageFilename) {
           await archiveFile(char.imageFilename, characterDir, archiveDir);
-          await archiveFile(char.imageFilename.replace(/\.png$/, ".txt"), characterDir, archiveDir);
+          await archiveFile(
+            char.imageFilename.replace(/\.png$/, ".txt"),
+            characterDir,
+            archiveDir,
+          );
         }
         const imageId = crypto.randomUUID();
         const filename = `${imageId}.png`;
@@ -473,7 +485,11 @@ export function MovieApp() {
           filename,
           characterDir,
         );
-        updateCharacter(id, { imageUrl: localUrl, imageFilename: filename, sourceUrl: result.url });
+        updateCharacter(id, {
+          imageUrl: localUrl,
+          imageFilename: filename,
+          sourceUrl: result.url,
+        });
         await savePromptFile(result.prompt, `${imageId}.txt`, characterDir);
       } else {
         updateCharacter(id, { imageUrl: result.url, sourceUrl: result.url });
@@ -520,7 +536,9 @@ export function MovieApp() {
         "9:16",
       );
       const clipsDir = await getProjectClipsDir(folderHandle, projectId!);
-      const clipsArchiveDir = await clipsDir.getDirectoryHandle("_archive", { create: true });
+      const clipsArchiveDir = await clipsDir.getDirectoryHandle("_archive", {
+        create: true,
+      });
       // Archive old reference video if this character already has one
       if (char.videoFilename) {
         await archiveFile(char.videoFilename, clipsDir, clipsArchiveDir);
@@ -596,7 +614,10 @@ export function MovieApp() {
       let latestScenes = scenes;
       if (folderHandle && projectId) {
         try {
-          const charsFromDisk = await readCharactersJson(folderHandle, projectId);
+          const charsFromDisk = await readCharactersJson(
+            folderHandle,
+            projectId,
+          );
           if (charsFromDisk) latestChars = charsFromDisk;
           const scenesFromDisk = await readScenesJson(folderHandle, projectId);
           if (scenesFromDisk) latestScenes = scenesFromDisk;
@@ -629,11 +650,17 @@ export function MovieApp() {
         const sceneDir = await imagesDir.getDirectoryHandle("scene", {
           create: true,
         });
-        const archiveDir = await imagesDir.getDirectoryHandle("_archive", { create: true });
+        const archiveDir = await imagesDir.getDirectoryHandle("_archive", {
+          create: true,
+        });
         // Archive old scene image if this scene already has one
         if (scene.imageFilename) {
           await archiveFile(scene.imageFilename, sceneDir, archiveDir);
-          await archiveFile(scene.imageFilename.replace(/\.png$/, ".txt"), sceneDir, archiveDir);
+          await archiveFile(
+            scene.imageFilename.replace(/\.png$/, ".txt"),
+            sceneDir,
+            archiveDir,
+          );
         }
         const imageId = crypto.randomUUID();
         const filename = `${imageId}.png`;
@@ -823,7 +850,9 @@ export function MovieApp() {
       const sceneDirHandle = await imagesDir.getDirectoryHandle("scene", {
         create: true,
       });
-      const fileHandle = await sceneDirHandle.getFileHandle(scene.imageFilename);
+      const fileHandle = await sceneDirHandle.getFileHandle(
+        scene.imageFilename,
+      );
       const file = await fileHandle.getFile();
       const dialogueLines = (scene.conversations || [])
         .map((c) => `${c.person} says: "${c.line}"`)
@@ -850,7 +879,9 @@ export function MovieApp() {
         ),
       );
       const clipsDir = await getProjectClipsDir(folderHandle, projectId!);
-      const clipsArchiveDir = await clipsDir.getDirectoryHandle("_archive", { create: true });
+      const clipsArchiveDir = await clipsDir.getDirectoryHandle("_archive", {
+        create: true,
+      });
       // Archive old scene video if this scene already has one
       if (scene.videoFilename) {
         await archiveFile(scene.videoFilename, clipsDir, clipsArchiveDir);
@@ -907,7 +938,9 @@ export function MovieApp() {
       const sceneDir = await imagesDir.getDirectoryHandle("scene", {
         create: true,
       });
-      const archiveDir = await imagesDir.getDirectoryHandle("_archive", { create: true });
+      const archiveDir = await imagesDir.getDirectoryHandle("_archive", {
+        create: true,
+      });
       let done = 0;
       await Promise.all(
         Array.from(selectedScenes).map(async (id) => {
@@ -934,7 +967,11 @@ export function MovieApp() {
           // Archive old scene image if this scene already has one
           if (scene.imageFilename) {
             await archiveFile(scene.imageFilename, sceneDir, archiveDir);
-            await archiveFile(scene.imageFilename.replace(/\.png$/, ".txt"), sceneDir, archiveDir);
+            await archiveFile(
+              scene.imageFilename.replace(/\.png$/, ".txt"),
+              sceneDir,
+              archiveDir,
+            );
           }
           const imageId = crypto.randomUUID();
           const filename = `${imageId}.png`;
@@ -992,7 +1029,9 @@ export function MovieApp() {
         create: true,
       });
       const clipsDir = await getProjectClipsDir(folderHandle, projectId);
-      const clipsArchiveDir = await clipsDir.getDirectoryHandle("_archive", { create: true });
+      const clipsArchiveDir = await clipsDir.getDirectoryHandle("_archive", {
+        create: true,
+      });
       let done = 0;
       await Promise.all(
         Array.from(selectedScenes).map(async (id) => {
