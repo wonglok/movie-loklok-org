@@ -910,7 +910,20 @@ export function createTools(): ToolDef[] {
           return "Error: No workspace or project selected.";
 
         const store = useMovieStore.getState();
-        const scene = store.scenes.find((s) => s.id === args.scene_id);
+
+        // Reload latest data from disk so we use the freshest scenes and character videos
+        let latestChars = store.characters;
+        let latestScenes = store.scenes;
+        try {
+          const charsFromDisk = await readCharactersJson(folderHandle, projectId);
+          if (charsFromDisk) latestChars = charsFromDisk;
+          const scenesFromDisk = await readScenesJson(folderHandle, projectId);
+          if (scenesFromDisk) latestScenes = scenesFromDisk;
+        } catch {
+          // fall back to in-memory data if disk read fails
+        }
+
+        const scene = latestScenes.find((s) => s.id === args.scene_id);
         if (!scene) return `Error: scene "${args.scene_id}" not found.`;
         if (!scene.imageFilename)
           return "Error: Scene has no image. Generate the scene image first.";
@@ -930,7 +943,7 @@ export function createTools(): ToolDef[] {
         const videoFiles: File[] = [];
         try {
           const clipsDir = await getProjectClipsDir(folderHandle, projectId);
-          for (const char of store.characters) {
+          for (const char of latestChars) {
             if (!char.videoFilename) continue;
             if (referenceIds && !referenceIds.has(char.id)) continue;
             try {
