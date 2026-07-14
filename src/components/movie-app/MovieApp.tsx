@@ -520,6 +520,11 @@ export function MovieApp() {
         "9:16",
       );
       const clipsDir = await getProjectClipsDir(folderHandle, projectId!);
+      const clipsArchiveDir = await clipsDir.getDirectoryHandle("_archive", { create: true });
+      // Archive old reference video if this character already has one
+      if (char.videoFilename) {
+        await archiveFile(char.videoFilename, clipsDir, clipsArchiveDir);
+      }
       const videoFilename = `${crypto.randomUUID()}.mp4`;
       const localUrl = await saveAndLoadLocal(
         remoteUrl,
@@ -845,6 +850,11 @@ export function MovieApp() {
         ),
       );
       const clipsDir = await getProjectClipsDir(folderHandle, projectId!);
+      const clipsArchiveDir = await clipsDir.getDirectoryHandle("_archive", { create: true });
+      // Archive old scene video if this scene already has one
+      if (scene.videoFilename) {
+        await archiveFile(scene.videoFilename, clipsDir, clipsArchiveDir);
+      }
       const videoFilename = `${crypto.randomUUID()}.mp4`;
       const localUrl = await saveAndLoadLocal(
         remoteUrl,
@@ -982,6 +992,7 @@ export function MovieApp() {
         create: true,
       });
       const clipsDir = await getProjectClipsDir(folderHandle, projectId);
+      const clipsArchiveDir = await clipsDir.getDirectoryHandle("_archive", { create: true });
       let done = 0;
       await Promise.all(
         Array.from(selectedScenes).map(async (id) => {
@@ -1012,6 +1023,10 @@ export function MovieApp() {
               latestChars,
             ),
           );
+          // Archive old scene video if this scene already has one
+          if (scene.videoFilename) {
+            await archiveFile(scene.videoFilename, clipsDir, clipsArchiveDir);
+          }
           const videoFilename = `${crypto.randomUUID()}.mp4`;
           const localUrl = await saveAndLoadLocal(
             remoteUrl,

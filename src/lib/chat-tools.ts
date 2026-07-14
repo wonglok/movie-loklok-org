@@ -21,6 +21,7 @@ import {
   readCharactersJson,
   readScenesJson,
   exportProjectAsZip,
+  archiveFile,
 } from "@/lib/fs-helpers";
 
 export interface ToolDef {
@@ -481,10 +482,16 @@ export function createTools(): ToolDef[] {
         const charDir = await imagesDir.getDirectoryHandle("character", {
           create: true,
         });
+        const archiveDir = await imagesDir.getDirectoryHandle("_archive", { create: true });
 
         let done = 0;
         const results: string[] = [];
         for (const char of chars) {
+          // Archive old image if this character already has one
+          if (char.imageFilename) {
+            await archiveFile(char.imageFilename, charDir, archiveDir);
+            await archiveFile(char.imageFilename.replace(/\.png$/, ".txt"), charDir, archiveDir);
+          }
           const prompt = `Face Image. ${effectiveStyle} style. Character name: ${char.name}. ${char.description}. MUST NOT draw any text. Close-up portrait zoomed in on the character's face, single front-facing view only, no multiple views, no turnaround. Neutral facial expression. Grey background.`;
           const result = await generateImage(prompt, apiKey);
           const imageId = crypto.randomUUID();
@@ -556,6 +563,13 @@ export function createTools(): ToolDef[] {
         const charDir = await imagesDir.getDirectoryHandle("character", {
           create: true,
         });
+        const archiveDir = await imagesDir.getDirectoryHandle("_archive", { create: true });
+
+        // Archive old image if this character already has one
+        if (char.imageFilename) {
+          await archiveFile(char.imageFilename, charDir, archiveDir);
+          await archiveFile(char.imageFilename.replace(/\.png$/, ".txt"), charDir, archiveDir);
+        }
 
         const prompt = `Face Image. ${effectiveStyle} style. Character name: ${char.name}. ${char.description}. MUST NOT draw any text. Close-up portrait zoomed in on the character's face, single front-facing view only, no multiple views, no turnaround. Neutral facial expression. Grey background.`;
         const result = await generateImage(prompt, apiKey);
@@ -635,6 +649,11 @@ export function createTools(): ToolDef[] {
         );
 
         const clipsDir = await getProjectClipsDir(folderHandle, projectId);
+        const clipsArchiveDir = await clipsDir.getDirectoryHandle("_archive", { create: true });
+        // Archive old reference video if this character already has one
+        if (char.videoFilename) {
+          await archiveFile(char.videoFilename, clipsDir, clipsArchiveDir);
+        }
         const videoFilename = `${crypto.randomUUID()}.mp4`;
         const localUrl = await saveAndLoadLocal(
           remoteUrl,
@@ -699,10 +718,16 @@ export function createTools(): ToolDef[] {
         const sceneDir = await imagesDir.getDirectoryHandle("scene", {
           create: true,
         });
+        const archiveDir = await imagesDir.getDirectoryHandle("_archive", { create: true });
 
         let done = 0;
         const results: string[] = [];
         for (const scene of targets) {
+          // Archive old scene image if this scene already has one
+          if (scene.imageFilename) {
+            await archiveFile(scene.imageFilename, sceneDir, archiveDir);
+            await archiveFile(scene.imageFilename.replace(/\.png$/, ".txt"), sceneDir, archiveDir);
+          }
           // Only reference characters selected for this scene (max 3)
           const sceneCharIds = new Set((scene.characterIds ?? []).slice(0, 3));
           const sceneChars =
@@ -978,6 +1003,11 @@ export function createTools(): ToolDef[] {
           videoFiles.length ? videoFiles : undefined,
         );
         const clipsDir = await getProjectClipsDir(folderHandle, projectId);
+        const clipsArchiveDir = await clipsDir.getDirectoryHandle("_archive", { create: true });
+        // Archive old scene video if this scene already has one
+        if (scene.videoFilename) {
+          await archiveFile(scene.videoFilename, clipsDir, clipsArchiveDir);
+        }
         const videoFilename = `${crypto.randomUUID()}.mp4`;
         const localUrl = await saveAndLoadLocal(
           remoteUrl,
