@@ -639,6 +639,7 @@ export function MovieApp() {
         apiKey,
         projectId ?? undefined,
       );
+
       const charNames = sceneChars
         .filter((c) => c.name)
         .map((c) => c.name)
