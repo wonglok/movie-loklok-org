@@ -3,7 +3,11 @@
 import { useState, useCallback, useRef } from "react";
 import type { Character } from "@/stores/movie-store";
 import { useMovieStore } from "@/stores/movie-store";
-import { getProjectClipsDir, getProjectImagesDir, archiveFile } from "@/lib/fs-helpers";
+import {
+  getProjectClipsDir,
+  getProjectImagesDir,
+  archiveFile,
+} from "@/lib/fs-helpers";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile } from "@ffmpeg/util";
 
@@ -91,16 +95,26 @@ export function MovieEditor({
           await ffmpeg.writeFile(inputName, await fetchFile(file));
 
           await ffmpeg.exec([
-            "-i", inputName,
-            "-c:v", "libx264",
-            "-preset", "veryfast",
-            "-crf", "17",
-            "-c:a", "aac",
-            "-b:a", "192k",
-            "-ar", "44100",
-            "-ac", "2",
-            "-pix_fmt", "yuv420p",
-            "-movflags", "+faststart",
+            "-i",
+            inputName,
+            "-c:v",
+            "libx264",
+            "-preset",
+            "veryfast",
+            "-crf",
+            "17",
+            "-c:a",
+            "aac",
+            "-b:a",
+            "192k",
+            "-ar",
+            "44100",
+            "-ac",
+            "2",
+            "-pix_fmt",
+            "yuv420p",
+            "-movflags",
+            "+faststart",
             normName,
           ]);
 
@@ -113,7 +127,9 @@ export function MovieEditor({
       }
 
       if (normLines.length === 0) {
-        throw new Error("No clips could be processed. All files are missing or unreadable.");
+        throw new Error(
+          "No clips could be processed. All files are missing or unreadable.",
+        );
       }
 
       // Step 2: concat normalized clips with stream copy
@@ -123,10 +139,14 @@ export function MovieEditor({
 
       await ffmpeg.writeFile("concat.txt", normLines.join("\n"));
       await ffmpeg.exec([
-        "-f", "concat",
-        "-safe", "0",
-        "-i", "concat.txt",
-        "-c", "copy",
+        "-f",
+        "concat",
+        "-safe",
+        "0",
+        "-i",
+        "concat.txt",
+        "-c",
+        "copy",
         "output.mp4",
       ]);
 
@@ -148,7 +168,9 @@ export function MovieEditor({
       URL.revokeObjectURL(url);
 
       if (skipped.length > 0) {
-        setCurrentTask(`Done! (${skipped.length} clip(s) skipped: ${skipped.join(", ")})`);
+        setCurrentTask(
+          `Done! (${skipped.length} clip(s) skipped: ${skipped.join(", ")})`,
+        );
       } else {
         setCurrentTask("Done!");
       }
@@ -179,34 +201,57 @@ export function MovieEditor({
       await ffmpeg.load();
 
       const clipsDir = await getProjectClipsDir(folderHandle, projectId);
-      const fileHandle = await clipsDir.getFileHandle(firstScene.videoFilename!);
+      const fileHandle = await clipsDir.getFileHandle(
+        firstScene.videoFilename!,
+      );
       const file = await fileHandle.getFile();
       const inputName = "extract_input.mp4";
       const outputName = "extract_frame.png";
 
       await ffmpeg.writeFile(inputName, await fetchFile(file));
-      await ffmpeg.exec(["-i", inputName, "-vframes", "1", "-q:v", "2", outputName]);
+      await ffmpeg.exec([
+        "-i",
+        inputName,
+        "-vframes",
+        "1",
+        "-q:v",
+        "2",
+        outputName,
+      ]);
 
       const data = (await ffmpeg.readFile(outputName)) as Uint8Array;
 
       const imagesDir = await getProjectImagesDir(folderHandle, projectId);
-      const sceneDir = await imagesDir.getDirectoryHandle("scene", { create: true });
-      const archiveDir = await imagesDir.getDirectoryHandle("_archive", { create: true });
+      const sceneDir = await imagesDir.getDirectoryHandle("scene", {
+        create: true,
+      });
+      const archiveDir = await imagesDir.getDirectoryHandle("_archive", {
+        create: true,
+      });
 
       if (firstScene.imageFilename) {
         await archiveFile(firstScene.imageFilename, sceneDir, archiveDir);
-        await archiveFile(firstScene.imageFilename.replace(/\.png$/, ".txt"), sceneDir, archiveDir);
+        await archiveFile(
+          firstScene.imageFilename.replace(/\.png$/, ".txt"),
+          sceneDir,
+          archiveDir,
+        );
       }
 
       const filename = `${crypto.randomUUID()}.png`;
       const blob = new Blob([new Uint8Array(data)], { type: "image/png" });
-      const imgFileHandle = await sceneDir.getFileHandle(filename, { create: true });
+      const imgFileHandle = await sceneDir.getFileHandle(filename, {
+        create: true,
+      });
       const writable = await imgFileHandle.createWritable();
       await writable.write(blob);
       await writable.close();
 
       const localUrl = URL.createObjectURL(blob);
-      updateScene(firstScene.id, { imageUrl: localUrl, imageFilename: filename });
+      updateScene(firstScene.id, {
+        imageUrl: localUrl,
+        imageFilename: filename,
+      });
 
       // Trigger download
       const a = document.createElement("a");
@@ -222,7 +267,9 @@ export function MovieEditor({
       setFrameExtractMsg("Frame extracted and downloaded!");
       setTimeout(() => setFrameExtractMsg(""), 3000);
     } catch (err) {
-      setFrameExtractMsg(err instanceof Error ? err.message : "Frame extraction failed");
+      setFrameExtractMsg(
+        err instanceof Error ? err.message : "Frame extraction failed",
+      );
     } finally {
       setExtractingFrame(false);
     }
@@ -303,7 +350,9 @@ export function MovieEditor({
           <div className="flex items-center gap-3">
             <button
               onClick={handleExtractFirstFrame}
-              disabled={extractingFrame || stitching || scenesWithVideo.length === 0}
+              disabled={
+                extractingFrame || stitching || scenesWithVideo.length === 0
+              }
               className="px-6 py-3 bg-white text-black rounded-xl font-semibold text-sm hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-2"
             >
               {extractingFrame ? (
@@ -353,7 +402,9 @@ export function MovieEditor({
               <div className="flex flex-col gap-1">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-neutral-400">{currentTask}</span>
-                  <span className="text-neutral-500">{currentTaskProgress}%</span>
+                  <span className="text-neutral-500">
+                    {currentTaskProgress}%
+                  </span>
                 </div>
                 <div className="w-full h-1.5 bg-neutral-800 rounded-full overflow-hidden">
                   <div
