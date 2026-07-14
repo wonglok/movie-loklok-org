@@ -500,9 +500,9 @@ export function createTools(): ToolDef[] {
     },
 
     {
-      name: "regenerate_character_image",
+      name: "generate_character_image",
       description:
-        "Regenerate the AI image for a specific character. Use this when a character already has an image but the user wants to replace or improve it.",
+        "Generate or regenerate the AI image for a single specific character. Use this to create a portrait image for one character, whether they have an existing image or not.",
       parameters: {
         type: "object",
         properties: {
@@ -550,7 +550,66 @@ export function createTools(): ToolDef[] {
         store.setCharacterImages(
           updated.map((c) => c.imageUrl).filter(Boolean) as string[],
         );
-        return `Regenerated image for character "${char.name}".`;
+        return `Generated image for character "${char.name}".`;
+      },
+    },
+
+    {
+      name: "generate_character_reference_video",
+      description:
+        "Generate a reference video for a single character. The character must already have an image. The video shows the character facing the camera introducing themselves. Use this when the user wants to create a reference video for one specific character.",
+      parameters: {
+        type: "object",
+        properties: {
+          character_id: {
+            type: "string",
+            description: "The ID of the character to generate a reference video for.",
+          },
+        },
+        required: ["character_id"],
+      },
+      execute: async (args) => {
+        const apiKey = getApiKey();
+        const folderHandle = getFolderHandle();
+        const projectId = getProjectId();
+        if (!apiKey) return "Error: No API key configured.";
+        if (!folderHandle || !projectId)
+          return "Error: No workspace or project selected.";
+
+        const store = useMovieStore.getState();
+        const char = store.characters.find(
+          (c) => c.id === (args.character_id as string),
+        );
+        if (!char)
+          return `Error: character with ID "${args.character_id}" not found.`;
+        if (!char.imageFilename)
+          return `Error: character "${char.name}" has no image. Generate the character image first.`;
+
+        const imagesDir = await getProjectImagesDir(folderHandle, projectId);
+        const charDir = await imagesDir.getDirectoryHandle("character", {
+          create: true,
+        });
+        const fileHandle = await charDir.getFileHandle(char.imageFilename);
+        const file = await fileHandle.getFile();
+
+        const prompt = `Close-up portrait shot of the character facing the camera. The character says: "Hi! I'm ${char.name}!". Character's Voice Description: ${JSON.stringify(char.description)} The duration is around 3 seconds. The camera stays static, focused on the character's face with natural expression and lip-sync to the spoken words. Simple neutral background. Language & Tone: ${store.language}. No background music`;
+        const remoteUrl = await uploadAndGenerateVideo(
+          file,
+          prompt,
+          apiKey,
+          "480p",
+          "9:16",
+        );
+
+        const clipsDir = await getProjectClipsDir(folderHandle, projectId);
+        const videoFilename = `${crypto.randomUUID()}.mp4`;
+        const localUrl = await saveAndLoadLocal(
+          remoteUrl,
+          videoFilename,
+          clipsDir,
+        );
+        store.updateCharacter(char.id, { videoUrl: localUrl, videoFilename });
+        return `Generated reference video for character "${char.name}".`;
       },
     },
 
