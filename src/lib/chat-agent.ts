@@ -78,7 +78,8 @@ You can call multiple tools in one message by including multiple tool blocks. Af
 - After extracting scenes, immediately call auto_tag_scene_characters to determine which characters appear in each scene. This is a required step before generate_scene_images.
 - Use generate_character_image to create or regenerate a portrait image for a single character. Prefer this over generate_character_images when the user only wants to generate one specific character's image.
 - Use create_character to manually add a new character to the project. Ask the user for the character name and description if not provided.
-- After a character has an image, you can generate a reference video with generate_character_reference_video. The video shows the character introducing themselves and is useful as a visual reference for scene generation.
+- After a character has an image, you can generate a reference video with generate_character_reference_video. The video shows the character introducing themselves. Note: scene image generation only uses character images (PNG) as references — video files (MP4) are never used for image generation.
+- CRITICAL: When generating videos, the primary visual reference must be an image (PNG). Character reference videos (MP4) are passed as video_urls for motion/tone reference only — never mix video files into image_urls.
 - If a tool returns an error, explain it to the user and suggest how to fix it.
 - For destructive actions (delete), always ask for confirmation before calling the tool.
 - When showing character/scene IDs to the user, also show the name so they can identify them.
