@@ -314,11 +314,13 @@ export async function extractScenes(
   story: string,
   apiKey: string,
   language?: string,
+  characters?: { id: string; name: string; description: string }[],
 ): Promise<
   {
     name: string;
     description: string;
     location: string;
+    characterIds: string[];
     conversations: {
       id: string;
       person: string;
@@ -329,6 +331,10 @@ export async function extractScenes(
   //
 
   fal.config({ credentials: apiKey });
+
+  const charList = characters?.length
+    ? `\n\nCharacters:\n${characters.map((c) => `- id="${c.id}" name="${c.name}" description="${c.description}"`).join("\n")}`
+    : "";
 
   const result = await fal.subscribe(
     "openrouter/router/openai/v1/chat/completions",
@@ -342,9 +348,10 @@ export async function extractScenes(
 - "name": scene name
 - "description": scene description
 - "location": a brief description of where this scene takes place (e.g. "A dimly lit detective's office", "A bustling city street at noon", "A quiet forest clearing")
+- "characterIds": an array of character IDs (from the character list below) that appear in this scene. Use the exact IDs provided. Include at least 1 character per scene, max 3. Pick the most relevant characters based on the scene description.
 - "conversations": an array of objects, each with "person" (the character speaking or voice-over narrator) and "line" (their line of dialogue or narration). Each scene is max 13.5 seconds, so keep dialogue concise. If no one speaks, use an empty array.
 
-No other text.${language ? `\n\n Must Write all output in ${language}.` : ""}\n\nStory: ${story}`,
+No other text.${language ? `\n\n Must Write all output in ${language}.` : ""}${charList}\n\nStory: ${story}`,
           },
         ],
       },
@@ -366,11 +373,13 @@ No other text.${language ? `\n\n Must Write all output in ${language}.` : ""}\n\
     name: string;
     description: string;
     location: string;
+    characterIds?: string[];
     conversations: { person: string; line: string }[];
   }[];
   return raw.map((s) => ({
     ...s,
     location: s.location || "",
+    characterIds: s.characterIds || [],
     conversations: (s.conversations || []).map((c) => ({
       id: crypto.randomUUID(),
       person: c.person,

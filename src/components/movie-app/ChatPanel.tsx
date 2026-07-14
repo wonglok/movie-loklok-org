@@ -210,6 +210,7 @@ export function ChatPanel() {
   const addMessage = useChatStore((s) => s.addMessage);
   const updateMessage = useChatStore((s) => s.updateMessage);
   const updateToolCall = useChatStore((s) => s.updateToolCall);
+  const pushToolCall = useChatStore((s) => s.pushToolCall);
   const setIsSending = useChatStore((s) => s.setIsSending);
   const setError = useChatStore((s) => s.setError);
   const clearMessages = useChatStore((s) => s.clearMessages);
@@ -274,22 +275,25 @@ export function ChatPanel() {
           content: m.content,
         }));
 
-      const response = await sendChatMessage(text, history, apiKey);
-
-      // Build tool calls from response
-      const toolCalls: ToolCall[] = response.toolCalls.map((tc) => ({
-        id: crypto.randomUUID(),
-        name: tc.name,
-        arguments: tc.arguments,
-        result: tc.result,
-        error: tc.error,
-        status: tc.error ? ("error" as const) : ("done" as const),
-      }));
-
-      updateMessage(agentMsgId, {
-        content: response.text,
-        toolCalls,
+      const response = await sendChatMessage(text, history, apiKey, (progress) => {
+        if (progress.status === "running") {
+          pushToolCall(agentMsgId, {
+            id: progress.callId,
+            name: progress.name,
+            arguments: progress.arguments,
+            status: "running",
+          });
+        } else {
+          updateToolCall(agentMsgId, progress.callId, {
+            result: progress.result,
+            error: progress.error,
+            status: progress.status as "done" | "error",
+          });
+        }
       });
+
+      // Only set content — tool calls were streamed in real-time via onToolProgress
+      updateMessage(agentMsgId, { content: response.text });
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : "Something went wrong";
       updateMessage(agentMsgId, {

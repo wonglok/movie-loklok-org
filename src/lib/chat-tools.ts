@@ -423,6 +423,7 @@ export function createTools(): ToolDef[] {
           store.story,
           apiKey,
           store.language,
+          store.characters.map((c) => ({ id: c.id, name: c.name, description: c.description })),
         );
         const newScenes = extracted.map((s) => ({
           id: crypto.randomUUID(),
@@ -436,7 +437,7 @@ export function createTools(): ToolDef[] {
           videoResolution: "480p" as const,
           videoAspect: "9:16" as const,
           videoReferenceIds: [] as string[],
-          characterIds: [] as string[],
+          characterIds: s.characterIds || [],
         }));
         store.setScenes(newScenes);
         return `Extracted ${newScenes.length} scenes: ${newScenes.map((s) => s.name).join(", ")}.`;

@@ -154,10 +154,20 @@ export interface AgentResponse {
   }[];
 }
 
+export interface ToolProgress {
+  callId: string;
+  name: string;
+  arguments: Record<string, unknown>;
+  result?: string;
+  error?: string;
+  status: "running" | "done" | "error";
+}
+
 export async function sendChatMessage(
   userMessage: string,
   conversationHistory: { role: "user" | "agent"; content: string }[],
   apiKey: string,
+  onToolProgress?: (progress: ToolProgress) => void,
 ): Promise<AgentResponse> {
   const tools = createTools();
   const toolMap = new Map<string, ToolDef>(tools.map((t) => [t.name, t]));
@@ -214,10 +224,19 @@ export async function sendChatMessage(
         continue;
       }
 
+      const callId = crypto.randomUUID();
+      onToolProgress?.({
+        callId,
+        name: tc.tool,
+        arguments: tc.arguments,
+        status: "running",
+      });
+
       try {
         const result = await tool.execute(tc.arguments);
         messages.push({ role: "tool", content: result, tool_call_id: tc.tool });
         allToolCalls.push({ name: tc.tool, arguments: tc.arguments, result });
+        onToolProgress?.({ callId, name: tc.tool, arguments: tc.arguments, result, status: "done" });
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : "Unknown error";
         messages.push({
@@ -231,6 +250,7 @@ export async function sendChatMessage(
           result: "",
           error: errMsg,
         });
+        onToolProgress?.({ callId, name: tc.tool, arguments: tc.arguments, result: "", error: errMsg, status: "error" });
       }
     }
 

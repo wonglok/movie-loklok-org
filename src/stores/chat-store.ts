@@ -39,6 +39,7 @@ interface ChatState {
     toolCallId: string,
     updates: Partial<ToolCall>,
   ) => void;
+  pushToolCall: (messageId: string, tc: ToolCall) => void;
   setIsSending: (sending: boolean) => void;
   setError: (error: string | null) => void;
   clearMessages: () => void;
@@ -79,6 +80,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
             tc.id === toolCallId ? { ...tc, ...updates } : tc,
           ),
         };
+      }),
+    })),
+
+  pushToolCall: (messageId, tc) =>
+    set((s) => ({
+      messages: s.messages.map((m) => {
+        if (m.id !== messageId) return m;
+        return { ...m, toolCalls: [...(m.toolCalls || []), tc] };
       }),
     })),
 

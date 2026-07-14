@@ -506,7 +506,7 @@ export function MovieApp() {
     setError(null);
     setExtractingScenes(true);
     try {
-      const extracted = await extractScenes(story, apiKey, language);
+      const extracted = await extractScenes(story, apiKey, language, characters.map((c) => ({ id: c.id, name: c.name, description: c.description })));
       setScenes(
         extracted.map((s) => ({
           id: crypto.randomUUID(),
@@ -520,7 +520,7 @@ export function MovieApp() {
           videoResolution: "480p",
           videoAspect: "9:16",
           videoReferenceIds: [],
-          characterIds: [],
+          characterIds: s.characterIds || [],
           conversations: s.conversations || [],
         })),
       );
