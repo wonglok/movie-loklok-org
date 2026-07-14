@@ -123,6 +123,7 @@ export function MovieApp() {
   const [firstProjectName, setFirstProjectName] = useState("");
 
   const chatOpen = useChatStore((s) => s.isOpen);
+  const isSending = useChatStore((s) => s.isSending);
 
   const isGenerating =
     generatingCharacters ||
@@ -132,6 +133,8 @@ export function MovieApp() {
     generatingSelectedVideos ||
     generatingSelectedScripts ||
     selectedProgress !== null;
+
+  const aiProcessing = isGenerating || isSending;
 
   useEffect(() => {
     setIsGenerating(isGenerating);
@@ -997,7 +1000,13 @@ export function MovieApp() {
           {/* Header */}
           <section className="relative text-center">
             <div className="absolute top-0 left-0">
-              <ProjectSwitcher />
+              {aiProcessing ? (
+                <div className="px-3 py-1.5 rounded-lg bg-neutral-800/80 border border-neutral-700/50 text-neutral-400 text-xs">
+                  AI is processing...
+                </div>
+              ) : (
+                <ProjectSwitcher />
+              )}
             </div>
             <button
               onClick={() => setShowSettings(true)}
@@ -1096,9 +1105,36 @@ export function MovieApp() {
           )}
 
           <section>
-            <div className="text-white">
-              <ProjectTabs />
-            </div>
+            {aiProcessing ? (
+              <div className="flex items-center justify-center py-6">
+                <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-neutral-800/60 border border-neutral-700/40 text-neutral-400 text-sm">
+                  <svg
+                    className="w-4 h-4 animate-spin"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                    />
+                  </svg>
+                  <span>AI is processing — please wait</span>
+                </div>
+              </div>
+            ) : (
+              <div className="text-white">
+                <ProjectTabs />
+              </div>
+            )}
           </section>
 
           {/* No Project State */}
