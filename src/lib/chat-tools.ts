@@ -76,7 +76,8 @@ export function createTools(): ToolDef[] {
   return [
     {
       name: "get_project_status",
-      description: "Get a summary of the current project: story, characters, scenes, what's been generated.",
+      description:
+        "Get a summary of the current project: story, characters, scenes, what's been generated.",
       parameters: {},
       execute: async () => projectContext(),
     },
@@ -128,7 +129,10 @@ export function createTools(): ToolDef[] {
       parameters: {
         type: "object",
         properties: {
-          language: { type: "string", description: "The language, e.g. English, Japanese, French." },
+          language: {
+            type: "string",
+            description: "The language, e.g. English, Japanese, French.",
+          },
         },
         required: ["language"],
       },
@@ -141,7 +145,8 @@ export function createTools(): ToolDef[] {
 
     {
       name: "list_characters",
-      description: "List all characters in the current project with their details.",
+      description:
+        "List all characters in the current project with their details.",
       parameters: {},
       execute: async () => {
         const chars = useMovieStore.getState().characters;
@@ -192,8 +197,15 @@ export function createTools(): ToolDef[] {
         type: "object",
         properties: {
           name: { type: "string", description: "Character name." },
-          description: { type: "string", description: "Character description (appearance, personality, voice)." },
-          location: { type: "string", description: "Where the character is usually found." },
+          description: {
+            type: "string",
+            description:
+              "Character description (appearance, personality, voice).",
+          },
+          location: {
+            type: "string",
+            description: "Where the character is usually found.",
+          },
         },
         required: ["name", "description"],
       },
@@ -223,12 +235,16 @@ export function createTools(): ToolDef[] {
 
     {
       name: "delete_character",
-      description: "Remove a character from the project. Requires confirmation.",
+      description:
+        "Remove a character from the project. Requires confirmation.",
       parameters: {
         type: "object",
         properties: {
           id: { type: "string", description: "The character ID to delete." },
-          confirm: { type: "boolean", description: "Must be true to confirm deletion." },
+          confirm: {
+            type: "boolean",
+            description: "Must be true to confirm deletion.",
+          },
         },
         required: ["id", "confirm"],
       },
@@ -244,7 +260,8 @@ export function createTools(): ToolDef[] {
 
     {
       name: "list_scenes",
-      description: "List all scenes with their descriptions, locations, and dialogue.",
+      description:
+        "List all scenes with their descriptions, locations, and dialogue.",
       parameters: {},
       execute: async () => {
         const scenes = useMovieStore.getState().scenes;
@@ -268,8 +285,14 @@ export function createTools(): ToolDef[] {
         properties: {
           id: { type: "string", description: "The scene ID." },
           name: { type: "string", description: "New scene name." },
-          description: { type: "string", description: "New scene description." },
-          location: { type: "string", description: "New location description." },
+          description: {
+            type: "string",
+            description: "New scene description.",
+          },
+          location: {
+            type: "string",
+            description: "New location description.",
+          },
         },
         required: ["id"],
       },
@@ -298,7 +321,10 @@ export function createTools(): ToolDef[] {
         properties: {
           name: { type: "string", description: "Scene name." },
           description: { type: "string", description: "Scene description." },
-          location: { type: "string", description: "Where the scene takes place." },
+          location: {
+            type: "string",
+            description: "Where the scene takes place.",
+          },
         },
         required: ["name", "description"],
       },
@@ -354,9 +380,15 @@ export function createTools(): ToolDef[] {
       execute: async () => {
         const store = useMovieStore.getState();
         const apiKey = getApiKey();
-        if (!apiKey) return "Error: No API key configured. Ask the user to set their fal.ai API key in Settings.";
-        if (!store.story.trim()) return "Error: Story is empty. Write a story first.";
-        const extracted = await extractCharacters(store.story, apiKey, store.language);
+        if (!apiKey)
+          return "Error: No API key configured. Ask the user to set their fal.ai API key in Settings.";
+        if (!store.story.trim())
+          return "Error: Story is empty. Write a story first.";
+        const extracted = await extractCharacters(
+          store.story,
+          apiKey,
+          store.language,
+        );
         const newChars = extracted.map((c) => ({
           id: crypto.randomUUID(),
           ...c,
@@ -387,7 +419,11 @@ export function createTools(): ToolDef[] {
         const apiKey = getApiKey();
         if (!apiKey) return "Error: No API key configured.";
         if (!store.story.trim()) return "Error: Story is empty.";
-        const extracted = await extractScenes(store.story, apiKey, store.language);
+        const extracted = await extractScenes(
+          store.story,
+          apiKey,
+          store.language,
+        );
         const newScenes = extracted.map((s) => ({
           id: crypto.randomUUID(),
           ...s,
@@ -409,22 +445,29 @@ export function createTools(): ToolDef[] {
 
     {
       name: "generate_character_images",
-      description: "Generate AI images for all characters that don't have one yet.",
+      description:
+        "Generate AI images for all characters that don't have one yet.",
       parameters: {},
       execute: async () => {
         const apiKey = getApiKey();
         const folderHandle = getFolderHandle();
         const projectId = getProjectId();
         if (!apiKey) return "Error: No API key configured.";
-        if (!folderHandle || !projectId) return "Error: No workspace or project selected.";
+        if (!folderHandle || !projectId)
+          return "Error: No workspace or project selected.";
 
         const store = useMovieStore.getState();
         const chars = store.characters.filter((c) => !c.imageFilename);
         if (!chars.length) return "All characters already have images.";
 
-        const effectiveStyle = resolveStyle(store.customArtStyle, store.artStyle);
+        const effectiveStyle = resolveStyle(
+          store.customArtStyle,
+          store.artStyle,
+        );
         const imagesDir = await getProjectImagesDir(folderHandle, projectId);
-        const charDir = await imagesDir.getDirectoryHandle("character", { create: true });
+        const charDir = await imagesDir.getDirectoryHandle("character", {
+          create: true,
+        });
 
         let done = 0;
         const results: string[] = [];
@@ -433,29 +476,41 @@ export function createTools(): ToolDef[] {
           const result = await generateImage(prompt, apiKey);
           const imageId = crypto.randomUUID();
           const filename = `${imageId}.png`;
-          const localUrl = await saveAndLoadLocal(result.url, filename, charDir);
-          store.updateCharacter(char.id, { imageUrl: localUrl, imageFilename: filename, sourceUrl: result.url });
+          const localUrl = await saveAndLoadLocal(
+            result.url,
+            filename,
+            charDir,
+          );
+          store.updateCharacter(char.id, {
+            imageUrl: localUrl,
+            imageFilename: filename,
+            sourceUrl: result.url,
+          });
           await savePromptFile(result.prompt, `${imageId}.txt`, charDir);
           done++;
           results.push(`${char.name}: done`);
         }
         // Sync the characterImages array used by the UI
         const updated = useMovieStore.getState().characters;
-        store.setCharacterImages(updated.map((c) => c.imageUrl).filter(Boolean) as string[]);
+        store.setCharacterImages(
+          updated.map((c) => c.imageUrl).filter(Boolean) as string[],
+        );
         return `Generated images for ${done} character(s):\n${results.join("\n")}`;
       },
     },
 
     {
       name: "generate_scene_images",
-      description: "Generate AI images for all scenes that don't have one yet, or for specific scene IDs.",
+      description:
+        "Generate AI images for all scenes that don't have one yet, or for specific scene IDs.",
       parameters: {
         type: "object",
         properties: {
           scene_ids: {
             type: "array",
             items: { type: "string" },
-            description: "Optional list of scene IDs to generate. If omitted, generates for all scenes without images.",
+            description:
+              "Optional list of scene IDs to generate. If omitted, generates for all scenes without images.",
           },
         },
       },
@@ -464,7 +519,8 @@ export function createTools(): ToolDef[] {
         const folderHandle = getFolderHandle();
         const projectId = getProjectId();
         if (!apiKey) return "Error: No API key configured.";
-        if (!folderHandle || !projectId) return "Error: No workspace or project selected.";
+        if (!folderHandle || !projectId)
+          return "Error: No workspace or project selected.";
 
         const store = useMovieStore.getState();
         const targetIds = args.scene_ids as string[] | undefined;
@@ -472,44 +528,71 @@ export function createTools(): ToolDef[] {
         if (targetIds?.length) {
           targets = store.scenes.filter((s) => targetIds.includes(s.id));
         }
-        if (!targets.length) return "All specified scenes already have images or no scenes found.";
+        if (!targets.length)
+          return "All specified scenes already have images or no scenes found.";
 
-        const effectiveStyle = resolveStyle(store.customArtStyle, store.artStyle);
+        const effectiveStyle = resolveStyle(
+          store.customArtStyle,
+          store.artStyle,
+        );
         const imagesDir = await getProjectImagesDir(folderHandle, projectId);
-        const sceneDir = await imagesDir.getDirectoryHandle("scene", { create: true });
+        const sceneDir = await imagesDir.getDirectoryHandle("scene", {
+          create: true,
+        });
 
         let done = 0;
         const results: string[] = [];
         for (const scene of targets) {
           // Only reference characters selected for this scene (max 3)
           const sceneCharIds = new Set((scene.characterIds ?? []).slice(0, 3));
-          const sceneChars = sceneCharIds.size > 0
-            ? store.characters.filter((c) => sceneCharIds.has(c.id))
-            : [];
-          const charRefs = sceneChars.length > 0
-            ? await resolveCharacterRefs(sceneChars, folderHandle, apiKey, projectId)
-            : [];
-          const charNames = sceneChars.filter((c) => c.name).map((c) => c.name).join(", ");
+          const sceneChars =
+            sceneCharIds.size > 0
+              ? store.characters.filter((c) => sceneCharIds.has(c.id))
+              : [];
+          const charRefs =
+            sceneChars.length > 0
+              ? await resolveCharacterRefs(
+                  sceneChars,
+                  folderHandle,
+                  apiKey,
+                  projectId,
+                )
+              : [];
+          const charNames = sceneChars
+            .filter((c) => c.name)
+            .map((c) => c.name)
+            .join(", ");
           const prompt = `Cinematic movie keyframe, ${effectiveStyle} animation style.${charNames ? ` Featuring characters: ${charNames}.` : ""} Scene: ${scene.name}. ${scene.description}. Location: ${scene.location || "unspecified"}.${charNames ? " Characters must maintain consistent appearance and design." : ""} Wide establishing shot, dramatic lighting, film composition.`;
           const result = await generateSceneImage(prompt, apiKey, charRefs);
           const imageId = crypto.randomUUID();
           const filename = `${imageId}.png`;
-          const localUrl = await saveAndLoadLocal(result.url, filename, sceneDir);
-          store.updateScene(scene.id, { imageUrl: localUrl, imageFilename: filename, sourceUrl: result.url });
+          const localUrl = await saveAndLoadLocal(
+            result.url,
+            filename,
+            sceneDir,
+          );
+          store.updateScene(scene.id, {
+            imageUrl: localUrl,
+            imageFilename: filename,
+            sourceUrl: result.url,
+          });
           await savePromptFile(result.prompt, `${imageId}.txt`, sceneDir);
           done++;
           results.push(`${scene.name}: done`);
         }
         // Sync the sceneImages array used by the UI
         const updated = useMovieStore.getState().scenes;
-        store.setSceneImages(updated.map((s) => s.imageUrl).filter(Boolean) as string[]);
+        store.setSceneImages(
+          updated.map((s) => s.imageUrl).filter(Boolean) as string[],
+        );
         return `Generated images for ${done} scene(s):\n${results.join("\n")}`;
       },
     },
 
     {
       name: "auto_tag_scene_characters",
-      description: "Use AI to automatically analyze the story and determine which characters appear in each scene. Updates every scene's characterIds. Call this after extracting scenes and before generating scene images.",
+      description:
+        "Use AI to automatically analyze the story and determine which characters appear in each scene. Updates every scene's characterIds. Call this after extracting scenes and before generating scene images.",
       parameters: {},
       execute: async () => {
         const apiKey = getApiKey();
@@ -517,13 +600,23 @@ export function createTools(): ToolDef[] {
 
         const store = useMovieStore.getState();
         if (!store.story.trim()) return "Error: Story is empty.";
-        if (!store.characters.length) return "Error: No characters. Extract characters first.";
-        if (!store.scenes.length) return "Error: No scenes. Extract scenes first.";
+        if (!store.characters.length)
+          return "Error: No characters. Extract characters first.";
+        if (!store.scenes.length)
+          return "Error: No scenes. Extract scenes first.";
 
         const mapping = await tagSceneCharacters(
           store.story,
-          store.characters.map((c) => ({ id: c.id, name: c.name, description: c.description })),
-          store.scenes.map((s) => ({ id: s.id, name: s.name, description: s.description })),
+          store.characters.map((c) => ({
+            id: c.id,
+            name: c.name,
+            description: c.description,
+          })),
+          store.scenes.map((s) => ({
+            id: s.id,
+            name: s.name,
+            description: s.description,
+          })),
           apiKey,
         );
 
@@ -535,8 +628,14 @@ export function createTools(): ToolDef[] {
 
         const summary = Object.entries(mapping)
           .map(([sid, cids]) => {
-            const sceneName = store.scenes.find((s) => s.id === sid)?.name || sid;
-            const charNames = cids.map((cid) => store.characters.find((c) => c.id === cid)?.name || cid).join(", ");
+            const sceneName =
+              store.scenes.find((s) => s.id === sid)?.name || sid;
+            const charNames = cids
+              .map(
+                (cid) =>
+                  store.characters.find((c) => c.id === cid)?.name || cid,
+              )
+              .join(", ");
             return `  ${sceneName}: ${charNames || "none"}`;
           })
           .join("\n");
@@ -547,7 +646,8 @@ export function createTools(): ToolDef[] {
 
     {
       name: "update_scene_characters",
-      description: "Manually set which characters appear in a scene. Use auto_tag_scene_characters for automatic detection, or this for manual adjustments. Max 3 characters per scene.",
+      description:
+        "Manually set which characters appear in a scene. Use auto_tag_scene_characters for automatic detection, or this for manual adjustments. Max 3 characters per scene.",
       parameters: {
         type: "object",
         properties: {
@@ -555,7 +655,8 @@ export function createTools(): ToolDef[] {
           character_ids: {
             type: "array",
             items: { type: "string" },
-            description: "List of character IDs that appear in this scene. Max 3.",
+            description:
+              "List of character IDs that appear in this scene. Max 3.",
           },
         },
         required: ["scene_id", "character_ids"],
@@ -566,9 +667,13 @@ export function createTools(): ToolDef[] {
         const store = useMovieStore.getState();
         const scene = store.scenes.find((s) => s.id === id);
         if (!scene) return `Error: scene with ID "${id}" not found.`;
-        const validIds = charIds.filter((cid) => store.characters.some((c) => c.id === cid));
+        const validIds = charIds.filter((cid) =>
+          store.characters.some((c) => c.id === cid),
+        );
         store.updateScene(id, { characterIds: validIds });
-        const names = validIds.map((cid) => store.characters.find((c) => c.id === cid)?.name || cid).join(", ");
+        const names = validIds
+          .map((cid) => store.characters.find((c) => c.id === cid)?.name || cid)
+          .join(", ");
         return `Scene "${scene.name}" now has ${validIds.length} character(s): ${names || "none"}.`;
       },
     },
@@ -582,7 +687,8 @@ export function createTools(): ToolDef[] {
           scene_ids: {
             type: "array",
             items: { type: "string" },
-            description: "List of scene IDs to generate scripts for. If omitted, generates for all scenes.",
+            description:
+              "List of scene IDs to generate scripts for. If omitted, generates for all scenes.",
           },
         },
       },
@@ -599,9 +705,22 @@ export function createTools(): ToolDef[] {
 
         let done = 0;
         for (const scene of targets) {
-          const conversations = await regenerateSceneConversations(scene.name, scene.description, apiKey, store.language);
-          const metadata = await estimateSceneMetadata(scene.name, scene.description, conversations, apiKey);
-          store.updateScene(scene.id, { conversations, videoDuration: metadata.videoDuration });
+          const conversations = await regenerateSceneConversations(
+            scene.name,
+            scene.description,
+            apiKey,
+            store.language,
+          );
+          const metadata = await estimateSceneMetadata(
+            scene.name,
+            scene.description,
+            conversations,
+            apiKey,
+          );
+          store.updateScene(scene.id, {
+            conversations,
+            videoDuration: metadata.videoDuration,
+          });
           done++;
         }
         return `Generated scripts for ${done} scene(s).`;
@@ -610,11 +729,15 @@ export function createTools(): ToolDef[] {
 
     {
       name: "generate_scene_video",
-      description: "Generate AI video for a specific scene. Requires the scene to have an image first.",
+      description:
+        "Generate AI video for a specific scene. Requires the scene to have an image first.",
       parameters: {
         type: "object",
         properties: {
-          scene_id: { type: "string", description: "The scene ID to generate video for." },
+          scene_id: {
+            type: "string",
+            description: "The scene ID to generate video for.",
+          },
         },
         required: ["scene_id"],
       },
@@ -623,21 +746,27 @@ export function createTools(): ToolDef[] {
         const folderHandle = getFolderHandle();
         const projectId = getProjectId();
         if (!apiKey) return "Error: No API key configured.";
-        if (!folderHandle || !projectId) return "Error: No workspace or project selected.";
+        if (!folderHandle || !projectId)
+          return "Error: No workspace or project selected.";
 
         const store = useMovieStore.getState();
         const scene = store.scenes.find((s) => s.id === args.scene_id);
         if (!scene) return `Error: scene "${args.scene_id}" not found.`;
-        if (!scene.imageFilename) return "Error: Scene has no image. Generate the scene image first.";
+        if (!scene.imageFilename)
+          return "Error: Scene has no image. Generate the scene image first.";
 
         // Load the scene image file from the project's images/scene/ directory
         const imagesDir = await getProjectImagesDir(folderHandle, projectId);
-        const sceneDir = await imagesDir.getDirectoryHandle("scene", { create: true });
+        const sceneDir = await imagesDir.getDirectoryHandle("scene", {
+          create: true,
+        });
         const fileHandle = await sceneDir.getFileHandle(scene.imageFilename);
         const file = await fileHandle.getFile();
 
         // Resolve character reference video files from clips/ directory
-        const referenceIds = scene.videoReferenceIds?.length ? new Set(scene.videoReferenceIds) : null;
+        const referenceIds = scene.videoReferenceIds?.length
+          ? new Set(scene.videoReferenceIds)
+          : null;
         const videoFiles: File[] = [];
         try {
           const clipsDir = await getProjectClipsDir(folderHandle, projectId);
@@ -677,7 +806,11 @@ export function createTools(): ToolDef[] {
         );
         const clipsDir = await getProjectClipsDir(folderHandle, projectId);
         const videoFilename = `${crypto.randomUUID()}.mp4`;
-        const localUrl = await saveAndLoadLocal(remoteUrl, videoFilename, clipsDir);
+        const localUrl = await saveAndLoadLocal(
+          remoteUrl,
+          videoFilename,
+          clipsDir,
+        );
         store.updateScene(scene.id, { videoUrl: localUrl, videoFilename });
         return `Generated video for scene "${scene.name}".`;
       },
@@ -692,7 +825,11 @@ export function createTools(): ToolDef[] {
         const projectId = getProjectId();
         const folderName = useFolderStore.getState().folderName;
         if (!folderHandle || !projectId) return "Error: No project selected.";
-        await exportProjectAsZip(folderHandle, projectId, folderName ?? "movie-project");
+        await exportProjectAsZip(
+          folderHandle,
+          projectId,
+          folderName ?? "movie-project",
+        );
         return "Project exported as ZIP.";
       },
     },
@@ -711,7 +848,9 @@ export function createTools(): ToolDef[] {
         const folderHandle = getFolderHandle();
         if (!folderHandle) return "Error: No workspace folder selected.";
         const name = args.name as string;
-        const id = await useProjectStore.getState().createProject(folderHandle, name);
+        const id = await useProjectStore
+          .getState()
+          .createProject(folderHandle, name);
         useMovieStore.getState().setProjectId(id);
         return `Created project "${name}" with ID: ${id}.`;
       },

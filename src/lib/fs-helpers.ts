@@ -118,7 +118,11 @@ export async function writeCharactersJson(
   projectId: string,
   characters: Character[],
 ): Promise<void> {
-  const toSave = characters.map((c) => ({ ...c, imageUrl: null, videoUrl: null }));
+  const toSave = characters.map((c) => ({
+    ...c,
+    imageUrl: null,
+    videoUrl: null,
+  }));
   const projectDir = await getProjectDir(folderHandle, projectId);
   const fileHandle = await projectDir.getFileHandle("character.json", {
     create: true,
@@ -337,7 +341,9 @@ async function extractZipToDir(
       currentDir = await currentDir.getDirectoryHandle(part, { create: true });
     }
     const blob = await file.async("blob");
-    const fileHandle = await currentDir.getFileHandle(fileName, { create: true });
+    const fileHandle = await currentDir.getFileHandle(fileName, {
+      create: true,
+    });
     const writable = await fileHandle.createWritable();
     await writable.write(blob);
     await writable.close();
@@ -346,7 +352,12 @@ async function extractZipToDir(
 
 export async function pickAndExtractProjectZip(
   folderHandle: FileSystemDirectoryHandle,
-): Promise<{ id: string; name: string; createdAt: string; updatedAt: string } | null> {
+): Promise<{
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+} | null> {
   const input = document.createElement("input");
   input.type = "file";
   input.accept = ".zip";
