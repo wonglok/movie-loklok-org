@@ -142,9 +142,7 @@ export function MovieApp() {
   }, [isGenerating, setIsGenerating]);
 
   const effectiveStyle = resolveStyle(customArtStyle, artStyle);
-  const hasCharacterImages = characters.some(
-    (c) => c.sourceUrl || c.imageFilename,
-  );
+  const hasCharacterImages = characters.some((c) => c.imageFilename);
 
   const { isSaving } = useAutoSave(
     folderHandle,
@@ -357,7 +355,6 @@ export function MovieApp() {
           location: "",
           imageUrl: null,
           imageFilename: null,
-          sourceUrl: null,
           videoUrl: null,
           videoFilename: null,
           videoDuration: 5,
@@ -427,7 +424,6 @@ export function MovieApp() {
           updateCharacter(char.id, {
             imageUrl: localUrl,
             imageFilename: filename,
-            sourceUrl: result.url,
           });
           await savePromptFile(result.prompt, `${imageId}.txt`, characterDir);
         }),
@@ -488,11 +484,9 @@ export function MovieApp() {
         updateCharacter(id, {
           imageUrl: localUrl,
           imageFilename: filename,
-          sourceUrl: result.url,
         });
         await savePromptFile(result.prompt, `${imageId}.txt`, characterDir);
       } else {
-        updateCharacter(id, { imageUrl: result.url, sourceUrl: result.url });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Regeneration failed");
@@ -586,7 +580,6 @@ export function MovieApp() {
           ...s,
           imageUrl: null,
           imageFilename: null,
-          sourceUrl: null,
           videoUrl: null,
           videoFilename: null,
           videoDuration: 5,
@@ -670,13 +663,11 @@ export function MovieApp() {
         updateScene(id, {
           imageUrl: localUrl,
           imageFilename: filename,
-          sourceUrl: result.url,
         });
         await savePromptFile(result.prompt, `${imageId}.txt`, sceneDir);
       } else {
         updateScene(id, {
           imageUrl: result.url,
-          sourceUrl: result.url,
         });
       }
     } catch (err) {
@@ -985,7 +976,6 @@ export function MovieApp() {
           updateScene(id, {
             imageUrl: localUrl,
             imageFilename: filename,
-            sourceUrl: result.url,
           });
           await savePromptFile(result.prompt, `${imageId}.txt`, sceneDir);
           done++;
@@ -1570,7 +1560,6 @@ export function MovieApp() {
                               location: "",
                               imageUrl: null,
                               imageFilename: null,
-                              sourceUrl: null,
                               videoUrl: null,
                               videoFilename: null,
                               videoDuration: 5,
@@ -1805,7 +1794,6 @@ export function MovieApp() {
                                   location: "",
                                   imageUrl: null,
                                   imageFilename: null,
-                                  sourceUrl: null,
                                   videoUrl: null,
                                   videoFilename: null,
                                   videoDuration: 5,

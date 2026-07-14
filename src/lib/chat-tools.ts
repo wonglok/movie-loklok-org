@@ -221,7 +221,6 @@ export function createTools(): ToolDef[] {
           location: (args.location as string) || "",
           imageUrl: null,
           imageFilename: null,
-          sourceUrl: null,
           videoUrl: null,
           videoFilename: null,
           videoDuration: 5,
@@ -340,7 +339,6 @@ export function createTools(): ToolDef[] {
           location: (args.location as string) || "",
           imageUrl: null,
           imageFilename: null,
-          sourceUrl: null,
           videoUrl: null,
           videoFilename: null,
           videoDuration: 5,
@@ -398,7 +396,6 @@ export function createTools(): ToolDef[] {
           location: "",
           imageUrl: null as string | null,
           imageFilename: null as string | null,
-          sourceUrl: null as string | null,
           videoUrl: null as string | null,
           videoFilename: null as string | null,
           videoDuration: 5,
@@ -433,7 +430,6 @@ export function createTools(): ToolDef[] {
           ...s,
           imageUrl: null as string | null,
           imageFilename: null as string | null,
-          sourceUrl: null as string | null,
           videoUrl: null as string | null,
           videoFilename: null as string | null,
           videoDuration: 5,
@@ -504,7 +500,6 @@ export function createTools(): ToolDef[] {
           store.updateCharacter(char.id, {
             imageUrl: localUrl,
             imageFilename: filename,
-            sourceUrl: result.url,
           });
           await savePromptFile(result.prompt, `${imageId}.txt`, charDir);
           done++;
@@ -579,7 +574,6 @@ export function createTools(): ToolDef[] {
         store.updateCharacter(char.id, {
           imageUrl: localUrl,
           imageFilename: filename,
-          sourceUrl: result.url,
         });
         await savePromptFile(result.prompt, `${imageId}.txt`, charDir);
 
@@ -759,7 +753,6 @@ export function createTools(): ToolDef[] {
           store.updateScene(scene.id, {
             imageUrl: localUrl,
             imageFilename: filename,
-            sourceUrl: result.url,
           });
           await savePromptFile(result.prompt, `${imageId}.txt`, sceneDir);
           done++;

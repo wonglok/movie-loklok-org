@@ -14,29 +14,26 @@ export async function resolveCharacterRefs(
   const urls: string[] = [];
 
   for (const char of characters) {
-    if (char.sourceUrl) {
-      urls.push(char.sourceUrl);
-    } else if (char.imageFilename && folderHandle && projectId) {
-      try {
-        const projectsDir = await folderHandle.getDirectoryHandle("projects", {
-          create: true,
-        });
-        const projectDir = await projectsDir.getDirectoryHandle(projectId, {
-          create: true,
-        });
-        const imagesDir = await projectDir.getDirectoryHandle("images", {
-          create: true,
-        });
-        const charDir = await imagesDir.getDirectoryHandle("character", {
-          create: true,
-        });
-        const fileHandle = await charDir.getFileHandle(char.imageFilename);
-        const file = await fileHandle.getFile();
-        const uploadedUrl = await fal.storage.upload(file);
-        urls.push(uploadedUrl);
-      } catch {
-        // skip if upload fails
-      }
+    if (!char.imageFilename || !folderHandle || !projectId) continue;
+    try {
+      const projectsDir = await folderHandle.getDirectoryHandle("projects", {
+        create: true,
+      });
+      const projectDir = await projectsDir.getDirectoryHandle(projectId, {
+        create: true,
+      });
+      const imagesDir = await projectDir.getDirectoryHandle("images", {
+        create: true,
+      });
+      const charDir = await imagesDir.getDirectoryHandle("character", {
+        create: true,
+      });
+      const fileHandle = await charDir.getFileHandle(char.imageFilename);
+      const file = await fileHandle.getFile();
+      const uploadedUrl = await fal.storage.upload(file);
+      urls.push(uploadedUrl);
+    } catch {
+      // skip if upload fails
     }
   }
 
