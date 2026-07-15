@@ -1221,7 +1221,9 @@ export function MovieApp() {
             </div> */}
             </div>
             <div className="text-blue-300 underline mb-3 font-bold">
-              https://agent.video.loklok.org
+              <a href={`https://agent.video.loklok.org`} target="_blank">
+                https://agent.video.loklok.org
+              </a>
             </div>
             <div className="text-white mb-3 font-bold">
               <a
