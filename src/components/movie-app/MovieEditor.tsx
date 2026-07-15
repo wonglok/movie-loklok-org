@@ -361,7 +361,7 @@ export function MovieEditor({
                   Extracting...
                 </>
               ) : (
-                "Extract Frame"
+                "Download Cover Image (Extract First Frame)"
               )}
             </button>
             <button
