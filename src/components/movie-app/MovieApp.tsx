@@ -966,28 +966,41 @@ export function MovieApp() {
     }
     setError(null);
     setGeneratingScrollWebsite(true);
-    setScrollWebsiteProgress({ current: 0, total: scenesWithVideo.length });
+    // +2: one for each encode pass + one for concat + one for final read
+    const totalSteps = scenesWithVideo.length + 1;
+    setScrollWebsiteProgress({ current: 0, total: totalSteps });
     try {
       const clipsDir = await getProjectClipsDir(folderHandle, projectId);
 
-      // Load FFmpeg and re-encode each video for scroll-friendly seeking
       const ffmpeg = new FFmpeg();
       await ffmpeg.load();
 
-      const videoEntries: { name: string; description: string; base64: string }[] = [];
+      // Step 1: Re-encode each video with standardized settings and track metadata
+      const concatLines: string[] = [];
+      interface SceneTimeMeta {
+        name: string;
+        description: string;
+        location: string;
+        conversations: { person: string; line: string }[];
+        startTime: number;
+        endTime: number;
+        duration: number;
+      }
+      const sceneTimeMeta: SceneTimeMeta[] = [];
+      let cumulativeTime = 0;
+
       for (let i = 0; i < scenesWithVideo.length; i++) {
         const scene = scenesWithVideo[i];
-        setScrollWebsiteProgress({ current: i + 1, total: scenesWithVideo.length });
+        setScrollWebsiteProgress({ current: i + 1, total: totalSteps });
         try {
           const fileHandle = await clipsDir.getFileHandle(scene.videoFilename!);
           const file = await fileHandle.getFile();
-          const inputName = `scroll_input_${i}.mp4`;
-          const outputName = `scroll_output_${i}.mp4`;
+          const inputName = `scroll_in_${i}.mp4`;
+          const outputName = `scroll_out_${i}.mp4`;
 
           await ffmpeg.writeFile(inputName, await fetchFile(file));
 
-          // Re-encode: -g 1 makes every frame a keyframe for instant seeking,
-          // -movflags faststart enables streaming, crf 23 balances quality/size
+          // Standardize: -g 1 = every frame keyframe for instant scroll-seeking
           await ffmpeg.exec([
             "-i", inputName,
             "-movflags", "faststart",
@@ -995,156 +1008,274 @@ export function MovieApp() {
             "-crf", "23",
             "-g", "1",
             "-pix_fmt", "yuv420p",
+            "-acodec", "aac",
+            "-ar", "44100",
+            "-ac", "2",
             outputName,
           ]);
 
-          const data = (await ffmpeg.readFile(outputName)) as Uint8Array;
-          const bytes = new Uint8Array(data);
-          let binary = "";
-          for (let j = 0; j < bytes.length; j++) {
-            binary += String.fromCharCode(bytes[j]);
-          }
-          const base64 = btoa(binary);
+          concatLines.push(`file '${outputName}'`);
 
-          videoEntries.push({
+          const duration = scene.videoDuration || 5;
+          sceneTimeMeta.push({
             name: scene.name || "(unnamed)",
             description: scene.description || "",
-            base64: `data:video/mp4;base64,${base64}`,
+            location: scene.location || "",
+            conversations: (scene.conversations || []).map((c) => ({
+              person: c.person,
+              line: c.line,
+            })),
+            startTime: cumulativeTime,
+            endTime: cumulativeTime + duration,
+            duration,
           });
+          cumulativeTime += duration;
 
-          // Clean up temp files
           await ffmpeg.deleteFile(inputName);
-          await ffmpeg.deleteFile(outputName);
         } catch {
-          // skip scenes that fail to encode
+          // skip failed encodes
         }
       }
 
-      if (videoEntries.length === 0) {
+      if (concatLines.length === 0) {
         setError("Could not encode any video files.");
         setGeneratingScrollWebsite(false);
         setScrollWebsiteProgress(null);
         return;
       }
 
-      const videosJson = JSON.stringify(
-        videoEntries.map((v) => ({
-          name: v.name,
-          description: v.description,
-          src: v.base64,
-        })),
-      );
+      // Step 2: Concatenate all re-encoded videos into one combined video
+      setScrollWebsiteProgress({ current: totalSteps, total: totalSteps });
+
+      await ffmpeg.writeFile("concat_list.txt", concatLines.join("\n"));
+      await ffmpeg.exec([
+        "-f", "concat",
+        "-safe", "0",
+        "-i", "concat_list.txt",
+        "-c", "copy",
+        "combined_scroll.mp4",
+      ]);
+
+      const data = (await ffmpeg.readFile("combined_scroll.mp4")) as Uint8Array;
+      const bytes = new Uint8Array(data);
+      let binary = "";
+      for (let j = 0; j < bytes.length; j++) {
+        binary += String.fromCharCode(bytes[j]);
+      }
+      const combinedBase64 = `data:video/mp4;base64,${btoa(binary)}`;
+
+      // Clean up ffmpeg temp files
+      for (let i = 0; i < concatLines.length; i++) {
+        try { await ffmpeg.deleteFile(`scroll_out_${i}.mp4`); } catch { /* ok */ }
+      }
+      try { await ffmpeg.deleteFile("concat_list.txt"); } catch { /* ok */ }
+      try { await ffmpeg.deleteFile("combined_scroll.mp4"); } catch { /* ok */ }
+
+      // Build metadata
+      const exportMeta = {
+        title: story.slice(0, 200) || "Movie Story",
+        story: story,
+        language: language,
+        artStyle: effectiveStyle,
+        totalDuration: Math.round(cumulativeTime * 10) / 10,
+        sceneCount: sceneTimeMeta.length,
+        generatedAt: new Date().toISOString(),
+        scenes: sceneTimeMeta,
+      };
+      const metaJson = JSON.stringify(exportMeta);
 
       const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>${story.slice(0, 80) || "Scroll Video Story"}</title>
+  <title>${exportMeta.title}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html { scroll-behavior: smooth; }
-    body { background: #000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; overscroll-behavior: none; }
+    body { background: #000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; overscroll-behavior: none; color: #fff; }
 
-    #player { position: sticky; top: 0; width: 100%; height: 100vh; height: 100dvh; display: flex; align-items: center; justify-content: center; overflow: hidden; z-index: 10; }
-    #player video { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
-    #player .scene-label { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 14px; font-weight: 600; text-align: center; padding: 8px 20px; background: rgba(0,0,0,0.6); border-radius: 20px; backdrop-filter: blur(8px); max-width: 90vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; transition: opacity 0.3s; }
-    #player .scene-hint { position: absolute; top: 50%; right: 16px; transform: translateY(-50%); color: rgba(255,255,255,0.4); font-size: 32px; pointer-events: none; animation: bounce 1.5s ease-in-out infinite; }
-    @keyframes bounce { 0%, 100% { transform: translateY(-50%) translateX(0); } 50% { transform: translateY(-50%) translateX(6px); } }
+    #player-wrap { position: sticky; top: 0; width: 100%; height: 100vh; height: 100dvh; z-index: 10; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #000; }
+    #player-wrap video { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
 
-    #info-bar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 8px; padding: 8px 12px; }
-    .progress-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.3); transition: background 0.3s, transform 0.3s; }
-    .progress-dot.active { background: #fff; transform: scale(1.4); }
+    #overlay { position: absolute; inset: 0; pointer-events: none; }
+    #progress-bar { position: absolute; top: 12px; left: 16px; right: 16px; display: flex; gap: 4px; }
+    .dot { flex: 1; height: 3px; border-radius: 2px; background: rgba(255,255,255,0.2); transition: background 0.3s; }
+    .dot.active { background: #fff; }
 
-    #scroll-spacer { position: relative; z-index: 5; }
+    #scene-overlay { position: absolute; bottom: 0; left: 0; right: 0; padding: 32px 24px 24px; background: linear-gradient(transparent, rgba(0,0,0,0.85)); }
+    #scene-overlay h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: 4px; letter-spacing: -0.01em; }
+    #scene-overlay .loc { font-size: 0.75rem; color: rgba(255,255,255,0.45); margin-bottom: 6px; }
+    #scene-overlay .desc { font-size: 0.8125rem; color: rgba(255,255,255,0.6); line-height: 1.5; max-width: 600px; }
+
+    #time-indicator { position: absolute; top: 16px; right: 16px; font-size: 0.6875rem; color: rgba(255,255,255,0.4); font-variant-numeric: tabular-nums; }
+
+    #scroll-hint { position: absolute; top: 50%; right: 12px; transform: translateY(-50%); color: rgba(255,255,255,0.25); font-size: 28px; pointer-events: none; transition: opacity 0.4s; animation: hint-bounce 1.8s ease-in-out infinite; }
+    @keyframes hint-bounce { 0%, 100% { transform: translateY(-50%) translateX(0); } 50% { transform: translateY(-50%) translateX(5px); } }
+
+    #scene-cards { position: relative; z-index: 5; }
+    .scene-card { padding: 40px 24px; border-bottom: 1px solid rgba(255,255,255,0.06); min-height: 60vh; display: flex; flex-direction: column; justify-content: center; }
+    .scene-card h3 { font-size: 1.125rem; font-weight: 700; margin-bottom: 6px; }
+    .scene-card .loc { font-size: 0.6875rem; color: rgba(255,255,255,0.35); margin-bottom: 10px; }
+    .scene-card .desc { font-size: 0.8125rem; color: rgba(255,255,255,0.55); line-height: 1.65; margin-bottom: 16px; max-width: 600px; }
+    .scene-card .dialogue { background: rgba(255,255,255,0.04); border-radius: 10px; padding: 14px 16px; }
+    .scene-card .dialogue p { font-size: 0.75rem; line-height: 1.85; color: rgba(255,255,255,0.5); }
+    .scene-card .dialogue strong { color: rgba(255,255,255,0.8); }
+    .scene-card .time-badge { display: inline-block; font-size: 0.625rem; color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.06); padding: 2px 8px; border-radius: 10px; margin-bottom: 10px; }
+
+    #title-bar { padding: 48px 24px 24px; text-align: center; }
+    #title-bar h1 { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 4px; }
+    #title-bar .sub { font-size: 0.75rem; color: rgba(255,255,255,0.35); }
+
+    #footer { padding: 48px 24px; text-align: center; }
+    #footer p { font-size: 0.6875rem; color: rgba(255,255,255,0.2); }
 
     @media (max-width: 640px) {
-      #player .scene-label { bottom: 16px; font-size: 12px; padding: 6px 14px; }
-      #player .scene-hint { font-size: 24px; right: 8px; }
+      #scene-overlay { padding: 24px 16px 16px; }
+      #scene-overlay h2 { font-size: 1rem; }
+      #scene-overlay .desc { font-size: 0.75rem; }
+      .scene-card { padding: 32px 16px; min-height: 50vh; }
+      #scroll-hint { font-size: 22px; right: 6px; }
     }
   </style>
 </head>
 <body>
-  <div id="info-bar"></div>
-  <div id="player">
-    <video muted playsinline preload="auto"></video>
-    <div class="scene-label"></div>
-    <div class="scene-hint">&#8250;</div>
+  <div id="player-wrap">
+    <video id="main-video" muted playsinline preload="auto"></video>
+    <div id="overlay">
+      <div id="progress-bar"></div>
+      <div id="time-indicator"></div>
+      <div id="scene-overlay">
+        <h2 id="ov-name"></h2>
+        <div id="ov-loc" class="loc"></div>
+        <div id="ov-desc" class="desc"></div>
+      </div>
+      <div id="scroll-hint">&#8250;</div>
+    </div>
   </div>
-  <div id="scroll-spacer"></div>
+
+  <div id="title-bar">
+    <h1>${exportMeta.title}</h1>
+    <div class="sub">${exportMeta.sceneCount} scenes &middot; ${Math.round(exportMeta.totalDuration)}s total &middot; ${exportMeta.language}</div>
+  </div>
+
+  <div id="scene-cards"></div>
+
+  <div id="footer">
+    <p>Generated with AI Video Studio &middot; ${exportMeta.generatedAt ? new Date(exportMeta.generatedAt).toLocaleDateString() : ""}</p>
+  </div>
 
   <script>
-    const videoData = ${videosJson};
-    const sceneCount = videoData.length;
+    const META = ${metaJson};
+    const COMBINED_SRC = "${combinedBase64}";
+
+    const video = document.getElementById('main-video');
+    const ovName = document.getElementById('ov-name');
+    const ovLoc = document.getElementById('ov-loc');
+    const ovDesc = document.getElementById('ov-desc');
+    const timeInd = document.getElementById('time-indicator');
+    const hint = document.getElementById('scroll-hint');
+    const dotsContainer = document.getElementById('progress-bar');
+    const cardsContainer = document.getElementById('scene-cards');
 
     // Build progress dots
-    const infoBar = document.getElementById('info-bar');
-    for (let i = 0; i < sceneCount; i++) {
+    META.scenes.forEach((s, i) => {
       const dot = document.createElement('div');
-      dot.className = 'progress-dot';
-      dot.title = videoData[i].name;
-      infoBar.appendChild(dot);
+      dot.className = 'dot';
+      dot.title = s.name;
+      dotsContainer.appendChild(dot);
+    });
+    const dots = dotsContainer.querySelectorAll('.dot');
+
+    // Build scene cards
+    META.scenes.forEach((s, i) => {
+      const card = document.createElement('div');
+      card.className = 'scene-card';
+      card.id = 'scene-' + i;
+      const dialogueHtml = s.conversations && s.conversations.length > 0
+        ? '<div class="dialogue">' + s.conversations.map(function(c) { return '<p><strong>' + esc(c.person) + ':</strong> "' + esc(c.line) + '"</p>'; }).join('') + '</div>'
+        : '';
+      card.innerHTML =
+        '<div class="time-badge">' + fmtTime(s.startTime) + ' &ndash; ' + fmtTime(s.endTime) + '</div>' +
+        '<h3>' + esc(s.name) + '</h3>' +
+        (s.location ? '<div class="loc">' + esc(s.location) + '</div>' : '') +
+        '<div class="desc">' + esc(s.description) + '</div>' +
+        dialogueHtml;
+      cardsContainer.appendChild(card);
+    });
+
+    function esc(str) {
+      if (!str) return '';
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    function fmtTime(sec) {
+      var m = Math.floor(sec / 60);
+      var s = Math.floor(sec % 60);
+      return m + ':' + (s < 10 ? '0' : '') + s;
     }
 
-    // Set scroll spacer height
-    const spacer = document.getElementById('scroll-spacer');
-    spacer.style.height = (window.innerHeight * sceneCount) + 'px';
+    // Set video source
+    video.src = COMBINED_SRC;
 
-    // Pre-create video elements so we can preload
-    const videoEls = [];
-    const player = document.getElementById('player');
-    const video = player.querySelector('video');
-    const label = player.querySelector('.scene-label');
-    const hint = player.querySelector('.scene-hint');
-    const dots = infoBar.querySelectorAll('.progress-dot');
-
-    let currentScene = -1;
-    let ticking = false;
+    var currentIdx = -1;
+    var ticking = false;
 
     function update() {
-      const scrollY = window.scrollY;
-      const vh = window.innerHeight;
-      const sceneIndex = Math.min(Math.floor(scrollY / vh), sceneCount - 1);
-      const progressInScene = (scrollY - sceneIndex * vh) / vh;
-      const clampedProgress = Math.max(0, Math.min(1, progressInScene));
+      var scrollY = window.scrollY;
+      var vh = window.innerHeight;
+      // Map scroll to video time proportionally
+      var totalScroll = Math.max(document.body.scrollHeight - vh, 1);
+      var scrollFrac = scrollY / totalScroll;
+      var targetTime = scrollFrac * META.totalDuration;
 
-      // Switch video if scene changed
-      if (sceneIndex !== currentScene) {
-        currentScene = sceneIndex;
-        video.src = videoData[sceneIndex].src;
-        label.textContent = videoData[sceneIndex].name;
-        video.currentTime = 0;
-
-        // Update dots
-        dots.forEach((d, i) => d.classList.toggle('active', i === sceneIndex));
+      // Find which scene this time falls in
+      var idx = 0;
+      for (var i = 0; i < META.scenes.length; i++) {
+        if (targetTime >= META.scenes[i].startTime && targetTime < META.scenes[i].endTime) {
+          idx = i;
+          break;
+        }
+        if (i === META.scenes.length - 1 || targetTime < META.scenes[i + 1]?.startTime) {
+          idx = i;
+          break;
+        }
       }
 
-      // Sync currentTime based on progress within the scene section
+      // Update overlay
+      if (idx !== currentIdx) {
+        currentIdx = idx;
+        var s = META.scenes[idx];
+        ovName.textContent = s.name;
+        ovLoc.textContent = s.location || '';
+        ovDesc.textContent = s.description || '';
+        dots.forEach(function(d, i) { d.classList.toggle('active', i === idx); });
+      }
+
+      // Sync video currentTime
       if (video.readyState >= 1 && video.duration && isFinite(video.duration)) {
-        video.currentTime = clampedProgress * video.duration;
+        video.currentTime = targetTime;
       }
 
-      // Show/hide hint
-      hint.style.opacity = clampedProgress > 0.95 ? '0' : '1';
+      // Time indicator
+      timeInd.textContent = fmtTime(targetTime) + ' / ' + fmtTime(META.totalDuration);
+
+      // Scroll hint
+      var s = META.scenes[idx];
+      var progressInScene = s.duration > 0 ? (targetTime - s.startTime) / s.duration : 0;
+      hint.style.opacity = progressInScene > 0.9 ? '0' : '1';
 
       ticking = false;
     }
 
-    window.addEventListener('scroll', () => {
+    window.addEventListener('scroll', function() {
       if (!ticking) {
         requestAnimationFrame(update);
         ticking = true;
       }
     }, { passive: true });
 
-    // Initial load
     video.addEventListener('loadedmetadata', update);
     update();
-
-    // Handle resize
-    window.addEventListener('resize', () => {
-      spacer.style.height = (window.innerHeight * sceneCount) + 'px';
-    });
   </script>
 </body>
 </html>`;
@@ -2312,9 +2443,7 @@ export function MovieApp() {
                         {generatingWebsite ? (
                           <>
                             <div className="animate-spin rounded-full h-4 w-4 border-2 border-cyan-400/30 border-t-cyan-400" />
-                            <span className="text-cyan-400">
-                              Generating...
-                            </span>
+                            <span className="text-cyan-400">Generating...</span>
                           </>
                         ) : (
                           <>
@@ -2343,9 +2472,7 @@ export function MovieApp() {
                         {generatingVideoWebsite ? (
                           <>
                             <div className="animate-spin rounded-full h-4 w-4 border-2 border-cyan-400/30 border-t-cyan-400" />
-                            <span className="text-cyan-400">
-                              Generating...
-                            </span>
+                            <span className="text-cyan-400">Generating...</span>
                           </>
                         ) : (
                           <>
@@ -2374,9 +2501,7 @@ export function MovieApp() {
                         {generatingScrollWebsite ? (
                           <>
                             <div className="animate-spin rounded-full h-4 w-4 border-2 border-cyan-400/30 border-t-cyan-400" />
-                            <span className="text-cyan-400">
-                              Generating...
-                            </span>
+                            <span className="text-cyan-400">Generating...</span>
                           </>
                         ) : (
                           <>
