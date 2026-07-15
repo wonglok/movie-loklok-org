@@ -2,8 +2,6 @@ import { fal } from "@fal-ai/client";
 
 import type { Character } from "@/stores/movie-store";
 
-export const FAL_TEXT2IMG = "https://fal.run/fal-ai/nano-banana";
-
 export async function resolveCharacterRefs(
   characters: Character[],
   folderHandle: FileSystemDirectoryHandle | null,
@@ -49,25 +47,25 @@ export async function generateImage(
   prompt: string,
   apiKey: string,
 ): Promise<GenerateResult> {
-  const res = await fetch(FAL_TEXT2IMG, {
-    method: "POST",
-    headers: {
-      Authorization: `Key ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
+  fal.config({ credentials: apiKey });
+
+  const result = await fal.subscribe("openai/gpt-image-2", {
+    input: {
       prompt,
+      quality: "medium",
+      image_size: "square_hd",
       num_images: 1,
-      image_size: "landscape_4_3",
-    }),
+      output_format: "png",
+    },
+    logs: true,
+    onQueueUpdate: (update) => {
+      if (update.status === "IN_PROGRESS") {
+        update.logs.map((log) => log.message).forEach(console.log);
+      }
+    },
   });
 
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`fal.ai error ${res.status}: ${body}`);
-  }
-
-  const data = await res.json();
+  const data = result.data as { images: { url: string }[] };
   return { url: data.images[0].url, prompt };
 }
 
@@ -78,13 +76,13 @@ export async function generateSceneImage(
 ): Promise<GenerateResult> {
   fal.config({ credentials: apiKey });
 
-  const result = await fal.subscribe("fal-ai/nano-banana/edit", {
+  const result = await fal.subscribe("openai/gpt-image-2/edit", {
     input: {
       prompt,
+      quality: "medium",
+      image_size: "square_hd",
       num_images: 1,
-      aspect_ratio: "auto",
       output_format: "png",
-      safety_tolerance: "4",
       image_urls: imageUrls,
     },
     logs: true,
