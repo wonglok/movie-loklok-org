@@ -30,6 +30,8 @@ import {
   getProjectClipsDir,
   archiveFile,
 } from "@/lib/fs-helpers";
+import { FFmpeg } from "@ffmpeg/ffmpeg";
+import { fetchFile } from "@ffmpeg/util";
 import { useAutoSave } from "@/hooks/useAutoSave";
 import { useLocalImages } from "@/hooks/useLocalImages";
 import { generatePptx } from "@/lib/ebook";
@@ -122,6 +124,10 @@ export function MovieApp() {
   const [generatingWebsite, setGeneratingWebsite] = useState(false);
   const [generatingVideoWebsite, setGeneratingVideoWebsite] = useState(false);
   const [generatingScrollWebsite, setGeneratingScrollWebsite] = useState(false);
+  const [scrollWebsiteProgress, setScrollWebsiteProgress] = useState<{
+    current: number;
+    total: number;
+  } | null>(null);
   const [exportingZip, setExportingZip] = useState(false);
   const [creatingFirstProject, setCreatingFirstProject] = useState(false);
   const [firstProjectName, setFirstProjectName] = useState("");
@@ -960,35 +966,64 @@ export function MovieApp() {
     }
     setError(null);
     setGeneratingScrollWebsite(true);
+    setScrollWebsiteProgress({ current: 0, total: scenesWithVideo.length });
     try {
       const clipsDir = await getProjectClipsDir(folderHandle, projectId);
 
-      // Read all video files and convert to base64
+      // Load FFmpeg and re-encode each video for scroll-friendly seeking
+      const ffmpeg = new FFmpeg();
+      await ffmpeg.load();
+
       const videoEntries: { name: string; description: string; base64: string }[] = [];
-      for (const scene of scenesWithVideo) {
+      for (let i = 0; i < scenesWithVideo.length; i++) {
+        const scene = scenesWithVideo[i];
+        setScrollWebsiteProgress({ current: i + 1, total: scenesWithVideo.length });
         try {
           const fileHandle = await clipsDir.getFileHandle(scene.videoFilename!);
           const file = await fileHandle.getFile();
-          const buffer = await file.arrayBuffer();
-          const bytes = new Uint8Array(buffer);
+          const inputName = `scroll_input_${i}.mp4`;
+          const outputName = `scroll_output_${i}.mp4`;
+
+          await ffmpeg.writeFile(inputName, await fetchFile(file));
+
+          // Re-encode: -g 1 makes every frame a keyframe for instant seeking,
+          // -movflags faststart enables streaming, crf 23 balances quality/size
+          await ffmpeg.exec([
+            "-i", inputName,
+            "-movflags", "faststart",
+            "-vcodec", "libx264",
+            "-crf", "23",
+            "-g", "1",
+            "-pix_fmt", "yuv420p",
+            outputName,
+          ]);
+
+          const data = (await ffmpeg.readFile(outputName)) as Uint8Array;
+          const bytes = new Uint8Array(data);
           let binary = "";
-          for (let i = 0; i < bytes.length; i++) {
-            binary += String.fromCharCode(bytes[i]);
+          for (let j = 0; j < bytes.length; j++) {
+            binary += String.fromCharCode(bytes[j]);
           }
           const base64 = btoa(binary);
+
           videoEntries.push({
             name: scene.name || "(unnamed)",
             description: scene.description || "",
             base64: `data:video/mp4;base64,${base64}`,
           });
+
+          // Clean up temp files
+          await ffmpeg.deleteFile(inputName);
+          await ffmpeg.deleteFile(outputName);
         } catch {
-          // skip scenes whose video file can't be read
+          // skip scenes that fail to encode
         }
       }
 
       if (videoEntries.length === 0) {
-        setError("Could not read any video files.");
+        setError("Could not encode any video files.");
         setGeneratingScrollWebsite(false);
+        setScrollWebsiteProgress(null);
         return;
       }
 
@@ -1129,6 +1164,7 @@ export function MovieApp() {
       );
     } finally {
       setGeneratingScrollWebsite(false);
+      setScrollWebsiteProgress(null);
     }
   };
 
@@ -2362,6 +2398,27 @@ export function MovieApp() {
                         )}
                       </button>
                     </div>
+                    {scrollWebsiteProgress && (
+                      <div className="flex flex-col gap-1.5 w-full max-w-md">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-neutral-400">
+                            Encoding videos for scroll website
+                          </span>
+                          <span className="text-neutral-500">
+                            {scrollWebsiteProgress.current} /{" "}
+                            {scrollWebsiteProgress.total}
+                          </span>
+                        </div>
+                        <div className="w-full h-2 bg-neutral-800 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-white rounded-full transition-all duration-300"
+                            style={{
+                              width: `${Math.round((scrollWebsiteProgress.current / scrollWebsiteProgress.total) * 100)}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </section>
                 )}
 
