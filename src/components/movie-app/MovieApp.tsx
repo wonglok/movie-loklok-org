@@ -1002,15 +1002,24 @@ export function MovieApp() {
 
           // Standardize: -g 1 = every frame keyframe for instant scroll-seeking
           await ffmpeg.exec([
-            "-i", inputName,
-            "-movflags", "faststart",
-            "-vcodec", "libx264",
-            "-crf", "23",
-            "-g", "1",
-            "-pix_fmt", "yuv420p",
-            "-acodec", "aac",
-            "-ar", "44100",
-            "-ac", "2",
+            "-i",
+            inputName,
+            "-movflags",
+            "faststart",
+            "-vcodec",
+            "libx264",
+            "-crf",
+            "23",
+            "-g",
+            "1",
+            "-pix_fmt",
+            "yuv420p",
+            "-acodec",
+            "aac",
+            "-ar",
+            "44100",
+            "-ac",
+            "2",
             outputName,
           ]);
 
@@ -1049,10 +1058,14 @@ export function MovieApp() {
 
       await ffmpeg.writeFile("concat_list.txt", concatLines.join("\n"));
       await ffmpeg.exec([
-        "-f", "concat",
-        "-safe", "0",
-        "-i", "concat_list.txt",
-        "-c", "copy",
+        "-f",
+        "concat",
+        "-safe",
+        "0",
+        "-i",
+        "concat_list.txt",
+        "-c",
+        "copy",
         "combined_scroll.mp4",
       ]);
 
@@ -1066,10 +1079,22 @@ export function MovieApp() {
 
       // Clean up ffmpeg temp files
       for (let i = 0; i < concatLines.length; i++) {
-        try { await ffmpeg.deleteFile(`scroll_out_${i}.mp4`); } catch { /* ok */ }
+        try {
+          await ffmpeg.deleteFile(`scroll_out_${i}.mp4`);
+        } catch {
+          /* ok */
+        }
       }
-      try { await ffmpeg.deleteFile("concat_list.txt"); } catch { /* ok */ }
-      try { await ffmpeg.deleteFile("combined_scroll.mp4"); } catch { /* ok */ }
+      try {
+        await ffmpeg.deleteFile("concat_list.txt");
+      } catch {
+        /* ok */
+      }
+      try {
+        await ffmpeg.deleteFile("combined_scroll.mp4");
+      } catch {
+        /* ok */
+      }
 
       // Build metadata
       const exportMeta = {
@@ -1113,8 +1138,15 @@ export function MovieApp() {
     #scroll-hint { position: absolute; top: 50%; right: 12px; transform: translateY(-50%); color: rgba(255,255,255,0.25); font-size: 28px; pointer-events: none; transition: opacity 0.4s; animation: hint-bounce 1.8s ease-in-out infinite; }
     @keyframes hint-bounce { 0%, 100% { transform: translateY(-50%) translateX(0); } 50% { transform: translateY(-50%) translateX(5px); } }
 
+    #play-toggle { position: absolute; bottom: 20px; right: 20px; z-index: 20; width: 44px; height: 44px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.3); background: rgba(0,0,0,0.5); backdrop-filter: blur(8px); color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; outline: none; }
+    #play-toggle:hover { border-color: rgba(255,255,255,0.6); background: rgba(0,0,0,0.7); }
+    #play-toggle svg { width: 18px; height: 18px; fill: currentColor; }
+    #play-toggle .pause-icon { display: none; }
+    #play-toggle.playing .play-icon { display: none; }
+    #play-toggle.playing .pause-icon { display: block; }
+
     #scene-cards { position: relative; z-index: 5; }
-    .scene-card { padding: 40px 24px; border-bottom: 1px solid rgba(255,255,255,0.06); min-height: 60vh; display: flex; flex-direction: column; justify-content: center; }
+    .scene-card { padding: 40px 24px; border-bottom: 1px solid rgba(255,255,255,0.06); min-height: 100vh; display: flex; flex-direction: column; justify-content: center; }
     .scene-card h3 { font-size: 1.125rem; font-weight: 700; margin-bottom: 6px; }
     .scene-card .loc { font-size: 0.6875rem; color: rgba(255,255,255,0.35); margin-bottom: 10px; }
     .scene-card .desc { font-size: 0.8125rem; color: rgba(255,255,255,0.55); line-height: 1.65; margin-bottom: 16px; max-width: 600px; }
@@ -1134,7 +1166,7 @@ export function MovieApp() {
       #scene-overlay { padding: 24px 16px 16px; }
       #scene-overlay h2 { font-size: 1rem; }
       #scene-overlay .desc { font-size: 0.75rem; }
-      .scene-card { padding: 32px 16px; min-height: 50vh; }
+      .scene-card { padding: 32px 16px; min-height: 100vh; }
       #scroll-hint { font-size: 22px; right: 6px; }
     }
   </style>
@@ -1152,6 +1184,10 @@ export function MovieApp() {
       </div>
       <div id="scroll-hint">&#8250;</div>
     </div>
+    <button id="play-toggle" title="Play audio" aria-label="Toggle play/pause">
+      <svg class="play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      <svg class="pause-icon" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+    </button>
   </div>
 
   <div id="title-bar">
@@ -1196,11 +1232,14 @@ export function MovieApp() {
         ? '<div class="dialogue">' + s.conversations.map(function(c) { return '<p><strong>' + esc(c.person) + ':</strong> "' + esc(c.line) + '"</p>'; }).join('') + '</div>'
         : '';
       card.innerHTML =
-        '<div class="time-badge">' + fmtTime(s.startTime) + ' &ndash; ' + fmtTime(s.endTime) + '</div>' +
+        '<div class="time-badge">' + fmtTime(s.startTime) + ' &ndash; ' + fmtTime(s.endTime) + ' (' + Math.round(s.duration) + 's)</div>' +
         '<h3>' + esc(s.name) + '</h3>' +
         (s.location ? '<div class="loc">' + esc(s.location) + '</div>' : '') +
         '<div class="desc">' + esc(s.description) + '</div>' +
         dialogueHtml;
+      // Scale card height to scene duration so scroll maps naturally to video progress
+      var durFrac = s.duration / META.totalDuration;
+      card.style.minHeight = Math.max(40, Math.round(durFrac * 100)) + 'vh';
       cardsContainer.appendChild(card);
     });
 
@@ -1220,23 +1259,53 @@ export function MovieApp() {
     var currentIdx = -1;
     var ticking = false;
 
+    // Play/pause toggle
+    const playToggle = document.getElementById('play-toggle');
+    let userPlaying = false;
+
+    playToggle.addEventListener('click', function() {
+      if (userPlaying) {
+        // Pause: mute and show play icon
+        video.muted = true;
+        userPlaying = false;
+        playToggle.classList.remove('playing');
+        playToggle.title = 'Play audio';
+      } else {
+        // Play: unmute, play, show pause icon
+        video.muted = false;
+        video.play();
+        userPlaying = true;
+        playToggle.classList.add('playing');
+        playToggle.title = 'Pause audio';
+      }
+    });
+
     function update() {
-      var scrollY = window.scrollY;
       var vh = window.innerHeight;
-      // Map scroll to video time proportionally
-      var totalScroll = Math.max(document.body.scrollHeight - vh, 1);
-      var scrollFrac = scrollY / totalScroll;
-      var targetTime = scrollFrac * META.totalDuration;
+      var viewMid = window.scrollY + vh * 0.5; // midpoint of the viewport
+
+      // Use the scene cards to define the scroll range:
+      // video start when viewport midpoint hits the first card's top
+      // video end when viewport midpoint hits the last card's bottom
+      var cards = cardsContainer.querySelectorAll('.scene-card');
+      if (cards.length === 0) return;
+      var firstTop = cards[0].offsetTop;
+      var lastBottom = cards[cards.length - 1].offsetTop + cards[cards.length - 1].offsetHeight;
+      var totalRange = Math.max(lastBottom - firstTop, 1);
+      var scrolled = viewMid - firstTop;
+      var frac = Math.max(0, Math.min(1, scrolled / totalRange));
+      var targetTime = frac * META.totalDuration;
 
       // Find which scene this time falls in
-      var idx = 0;
+      var idx = META.scenes.length - 1;
       for (var i = 0; i < META.scenes.length; i++) {
         if (targetTime >= META.scenes[i].startTime && targetTime < META.scenes[i].endTime) {
           idx = i;
           break;
         }
-        if (i === META.scenes.length - 1 || targetTime < META.scenes[i + 1]?.startTime) {
-          idx = i;
+        // Clamp to last scene if beyond total
+        if (targetTime < META.scenes[i].startTime) {
+          idx = Math.max(0, i - 1);
           break;
         }
       }
@@ -1268,6 +1337,13 @@ export function MovieApp() {
     }
 
     window.addEventListener('scroll', function() {
+      // User scrolled — cancel play mode
+      if (userPlaying) {
+        video.muted = true;
+        userPlaying = false;
+        playToggle.classList.remove('playing');
+        playToggle.title = 'Play audio';
+      }
       if (!ticking) {
         requestAnimationFrame(update);
         ticking = true;
