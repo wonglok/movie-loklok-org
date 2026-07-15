@@ -361,7 +361,7 @@ export function MovieEditor({
                   Extracting...
                 </>
               ) : (
-                "Download Cover Image (Extract First Frame)"
+                "Download cover image (Extract first frame)"
               )}
             </button>
             <button
@@ -375,7 +375,7 @@ export function MovieEditor({
                   Stitching...
                 </>
               ) : (
-                "Stitch & Download"
+                "Stitch all videos & download"
               )}
             </button>
           </div>
