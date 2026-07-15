@@ -1047,7 +1047,7 @@ export function MovieApp() {
     body { background: #000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; overscroll-behavior: none; }
 
     #player { position: sticky; top: 0; width: 100%; height: 100vh; height: 100dvh; display: flex; align-items: center; justify-content: center; overflow: hidden; z-index: 10; }
-    #player video { max-width: 100%; max-height: 100vh; max-height: 100dvh; object-fit: contain; pointer-events: none; }
+    #player video { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
     #player .scene-label { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 14px; font-weight: 600; text-align: center; padding: 8px 20px; background: rgba(0,0,0,0.6); border-radius: 20px; backdrop-filter: blur(8px); max-width: 90vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; transition: opacity 0.3s; }
     #player .scene-hint { position: absolute; top: 50%; right: 16px; transform: translateY(-50%); color: rgba(255,255,255,0.4); font-size: 32px; pointer-events: none; animation: bounce 1.5s ease-in-out infinite; }
     @keyframes bounce { 0%, 100% { transform: translateY(-50%) translateX(0); } 50% { transform: translateY(-50%) translateX(6px); } }
