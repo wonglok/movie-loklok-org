@@ -35,6 +35,9 @@ function ToolCallBubble({ tc }: { tc: ToolCall }) {
         <span className="font-medium truncate">{tc.name}</span>
         <span className="ml-auto text-neutral-600">{expanded ? "▲" : "▼"}</span>
       </button>
+      {isError && tc.error && !expanded && (
+        <div className="mt-1 text-red-400 truncate">{tc.error}</div>
+      )}
       {expanded && (
         <div className="mt-1.5 space-y-1">
           <div className="text-neutral-500">Args: {JSON.stringify(tc.arguments)}</div>
