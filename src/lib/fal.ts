@@ -53,7 +53,7 @@ export async function generateImage(
     input: {
       prompt,
       quality: "medium",
-      image_size: "square_hd",
+      image_size: "square",
       num_images: 1,
       output_format: "png",
     },
@@ -80,7 +80,7 @@ export async function generateSceneImage(
     input: {
       prompt,
       quality: "medium",
-      image_size: "square_hd",
+      image_size: "square",
       num_images: 1,
       output_format: "png",
       image_urls: imageUrls,

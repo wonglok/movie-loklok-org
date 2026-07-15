@@ -340,7 +340,7 @@ export function SceneCard({
       {availableCharacters?.length > 0 && (
         <div className="border-t border-neutral-800 px-4 py-2.5 flex flex-col gap-1.5">
           <span className="text-neutral-500 text-[10px] font-medium">
-            Characters in Scene
+            Characters in Scene Image (max 4)
           </span>
           <div className="flex flex-wrap gap-1.5">
             {availableCharacters.map((ch) => {
@@ -359,12 +359,16 @@ export function SceneCard({
                     checked={isChecked}
                     onChange={() => {
                       const ids = scene.characterIds ?? [];
+                      if (!isChecked && ids.length >= 4) return;
                       const next = isChecked
                         ? ids.filter((cid) => cid !== ch.id)
                         : [...ids, ch.id];
                       updateScene(scene.id, { characterIds: next });
                     }}
-                    className="w-3 h-3 rounded border-neutral-600 bg-neutral-700 accent-(--blender-accent) cursor-pointer"
+                    disabled={
+                      !isChecked && (scene.characterIds ?? []).length >= 4
+                    }
+                    className="w-3 h-3 rounded border-neutral-600 bg-neutral-700 accent-(--blender-accent) cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                   />
                   <span className="truncate max-w-[80px]">
                     {ch.name}
