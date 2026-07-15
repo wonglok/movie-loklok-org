@@ -112,7 +112,7 @@ export function MovieApp() {
     selectedProgress !== null;
   const effectiveStyle = resolveStyle(customArtStyle, artStyle);
   const hasCharacterImages = characters.some(
-    (c) => c.sourceUrl || c.imageFilename,
+    (c) => c.imageFilename,
   );
 
   const { isSaving } = useAutoSave(
@@ -293,7 +293,6 @@ export function MovieApp() {
           location: "",
           imageUrl: null,
           imageFilename: null,
-          sourceUrl: null,
           videoUrl: null,
           videoFilename: null,
           videoDuration: 5,
@@ -338,7 +337,6 @@ export function MovieApp() {
           updateCharacter(char.id, {
             imageUrl: localUrl,
             imageFilename: filename,
-            sourceUrl: result.url,
           });
           await savePromptFile(result.prompt, `${imageId}.txt`, characterDir);
         }),
@@ -380,7 +378,7 @@ export function MovieApp() {
         updateCharacter(id, { imageUrl: localUrl, imageFilename: filename });
         await savePromptFile(result.prompt, `${imageId}.txt`, characterDir);
       } else {
-        updateCharacter(id, { imageUrl: result.url, sourceUrl: result.url });
+        updateCharacter(id, { imageUrl: result.url });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Regeneration failed");
@@ -414,6 +412,8 @@ export function MovieApp() {
         apiKey,
         "480p",
         "9:16",
+        await getCharacterVideoFiles(char.videoReferenceIds),
+        await getCharacterImageFiles(char.videoReferenceIds),
       );
       const clipsDir = await folderHandle.getDirectoryHandle("clips", {
         create: true,
@@ -453,7 +453,6 @@ export function MovieApp() {
           ...s,
           imageUrl: null,
           imageFilename: null,
-          sourceUrl: null,
           videoUrl: null,
           videoFilename: null,
           videoDuration: 5,
@@ -506,7 +505,6 @@ export function MovieApp() {
       } else {
         updateScene(id, {
           imageUrl: result.url,
-          sourceUrl: result.url,
         });
       }
     } catch (err) {
@@ -644,9 +642,38 @@ export function MovieApp() {
       });
       for (const char of characters) {
         if (!char.videoFilename) continue;
-        if (referenceIds && !ids.has(char.id)) continue;
+        if (!referenceIds?.length || !ids.has(char.id)) continue;
         try {
           const fileHandle = await clipsDir.getFileHandle(char.videoFilename);
+          files.push(await fileHandle.getFile());
+        } catch {
+          // file not found, skip
+        }
+      }
+    } catch {
+      // folder not accessible
+    }
+    return files;
+  };
+
+  const getCharacterImageFiles = async (
+    referenceIds?: string[],
+  ): Promise<File[]> => {
+    if (!folderHandle) return [];
+    const ids = new Set(referenceIds);
+    const files: File[] = [];
+    try {
+      const imagesDir = await folderHandle.getDirectoryHandle("images", {
+        create: true,
+      });
+      const charDir = await imagesDir.getDirectoryHandle("character", {
+        create: true,
+      });
+      for (const char of characters) {
+        if (!char.imageFilename) continue;
+        if (!referenceIds?.length || !ids.has(char.id)) continue;
+        try {
+          const fileHandle = await charDir.getFileHandle(char.imageFilename);
           files.push(await fileHandle.getFile());
         } catch {
           // file not found, skip
@@ -689,11 +716,8 @@ export function MovieApp() {
         apiKey,
         scene.videoResolution,
         scene.videoAspect,
-        await getCharacterVideoFiles(
-          (scene.videoReferenceIds?.length ?? 0)
-            ? scene.videoReferenceIds!
-            : undefined,
-        ),
+        await getCharacterVideoFiles(scene.videoReferenceIds),
+        await getCharacterImageFiles(scene.videoReferenceIds),
       );
       const clipsDir = await folderHandle.getDirectoryHandle("clips", {
         create: true,
@@ -761,7 +785,6 @@ export function MovieApp() {
           updateScene(id, {
             imageUrl: localUrl,
             imageFilename: filename,
-            sourceUrl: result.url,
           });
           await savePromptFile(result.prompt, `${imageId}.txt`, sceneDir);
           done++;
@@ -817,11 +840,8 @@ export function MovieApp() {
             apiKey,
             scene.videoResolution,
             scene.videoAspect,
-            await getCharacterVideoFiles(
-              (scene.videoReferenceIds?.length ?? 0)
-                ? scene.videoReferenceIds!
-                : undefined,
-            ),
+            await getCharacterVideoFiles(scene.videoReferenceIds),
+            await getCharacterImageFiles(scene.videoReferenceIds),
           );
           const videoFilename = `${crypto.randomUUID()}.mp4`;
           const localUrl = await saveAndLoadLocal(
@@ -1159,7 +1179,6 @@ export function MovieApp() {
                       location: "",
                       imageUrl: null,
                       imageFilename: null,
-                      sourceUrl: null,
                       videoUrl: null,
                       videoFilename: null,
                       videoDuration: 5,
@@ -1367,7 +1386,6 @@ export function MovieApp() {
                           location: "",
                           imageUrl: null,
                           imageFilename: null,
-                          sourceUrl: null,
                           videoUrl: null,
                           videoFilename: null,
                           videoDuration: 5,

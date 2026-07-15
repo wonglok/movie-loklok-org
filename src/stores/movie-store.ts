@@ -13,7 +13,6 @@ export interface Character {
   location: string;
   imageUrl: string | null;
   imageFilename: string | null;
-  sourceUrl: string | null;
   videoUrl: string | null;
   videoFilename: string | null;
   videoDuration: number;

@@ -13,9 +13,7 @@ export async function resolveCharacterRefs(
   const urls: string[] = [];
 
   for (const char of characters) {
-    if (char.sourceUrl) {
-      urls.push(char.sourceUrl);
-    } else if (char.imageFilename && folderHandle) {
+    if (char.imageFilename && folderHandle) {
       try {
         const imagesDir = await folderHandle.getDirectoryHandle("images", {
           create: true,
@@ -210,9 +208,17 @@ export async function uploadAndGenerateVideo(
   resolution?: string,
   aspectRatio?: string,
   videoFiles?: File[],
+  imageFiles?: File[],
 ): Promise<string> {
   fal.config({ credentials: apiKey });
   const fileUrl = await fal.storage.upload(file);
+
+  const imageUrls: string[] = [fileUrl];
+  if (imageFiles?.length) {
+    for (const img of imageFiles) {
+      imageUrls.push(await fal.storage.upload(img));
+    }
+  }
 
   const videoUrls: string[] = [];
   if (videoFiles?.length) {
@@ -224,7 +230,7 @@ export async function uploadAndGenerateVideo(
   const result = await fal.subscribe(FAL_VIDEO, {
     input: {
       prompt,
-      image_urls: [fileUrl],
+      image_urls: imageUrls,
       aspect_ratio: aspectRatio ?? "9:16",
       resolution: resolution ?? "480p",
       duration: "auto",
