@@ -768,6 +768,98 @@ export function createTools(): ToolDef[] {
     },
 
     {
+      name: "generate_scene_image",
+      description:
+        "Generate or regenerate the AI image for a single specific scene. Use this to create a cinematic keyframe image for one scene, whether it has an existing image or not.",
+      parameters: {
+        type: "object",
+        properties: {
+          scene_id: {
+            type: "string",
+            description: "The ID of the scene to generate the image for.",
+          },
+        },
+        required: ["scene_id"],
+      },
+      execute: async (args) => {
+        const apiKey = getApiKey();
+        const folderHandle = getFolderHandle();
+        const projectId = getProjectId();
+        if (!apiKey) return "Error: No API key configured.";
+        if (!folderHandle || !projectId)
+          return "Error: No workspace or project selected.";
+
+        const store = useMovieStore.getState();
+
+        let latestChars = store.characters;
+        let latestScenes = store.scenes;
+        try {
+          const charsFromDisk = await readCharactersJson(folderHandle, projectId);
+          if (charsFromDisk) latestChars = charsFromDisk;
+          const scenesFromDisk = await readScenesJson(folderHandle, projectId);
+          if (scenesFromDisk) latestScenes = scenesFromDisk;
+        } catch {
+          // fall back to in-memory data if disk read fails
+        }
+
+        const scene = latestScenes.find(
+          (s) => s.id === (args.scene_id as string),
+        );
+        if (!scene)
+          return `Error: scene with ID "${args.scene_id}" not found.`;
+
+        const effectiveStyle = resolveStyle(store.customArtStyle, store.artStyle);
+        const imagesDir = await getProjectImagesDir(folderHandle, projectId);
+        const sceneDir = await imagesDir.getDirectoryHandle("scene", {
+          create: true,
+        });
+        const archiveDir = await imagesDir.getDirectoryHandle("_archive", { create: true });
+
+        // Archive old scene image if this scene already has one
+        if (scene.imageFilename) {
+          await archiveFile(scene.imageFilename, sceneDir, archiveDir);
+          await archiveFile(scene.imageFilename.replace(/\.png$/, ".txt"), sceneDir, archiveDir);
+        }
+
+        const sceneCharIds = new Set((scene.characterIds ?? []).slice(0, 3));
+        const sceneChars =
+          sceneCharIds.size > 0
+            ? latestChars.filter((c) => sceneCharIds.has(c.id))
+            : [];
+        const charRefs =
+          sceneChars.length > 0
+            ? await resolveCharacterRefs(
+                sceneChars,
+                folderHandle,
+                apiKey,
+                projectId,
+              )
+            : [];
+        const charNames = sceneChars
+          .filter((c) => c.name)
+          .map((c) => c.name)
+          .join(", ");
+
+        const prompt = `Cinematic movie keyframe, ${effectiveStyle} animation style.${charNames ? ` Featuring characters: ${charNames}.` : ""} Scene: ${scene.name}. ${scene.description}. Location: ${scene.location || "unspecified"}.${charNames ? " Characters must maintain consistent appearance and design." : ""} Wide establishing shot, dramatic lighting, film composition.`;
+        const result = await generateSceneImage(prompt, apiKey, charRefs);
+        const imageId = crypto.randomUUID();
+        const filename = `${imageId}.png`;
+        const localUrl = await saveAndLoadLocal(result.url, filename, sceneDir);
+        store.updateScene(scene.id, {
+          imageUrl: localUrl,
+          imageFilename: filename,
+        });
+        await savePromptFile(result.prompt, `${imageId}.txt`, sceneDir);
+
+        const updated = useMovieStore.getState().scenes;
+        store.setSceneImages(
+          updated.map((s) => s.imageUrl).filter(Boolean) as string[],
+        );
+        return `Generated image for scene "${scene.name}".`;
+      },
+    },
+
+    {
       name: "auto_tag_scene_characters",
       description:
         "Use AI to automatically analyze the story and determine which characters appear in each scene. Updates every scene's characterIds. Call this after extracting scenes and before generating scene images.",
