@@ -121,6 +121,7 @@ export function MovieApp() {
   const [generatingPptx, setGeneratingPptx] = useState(false);
   const [generatingWebsite, setGeneratingWebsite] = useState(false);
   const [generatingVideoWebsite, setGeneratingVideoWebsite] = useState(false);
+  const [generatingScrollWebsite, setGeneratingScrollWebsite] = useState(false);
   const [exportingZip, setExportingZip] = useState(false);
   const [creatingFirstProject, setCreatingFirstProject] = useState(false);
   const [firstProjectName, setFirstProjectName] = useState("");
@@ -947,6 +948,187 @@ export function MovieApp() {
       );
     } finally {
       setGeneratingVideoWebsite(false);
+    }
+  };
+
+  const handleGenerateScrollWebsite = async () => {
+    if (generatingScrollWebsite || !folderHandle || !projectId) return;
+    const scenesWithVideo = scenes.filter((s) => s.videoFilename);
+    if (scenesWithVideo.length === 0) {
+      setError("No scenes with videos found. Generate scene videos first.");
+      return;
+    }
+    setError(null);
+    setGeneratingScrollWebsite(true);
+    try {
+      const clipsDir = await getProjectClipsDir(folderHandle, projectId);
+
+      // Read all video files and convert to base64
+      const videoEntries: { name: string; description: string; base64: string }[] = [];
+      for (const scene of scenesWithVideo) {
+        try {
+          const fileHandle = await clipsDir.getFileHandle(scene.videoFilename!);
+          const file = await fileHandle.getFile();
+          const buffer = await file.arrayBuffer();
+          const bytes = new Uint8Array(buffer);
+          let binary = "";
+          for (let i = 0; i < bytes.length; i++) {
+            binary += String.fromCharCode(bytes[i]);
+          }
+          const base64 = btoa(binary);
+          videoEntries.push({
+            name: scene.name || "(unnamed)",
+            description: scene.description || "",
+            base64: `data:video/mp4;base64,${base64}`,
+          });
+        } catch {
+          // skip scenes whose video file can't be read
+        }
+      }
+
+      if (videoEntries.length === 0) {
+        setError("Could not read any video files.");
+        setGeneratingScrollWebsite(false);
+        return;
+      }
+
+      const videosJson = JSON.stringify(
+        videoEntries.map((v) => ({
+          name: v.name,
+          description: v.description,
+          src: v.base64,
+        })),
+      );
+
+      const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>${story.slice(0, 80) || "Scroll Video Story"}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { background: #000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; overscroll-behavior: none; }
+
+    #player { position: sticky; top: 0; width: 100%; height: 100vh; height: 100dvh; display: flex; align-items: center; justify-content: center; overflow: hidden; z-index: 10; }
+    #player video { max-width: 100%; max-height: 100vh; max-height: 100dvh; object-fit: contain; pointer-events: none; }
+    #player .scene-label { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 14px; font-weight: 600; text-align: center; padding: 8px 20px; background: rgba(0,0,0,0.6); border-radius: 20px; backdrop-filter: blur(8px); max-width: 90vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; transition: opacity 0.3s; }
+    #player .scene-hint { position: absolute; top: 50%; right: 16px; transform: translateY(-50%); color: rgba(255,255,255,0.4); font-size: 32px; pointer-events: none; animation: bounce 1.5s ease-in-out infinite; }
+    @keyframes bounce { 0%, 100% { transform: translateY(-50%) translateX(0); } 50% { transform: translateY(-50%) translateX(6px); } }
+
+    #info-bar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 8px; padding: 8px 12px; }
+    .progress-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.3); transition: background 0.3s, transform 0.3s; }
+    .progress-dot.active { background: #fff; transform: scale(1.4); }
+
+    #scroll-spacer { position: relative; z-index: 5; }
+
+    @media (max-width: 640px) {
+      #player .scene-label { bottom: 16px; font-size: 12px; padding: 6px 14px; }
+      #player .scene-hint { font-size: 24px; right: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="info-bar"></div>
+  <div id="player">
+    <video muted playsinline preload="auto"></video>
+    <div class="scene-label"></div>
+    <div class="scene-hint">&#8250;</div>
+  </div>
+  <div id="scroll-spacer"></div>
+
+  <script>
+    const videoData = ${videosJson};
+    const sceneCount = videoData.length;
+
+    // Build progress dots
+    const infoBar = document.getElementById('info-bar');
+    for (let i = 0; i < sceneCount; i++) {
+      const dot = document.createElement('div');
+      dot.className = 'progress-dot';
+      dot.title = videoData[i].name;
+      infoBar.appendChild(dot);
+    }
+
+    // Set scroll spacer height
+    const spacer = document.getElementById('scroll-spacer');
+    spacer.style.height = (window.innerHeight * sceneCount) + 'px';
+
+    // Pre-create video elements so we can preload
+    const videoEls = [];
+    const player = document.getElementById('player');
+    const video = player.querySelector('video');
+    const label = player.querySelector('.scene-label');
+    const hint = player.querySelector('.scene-hint');
+    const dots = infoBar.querySelectorAll('.progress-dot');
+
+    let currentScene = -1;
+    let ticking = false;
+
+    function update() {
+      const scrollY = window.scrollY;
+      const vh = window.innerHeight;
+      const sceneIndex = Math.min(Math.floor(scrollY / vh), sceneCount - 1);
+      const progressInScene = (scrollY - sceneIndex * vh) / vh;
+      const clampedProgress = Math.max(0, Math.min(1, progressInScene));
+
+      // Switch video if scene changed
+      if (sceneIndex !== currentScene) {
+        currentScene = sceneIndex;
+        video.src = videoData[sceneIndex].src;
+        label.textContent = videoData[sceneIndex].name;
+        video.currentTime = 0;
+
+        // Update dots
+        dots.forEach((d, i) => d.classList.toggle('active', i === sceneIndex));
+      }
+
+      // Sync currentTime based on progress within the scene section
+      if (video.readyState >= 1 && video.duration && isFinite(video.duration)) {
+        video.currentTime = clampedProgress * video.duration;
+      }
+
+      // Show/hide hint
+      hint.style.opacity = clampedProgress > 0.95 ? '0' : '1';
+
+      ticking = false;
+    }
+
+    window.addEventListener('scroll', () => {
+      if (!ticking) {
+        requestAnimationFrame(update);
+        ticking = true;
+      }
+    }, { passive: true });
+
+    // Initial load
+    video.addEventListener('loadedmetadata', update);
+    update();
+
+    // Handle resize
+    window.addEventListener('resize', () => {
+      spacer.style.height = (window.innerHeight * sceneCount) + 'px';
+    });
+  </script>
+</body>
+</html>`;
+
+      const blob = new Blob([html], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${story.slice(0, 30) || "movie"}-scroll-website.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Scroll website generation failed",
+      );
+    } finally {
+      setGeneratingScrollWebsite(false);
     }
   };
 
@@ -2145,6 +2327,37 @@ export function MovieApp() {
                               />
                             </svg>
                             Video Website
+                          </>
+                        )}
+                      </button>
+                      <button
+                        onClick={handleGenerateScrollWebsite}
+                        disabled={generatingScrollWebsite}
+                        className="px-6 py-3 bg-white text-black rounded-xl font-semibold text-sm hover:bg-neutral-200 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                      >
+                        {generatingScrollWebsite ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-cyan-400/30 border-t-cyan-400" />
+                            <span className="text-cyan-400">
+                              Generating...
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
+                              />
+                            </svg>
+                            Scroll Video Website
                           </>
                         )}
                       </button>
