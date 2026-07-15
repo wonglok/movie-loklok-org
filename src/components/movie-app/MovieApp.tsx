@@ -119,6 +119,8 @@ export function MovieApp() {
     "character",
   );
   const [generatingPptx, setGeneratingPptx] = useState(false);
+  const [generatingWebsite, setGeneratingWebsite] = useState(false);
+  const [generatingVideoWebsite, setGeneratingVideoWebsite] = useState(false);
   const [exportingZip, setExportingZip] = useState(false);
   const [creatingFirstProject, setCreatingFirstProject] = useState(false);
   const [firstProjectName, setFirstProjectName] = useState("");
@@ -775,6 +777,176 @@ export function MovieApp() {
       setError(err instanceof Error ? err.message : "PPTX generation failed");
     } finally {
       setGeneratingPptx(false);
+    }
+  };
+
+  const handleGenerateWebsite = async () => {
+    if (generatingWebsite) return;
+    setError(null);
+    setGeneratingWebsite(true);
+    try {
+      let scenesHtml = "";
+      for (const scene of scenes) {
+        let imageHtml = "";
+        if (scene.imageUrl) {
+          try {
+            const response = await fetch(scene.imageUrl);
+            const blob = await response.blob();
+            const base64 = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+            imageHtml = `<img src="${base64}" alt="${scene.name}" style="max-width:100%;border-radius:12px;margin-bottom:16px;" />`;
+          } catch {
+            imageHtml = `<p style="color:#666;">[Image not available]</p>`;
+          }
+        }
+
+        const dialogue = (scene.conversations || [])
+          .map(
+            (c) =>
+              `<p style="margin:4px 0;"><strong>${c.person}:</strong> "${c.line}"</p>`,
+          )
+          .join("\n");
+
+        scenesHtml += `
+        <div style="margin-bottom:48px;padding:24px;background:#1a1a1a;border-radius:16px;border:1px solid #2a2a2a;">
+          <h2 style="color:#fff;margin:0 0 8px 0;">${scene.name || "(unnamed)"}</h2>
+          ${imageHtml}
+          <p style="color:#ccc;margin:0 0 8px 0;line-height:1.6;">${scene.description || ""}</p>
+          <p style="color:#888;margin:0 0 16px 0;font-size:14px;">Location: ${scene.location || "unspecified"}</p>
+          ${dialogue ? `<div style="color:#aaa;font-size:14px;line-height:1.8;padding:12px;background:#222;border-radius:8px;">${dialogue}</div>` : ""}
+        </div>`;
+      }
+
+      const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${story.slice(0, 80) || "Movie Story"}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0d0d0d; color: #eee; max-width: 860px; margin: 0 auto; padding: 48px 24px; }
+    h1 { color: #fff; text-align: center; margin-bottom: 48px; font-size: 2rem; letter-spacing: -0.02em; }
+    img { display: block; }
+  </style>
+</head>
+<body>
+  <h1>${story.slice(0, 200) || "Movie Story"}</h1>
+  ${scenesHtml}
+</body>
+</html>`;
+
+      const blob = new Blob([html], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${story.slice(0, 30) || "movie"}-story-website.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Website generation failed",
+      );
+    } finally {
+      setGeneratingWebsite(false);
+    }
+  };
+
+  const handleGenerateVideoWebsite = async () => {
+    if (generatingVideoWebsite) return;
+    setError(null);
+    setGeneratingVideoWebsite(true);
+    try {
+      let scenesHtml = "";
+      for (const scene of scenes) {
+        let mediaHtml = "";
+        if (scene.videoUrl) {
+          try {
+            const response = await fetch(scene.videoUrl);
+            const blob = await response.blob();
+            const base64 = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+            mediaHtml = `<video src="${base64}" controls style="max-width:100%;border-radius:12px;margin-bottom:16px;" />`;
+          } catch {
+            mediaHtml = `<p style="color:#666;">[Video not available]</p>`;
+          }
+        } else if (scene.imageUrl) {
+          try {
+            const response = await fetch(scene.imageUrl);
+            const blob = await response.blob();
+            const base64 = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+            mediaHtml = `<img src="${base64}" alt="${scene.name}" style="max-width:100%;border-radius:12px;margin-bottom:16px;" />`;
+          } catch {
+            mediaHtml = `<p style="color:#666;">[Image not available]</p>`;
+          }
+        }
+
+        const dialogue = (scene.conversations || [])
+          .map(
+            (c) =>
+              `<p style="margin:4px 0;"><strong>${c.person}:</strong> "${c.line}"</p>`,
+          )
+          .join("\n");
+
+        scenesHtml += `
+        <div style="margin-bottom:48px;padding:24px;background:#1a1a1a;border-radius:16px;border:1px solid #2a2a2a;">
+          <h2 style="color:#fff;margin:0 0 8px 0;">${scene.name || "(unnamed)"}</h2>
+          ${mediaHtml}
+          <p style="color:#ccc;margin:0 0 8px 0;line-height:1.6;">${scene.description || ""}</p>
+          <p style="color:#888;margin:0 0 16px 0;font-size:14px;">Location: ${scene.location || "unspecified"}</p>
+          ${dialogue ? `<div style="color:#aaa;font-size:14px;line-height:1.8;padding:12px;background:#222;border-radius:8px;">${dialogue}</div>` : ""}
+        </div>`;
+      }
+
+      const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${story.slice(0, 80) || "Movie Story"} - Video</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0d0d0d; color: #eee; max-width: 860px; margin: 0 auto; padding: 48px 24px; }
+    h1 { color: #fff; text-align: center; margin-bottom: 48px; font-size: 2rem; letter-spacing: -0.02em; }
+    img, video { display: block; }
+  </style>
+</head>
+<body>
+  <h1>${story.slice(0, 200) || "Movie Story"}</h1>
+  ${scenesHtml}
+</body>
+</html>`;
+
+      const blob = new Blob([html], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${story.slice(0, 30) || "movie"}-video-website.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Video website generation failed",
+      );
+    } finally {
+      setGeneratingVideoWebsite(false);
     }
   };
 
@@ -1897,6 +2069,84 @@ export function MovieApp() {
                           />
                         </svg>
                         Import New Project from ZIP File
+                      </button>
+                    </div>
+                  </section>
+                )}
+
+                {/* Website Generator Section */}
+                {scenes.length > 0 && (
+                  <section className="flex flex-col items-start gap-2">
+                    <h2 className="text-xl font-semibold text-white mb-3">
+                      <span className="text-2xl mr-2">&#x1F310;</span>
+                      Website Generator
+                    </h2>
+                    <p className="text-neutral-500 text-sm mb-1">
+                      Generate a self-contained HTML website with each scene's
+                      story text, media, and dialogue. Only includes scenes.
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={handleGenerateWebsite}
+                        disabled={generatingWebsite}
+                        className="px-6 py-3 bg-white text-black rounded-xl font-semibold text-sm hover:bg-neutral-200 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                      >
+                        {generatingWebsite ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-cyan-400/30 border-t-cyan-400" />
+                            <span className="text-cyan-400">
+                              Generating...
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
+                              />
+                            </svg>
+                            Image Website
+                          </>
+                        )}
+                      </button>
+                      <button
+                        onClick={handleGenerateVideoWebsite}
+                        disabled={generatingVideoWebsite}
+                        className="px-6 py-3 bg-white text-black rounded-xl font-semibold text-sm hover:bg-neutral-200 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                      >
+                        {generatingVideoWebsite ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-cyan-400/30 border-t-cyan-400" />
+                            <span className="text-cyan-400">
+                              Generating...
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
+                              />
+                            </svg>
+                            Video Website
+                          </>
+                        )}
                       </button>
                     </div>
                   </section>
