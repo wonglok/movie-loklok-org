@@ -1266,6 +1266,30 @@ export function MovieApp() {
     // Set video source
     video.src = COMBINED_SRC;
 
+    // Start with probed durations; replace with real video.duration once loaded
+    var totalDuration = META.totalDuration;
+
+    video.addEventListener('loadedmetadata', function() {
+      if (video.duration && isFinite(video.duration) && video.duration > 0) {
+        var scale = video.duration / META.totalDuration;
+        // Scale all scene times to match the real video duration
+        for (var i = 0; i < META.scenes.length; i++) {
+          META.scenes[i].startTime = META.scenes[i].startTime * scale;
+          META.scenes[i].endTime = META.scenes[i].endTime * scale;
+          META.scenes[i].duration = META.scenes[i].duration * scale;
+        }
+        totalDuration = video.duration;
+        META.totalDuration = video.duration;
+        // Update card time badges with accurate times
+        var badges = cardsContainer.querySelectorAll('.time-badge');
+        for (var j = 0; j < META.scenes.length; j++) {
+          if (badges[j]) {
+            badges[j].textContent = fmtTime(META.scenes[j].startTime) + ' – ' + fmtTime(META.scenes[j].endTime);
+          }
+        }
+      }
+    });
+
     var currentIdx = -1;
     var ticking = false;
 
@@ -1275,7 +1299,7 @@ export function MovieApp() {
       // Map scroll to video time proportionally
       var totalScroll = Math.max(document.body.scrollHeight - vh, 1);
       var scrollFrac = scrollY / totalScroll;
-      var targetTime = scrollFrac * META.totalDuration;
+      var targetTime = scrollFrac * totalDuration;
 
       // Find which scene this time falls in
       var idx = 0;
@@ -1306,7 +1330,7 @@ export function MovieApp() {
       }
 
       // Time indicator
-      timeInd.textContent = fmtTime(targetTime) + ' / ' + fmtTime(META.totalDuration);
+      timeInd.textContent = fmtTime(targetTime) + ' / ' + fmtTime(totalDuration);
 
       // Scroll hint
       var s = META.scenes[idx];
