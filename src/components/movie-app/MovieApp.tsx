@@ -1146,7 +1146,7 @@ export function MovieApp() {
     #play-toggle.playing .pause-icon { display: block; }
 
     #scene-cards { position: relative; z-index: 5; }
-    .scene-card { padding: 40px 24px; border-bottom: 1px solid rgba(255,255,255,0.06); min-height: 100vh; display: flex; flex-direction: column; justify-content: center; }
+    .scene-card { padding: 40px 24px; border-bottom: 1px solid rgba(255,255,255,0.06); min-height: 50vh; display: flex; flex-direction: column; justify-content: center; }
     .scene-card h3 { font-size: 1.125rem; font-weight: 700; margin-bottom: 6px; }
     .scene-card .loc { font-size: 0.6875rem; color: rgba(255,255,255,0.35); margin-bottom: 10px; }
     .scene-card .desc { font-size: 0.8125rem; color: rgba(255,255,255,0.55); line-height: 1.65; margin-bottom: 16px; max-width: 600px; }
@@ -1166,7 +1166,7 @@ export function MovieApp() {
       #scene-overlay { padding: 24px 16px 16px; }
       #scene-overlay h2 { font-size: 1rem; }
       #scene-overlay .desc { font-size: 0.75rem; }
-      .scene-card { padding: 32px 16px; min-height: 100vh; }
+      .scene-card { padding: 32px 16px; min-height: 50vh; }
       #scroll-hint { font-size: 22px; right: 6px; }
     }
   </style>
@@ -1239,7 +1239,7 @@ export function MovieApp() {
         dialogueHtml;
       // Scale card height to scene duration so scroll maps naturally to video progress
       var durFrac = s.duration / META.totalDuration;
-      card.style.minHeight = Math.max(40, Math.round(durFrac * 100)) + 'vh';
+      card.style.minHeight = Math.max(25, Math.round(durFrac * META.scenes.length * 70)) + 'vh';
       cardsContainer.appendChild(card);
     });
 
@@ -1281,36 +1281,31 @@ export function MovieApp() {
     });
 
     function update() {
-      var vh = window.innerHeight;
-      var viewMid = window.scrollY + vh * 0.5; // midpoint of the viewport
-
-      // Use the scene cards to define the scroll range:
-      // video start when viewport midpoint hits the first card's top
-      // video end when viewport midpoint hits the last card's bottom
       var cards = cardsContainer.querySelectorAll('.scene-card');
       if (cards.length === 0) return;
-      var firstTop = cards[0].offsetTop;
-      var lastBottom = cards[cards.length - 1].offsetTop + cards[cards.length - 1].offsetHeight;
-      var totalRange = Math.max(lastBottom - firstTop, 1);
-      var scrolled = viewMid - firstTop;
+
+      // Use getBoundingClientRect (viewport-relative) + scrollY to get reliable
+      // document-relative positions. offsetTop is broken here because
+      // #scene-cards has position:relative, making it the offsetParent.
+      var firstCardTop = cards[0].getBoundingClientRect().top + window.scrollY;
+      var lastCard = cards[cards.length - 1];
+      var lastCardBottom = lastCard.getBoundingClientRect().bottom + window.scrollY;
+
+      var viewMid = window.scrollY + window.innerHeight * 0.5;
+      var totalRange = Math.max(lastCardBottom - firstCardTop, 1);
+      var scrolled = viewMid - firstCardTop;
       var frac = Math.max(0, Math.min(1, scrolled / totalRange));
       var targetTime = frac * META.totalDuration;
 
-      // Find which scene this time falls in
-      var idx = META.scenes.length - 1;
-      for (var i = 0; i < META.scenes.length; i++) {
-        if (targetTime >= META.scenes[i].startTime && targetTime < META.scenes[i].endTime) {
+      // Find scene: backwards loop, first one where startTime <= targetTime
+      var idx = 0;
+      for (var i = META.scenes.length - 1; i >= 0; i--) {
+        if (targetTime >= META.scenes[i].startTime) {
           idx = i;
-          break;
-        }
-        // Clamp to last scene if beyond total
-        if (targetTime < META.scenes[i].startTime) {
-          idx = Math.max(0, i - 1);
           break;
         }
       }
 
-      // Update overlay
       if (idx !== currentIdx) {
         currentIdx = idx;
         var s = META.scenes[idx];
@@ -1320,18 +1315,19 @@ export function MovieApp() {
         dots.forEach(function(d, i) { d.classList.toggle('active', i === idx); });
       }
 
-      // Sync video currentTime
+      // Only seek when difference is meaningful to reduce jank
       if (video.readyState >= 1 && video.duration && isFinite(video.duration)) {
-        video.currentTime = targetTime;
+        if (Math.abs(video.currentTime - targetTime) > 0.1) {
+          video.currentTime = targetTime;
+        }
       }
 
-      // Time indicator
       timeInd.textContent = fmtTime(targetTime) + ' / ' + fmtTime(META.totalDuration);
 
-      // Scroll hint
-      var s = META.scenes[idx];
-      var progressInScene = s.duration > 0 ? (targetTime - s.startTime) / s.duration : 0;
-      hint.style.opacity = progressInScene > 0.9 ? '0' : '1';
+      // Hide scroll hint when near end of current scene
+      var cs = META.scenes[idx];
+      var inScene = cs.duration > 0 ? (targetTime - cs.startTime) / cs.duration : 0;
+      hint.style.opacity = inScene > 0.85 ? '0' : '1';
 
       ticking = false;
     }
