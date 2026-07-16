@@ -1142,7 +1142,7 @@ export function MovieApp() {
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html { scroll-behavior: smooth; }
-    body { background: #000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; overscroll-behavior: none; color: #fff; }
+    body { background: #000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; overscroll-behavior: none; color: #fff; cursor: pointer; }
 
     #player-wrap { position: sticky; top: 0; width: 100%; height: 100vh; height: 100dvh; z-index: 10; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #000; }
     #player-wrap video { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
@@ -1161,6 +1161,13 @@ export function MovieApp() {
 
     #scroll-hint { position: absolute; top: 50%; right: 12px; transform: translateY(-50%); color: rgba(255,255,255,0.25); font-size: 28px; pointer-events: none; transition: opacity 0.4s; animation: hint-bounce 1.8s ease-in-out infinite; }
     @keyframes hint-bounce { 0%, 100% { transform: translateY(-50%) translateX(0); } 50% { transform: translateY(-50%) translateX(5px); } }
+
+    #play-indicator { position: absolute; bottom: 20px; right: 20px; z-index: 20; width: 44px; height: 44px; border-radius: 50%; background: rgba(0,0,0,0.5); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; pointer-events: none; transition: opacity 0.3s; }
+    #play-indicator .icon-play { width: 0; height: 0; border-style: solid; border-width: 7px 0 7px 13px; border-color: transparent transparent transparent #fff; margin-left: 2px; display: none; }
+    #play-indicator .icon-pause { display: none; gap: 4px; }
+    #play-indicator .icon-pause span { display: block; width: 3px; height: 13px; background: #fff; border-radius: 1px; }
+    #play-indicator.paused .icon-play { display: block; }
+    #play-indicator.playing .icon-pause { display: flex; }
 
     #scene-cards { position: relative; z-index: 5; }
     .scene-card { padding: 40px 24px; border-bottom: 1px solid rgba(255,255,255,0.06); min-height: 60vh; display: flex; flex-direction: column; justify-content: center; }
@@ -1200,6 +1207,10 @@ export function MovieApp() {
         <div id="ov-desc" class="desc"></div>
       </div>
       <div id="scroll-hint">&#8250;</div>
+      <div id="play-indicator" class="paused">
+        <div class="icon-play"></div>
+        <div class="icon-pause"><span></span><span></span></div>
+      </div>
     </div>
   </div>
 
@@ -1219,6 +1230,7 @@ export function MovieApp() {
     const COMBINED_SRC = "${combinedBase64}";
 
     const video = document.getElementById('main-video');
+    const indicator = document.getElementById('play-indicator');
     const ovName = document.getElementById('ov-name');
     const ovLoc = document.getElementById('ov-loc');
     const ovDesc = document.getElementById('ov-desc');
@@ -1272,7 +1284,6 @@ export function MovieApp() {
     video.addEventListener('loadedmetadata', function() {
       if (video.duration && isFinite(video.duration) && video.duration > 0) {
         var scale = video.duration / META.totalDuration;
-        // Scale all scene times to match the real video duration
         for (var i = 0; i < META.scenes.length; i++) {
           META.scenes[i].startTime = META.scenes[i].startTime * scale;
           META.scenes[i].endTime = META.scenes[i].endTime * scale;
@@ -1280,7 +1291,6 @@ export function MovieApp() {
         }
         totalDuration = video.duration;
         META.totalDuration = video.duration;
-        // Update card time badges with accurate times
         var badges = cardsContainer.querySelectorAll('.time-badge');
         for (var j = 0; j < META.scenes.length; j++) {
           if (badges[j]) {
@@ -1288,33 +1298,20 @@ export function MovieApp() {
           }
         }
       }
+      updateFromScroll();
     });
 
+    // ---- Playback state ----
     var currentIdx = -1;
+    var playing = false;
     var ticking = false;
 
-    function update() {
-      var scrollY = window.scrollY;
-      var vh = window.innerHeight;
-      // Map scroll to video time proportionally
-      var totalScroll = Math.max(document.body.scrollHeight - vh, 1);
-      var scrollFrac = scrollY / totalScroll;
-      var targetTime = scrollFrac * totalDuration;
-
-      // Find which scene this time falls in
+    // Shared overlay update (used by both scroll-driven and play-driven paths)
+    function updateOverlay(targetTime) {
       var idx = 0;
-      for (var i = 0; i < META.scenes.length; i++) {
-        if (targetTime >= META.scenes[i].startTime && targetTime < META.scenes[i].endTime) {
-          idx = i;
-          break;
-        }
-        if (i === META.scenes.length - 1 || targetTime < META.scenes[i + 1]?.startTime) {
-          idx = i;
-          break;
-        }
+      for (var i = META.scenes.length - 1; i >= 0; i--) {
+        if (targetTime >= META.scenes[i].startTime) { idx = i; break; }
       }
-
-      // Update overlay
       if (idx !== currentIdx) {
         currentIdx = idx;
         var s = META.scenes[idx];
@@ -1323,32 +1320,61 @@ export function MovieApp() {
         ovDesc.textContent = s.description || '';
         dots.forEach(function(d, i) { d.classList.toggle('active', i === idx); });
       }
-
-      // Sync video currentTime
-      if (video.readyState >= 1 && video.duration && isFinite(video.duration)) {
-        video.currentTime = targetTime;
-      }
-
-      // Time indicator
       timeInd.textContent = fmtTime(targetTime) + ' / ' + fmtTime(totalDuration);
+      var cs = META.scenes[idx];
+      var inScene = cs.duration > 0 ? (targetTime - cs.startTime) / cs.duration : 0;
+      hint.style.opacity = inScene > 0.85 ? '0' : '1';
+    }
 
-      // Scroll hint
-      var s = META.scenes[idx];
-      var progressInScene = s.duration > 0 ? (targetTime - s.startTime) / s.duration : 0;
-      hint.style.opacity = progressInScene > 0.9 ? '0' : '1';
+    // Scroll-driven update: scroll position maps to video time (paused mode)
+    function updateFromScroll() {
+      var scrollY = window.scrollY;
+      var vh = window.innerHeight;
+      var totalScroll = Math.max(document.body.scrollHeight - vh, 1);
+      var targetTime = (scrollY / totalScroll) * totalDuration;
 
+      if (video.readyState >= 1 && video.duration && isFinite(video.duration)) {
+        if (Math.abs(video.currentTime - targetTime) > 0.1) {
+          video.currentTime = targetTime;
+        }
+      }
+      updateOverlay(targetTime);
       ticking = false;
     }
 
+    function startPlayback() {
+      playing = true;
+      video.muted = false;
+      video.play().catch(function() {});
+      indicator.classList.remove('paused');
+      indicator.classList.add('playing');
+    }
+
+    function stopPlayback() {
+      playing = false;
+      video.muted = true;
+      video.pause();
+      indicator.classList.remove('playing');
+      indicator.classList.add('paused');
+    }
+
+    // Tap anywhere to toggle play/pause
+    document.body.addEventListener('click', function(e) {
+      if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON') return;
+      if (playing) { stopPlayback(); } else { startPlayback(); }
+    });
+
+    // User scroll cancels playback
     window.addEventListener('scroll', function() {
+      if (playing) stopPlayback();
       if (!ticking) {
-        requestAnimationFrame(update);
+        requestAnimationFrame(updateFromScroll);
         ticking = true;
       }
     }, { passive: true });
 
-    video.addEventListener('loadedmetadata', update);
-    update();
+    // Initial render
+    updateFromScroll();
   </script>
 </body>
 </html>`;
