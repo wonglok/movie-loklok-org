@@ -127,6 +127,8 @@ export function MovieApp() {
   const [scrollWebsiteProgress, setScrollWebsiteProgress] = useState<{
     current: number;
     total: number;
+    subProgress?: number;
+    subLabel?: string;
   } | null>(null);
   const [exportingZip, setExportingZip] = useState(false);
   const [creatingFirstProject, setCreatingFirstProject] = useState(false);
@@ -1000,6 +1002,25 @@ export function MovieApp() {
 
           await ffmpeg.writeFile(inputName, await fetchFile(file));
 
+          // Capture actual duration from ffmpeg log during encoding
+          let probedDuration = 0;
+          const onLog = ({ message }: { message: string }) => {
+            const m = message.match(/Duration: (\d+):(\d+):(\d+\.\d+)/);
+            if (m) probedDuration = parseInt(m[1]) * 3600 + parseInt(m[2]) * 60 + parseFloat(m[3]);
+          };
+          ffmpeg.on("log", onLog);
+
+          // Sub-progress bar for individual encode step
+          const onProgress = ({ progress }: { progress: number }) => {
+            setScrollWebsiteProgress({
+              current: i + 1,
+              total: totalSteps,
+              subProgress: progress,
+              subLabel: `Encoding scene ${i + 1} of ${scenesWithVideo.length}`,
+            });
+          };
+          ffmpeg.on("progress", onProgress);
+
           // Standardize: -g 1 = every frame keyframe for instant scroll-seeking
           await ffmpeg.exec([
             "-i",
@@ -1023,9 +1044,12 @@ export function MovieApp() {
             outputName,
           ]);
 
+          ffmpeg.off("log", onLog);
+          ffmpeg.off("progress", onProgress);
+
           concatLines.push(`file '${outputName}'`);
 
-          const duration = scene.videoDuration || 5;
+          const duration = probedDuration || scene.videoDuration || 5;
           sceneTimeMeta.push({
             name: scene.name || "(unnamed)",
             description: scene.description || "",
@@ -2567,6 +2591,21 @@ export function MovieApp() {
                             }}
                           />
                         </div>
+                        {scrollWebsiteProgress.subProgress != null && (
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[10px] text-neutral-500">
+                              {scrollWebsiteProgress.subLabel || "Encoding..."}
+                            </span>
+                            <div className="w-full h-1.5 bg-neutral-800 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-neutral-500 rounded-full transition-all duration-150"
+                                style={{
+                                  width: `${Math.round(scrollWebsiteProgress.subProgress * 100)}%`,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </section>
