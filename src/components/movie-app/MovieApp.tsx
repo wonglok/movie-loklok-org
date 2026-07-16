@@ -1138,15 +1138,8 @@ export function MovieApp() {
     #scroll-hint { position: absolute; top: 50%; right: 12px; transform: translateY(-50%); color: rgba(255,255,255,0.25); font-size: 28px; pointer-events: none; transition: opacity 0.4s; animation: hint-bounce 1.8s ease-in-out infinite; }
     @keyframes hint-bounce { 0%, 100% { transform: translateY(-50%) translateX(0); } 50% { transform: translateY(-50%) translateX(5px); } }
 
-    #play-toggle { position: absolute; bottom: 20px; right: 20px; z-index: 20; width: 44px; height: 44px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.3); background: rgba(0,0,0,0.5); backdrop-filter: blur(8px); color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; outline: none; }
-    #play-toggle:hover { border-color: rgba(255,255,255,0.6); background: rgba(0,0,0,0.7); }
-    #play-toggle svg { width: 18px; height: 18px; fill: currentColor; }
-    #play-toggle .pause-icon { display: none; }
-    #play-toggle.playing .play-icon { display: none; }
-    #play-toggle.playing .pause-icon { display: block; }
-
     #scene-cards { position: relative; z-index: 5; }
-    .scene-card { padding: 40px 24px; border-bottom: 1px solid rgba(255,255,255,0.06); min-height: 50vh; display: flex; flex-direction: column; justify-content: center; }
+    .scene-card { padding: 40px 24px; border-bottom: 1px solid rgba(255,255,255,0.06); min-height: 60vh; display: flex; flex-direction: column; justify-content: center; }
     .scene-card h3 { font-size: 1.125rem; font-weight: 700; margin-bottom: 6px; }
     .scene-card .loc { font-size: 0.6875rem; color: rgba(255,255,255,0.35); margin-bottom: 10px; }
     .scene-card .desc { font-size: 0.8125rem; color: rgba(255,255,255,0.55); line-height: 1.65; margin-bottom: 16px; max-width: 600px; }
@@ -1184,10 +1177,6 @@ export function MovieApp() {
       </div>
       <div id="scroll-hint">&#8250;</div>
     </div>
-    <button id="play-toggle" title="Play audio" aria-label="Toggle play/pause">
-      <svg class="play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-      <svg class="pause-icon" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-    </button>
   </div>
 
   <div id="title-bar">
@@ -1232,14 +1221,11 @@ export function MovieApp() {
         ? '<div class="dialogue">' + s.conversations.map(function(c) { return '<p><strong>' + esc(c.person) + ':</strong> "' + esc(c.line) + '"</p>'; }).join('') + '</div>'
         : '';
       card.innerHTML =
-        '<div class="time-badge">' + fmtTime(s.startTime) + ' &ndash; ' + fmtTime(s.endTime) + ' (' + Math.round(s.duration) + 's)</div>' +
+        '<div class="time-badge">' + fmtTime(s.startTime) + ' &ndash; ' + fmtTime(s.endTime) + '</div>' +
         '<h3>' + esc(s.name) + '</h3>' +
         (s.location ? '<div class="loc">' + esc(s.location) + '</div>' : '') +
         '<div class="desc">' + esc(s.description) + '</div>' +
         dialogueHtml;
-      // Scale card height to scene duration so scroll maps naturally to video progress
-      var durFrac = s.duration / META.totalDuration;
-      card.style.minHeight = Math.max(25, Math.round(durFrac * META.scenes.length * 70)) + 'vh';
       cardsContainer.appendChild(card);
     });
 
@@ -1259,53 +1245,28 @@ export function MovieApp() {
     var currentIdx = -1;
     var ticking = false;
 
-    // Play/pause toggle
-    const playToggle = document.getElementById('play-toggle');
-    let userPlaying = false;
-
-    playToggle.addEventListener('click', function() {
-      if (userPlaying) {
-        // Pause: mute and show play icon
-        video.muted = true;
-        userPlaying = false;
-        playToggle.classList.remove('playing');
-        playToggle.title = 'Play audio';
-      } else {
-        // Play: unmute, play, show pause icon
-        video.muted = false;
-        video.play();
-        userPlaying = true;
-        playToggle.classList.add('playing');
-        playToggle.title = 'Pause audio';
-      }
-    });
-
     function update() {
-      var cards = cardsContainer.querySelectorAll('.scene-card');
-      if (cards.length === 0) return;
+      var scrollY = window.scrollY;
+      var vh = window.innerHeight;
+      // Map scroll to video time proportionally
+      var totalScroll = Math.max(document.body.scrollHeight - vh, 1);
+      var scrollFrac = scrollY / totalScroll;
+      var targetTime = scrollFrac * META.totalDuration;
 
-      // Use getBoundingClientRect (viewport-relative) + scrollY to get reliable
-      // document-relative positions. offsetTop is broken here because
-      // #scene-cards has position:relative, making it the offsetParent.
-      var firstCardTop = cards[0].getBoundingClientRect().top + window.scrollY;
-      var lastCard = cards[cards.length - 1];
-      var lastCardBottom = lastCard.getBoundingClientRect().bottom + window.scrollY;
-
-      var viewMid = window.scrollY + window.innerHeight * 0.5;
-      var totalRange = Math.max(lastCardBottom - firstCardTop, 1);
-      var scrolled = viewMid - firstCardTop;
-      var frac = Math.max(0, Math.min(1, scrolled / totalRange));
-      var targetTime = frac * META.totalDuration;
-
-      // Find scene: backwards loop, first one where startTime <= targetTime
+      // Find which scene this time falls in
       var idx = 0;
-      for (var i = META.scenes.length - 1; i >= 0; i--) {
-        if (targetTime >= META.scenes[i].startTime) {
+      for (var i = 0; i < META.scenes.length; i++) {
+        if (targetTime >= META.scenes[i].startTime && targetTime < META.scenes[i].endTime) {
+          idx = i;
+          break;
+        }
+        if (i === META.scenes.length - 1 || targetTime < META.scenes[i + 1]?.startTime) {
           idx = i;
           break;
         }
       }
 
+      // Update overlay
       if (idx !== currentIdx) {
         currentIdx = idx;
         var s = META.scenes[idx];
@@ -1315,31 +1276,23 @@ export function MovieApp() {
         dots.forEach(function(d, i) { d.classList.toggle('active', i === idx); });
       }
 
-      // Only seek when difference is meaningful to reduce jank
+      // Sync video currentTime
       if (video.readyState >= 1 && video.duration && isFinite(video.duration)) {
-        if (Math.abs(video.currentTime - targetTime) > 0.1) {
-          video.currentTime = targetTime;
-        }
+        video.currentTime = targetTime;
       }
 
+      // Time indicator
       timeInd.textContent = fmtTime(targetTime) + ' / ' + fmtTime(META.totalDuration);
 
-      // Hide scroll hint when near end of current scene
-      var cs = META.scenes[idx];
-      var inScene = cs.duration > 0 ? (targetTime - cs.startTime) / cs.duration : 0;
-      hint.style.opacity = inScene > 0.85 ? '0' : '1';
+      // Scroll hint
+      var s = META.scenes[idx];
+      var progressInScene = s.duration > 0 ? (targetTime - s.startTime) / s.duration : 0;
+      hint.style.opacity = progressInScene > 0.9 ? '0' : '1';
 
       ticking = false;
     }
 
     window.addEventListener('scroll', function() {
-      // User scrolled — cancel play mode
-      if (userPlaying) {
-        video.muted = true;
-        userPlaying = false;
-        playToggle.classList.remove('playing');
-        playToggle.title = 'Play audio';
-      }
       if (!ticking) {
         requestAnimationFrame(update);
         ticking = true;
