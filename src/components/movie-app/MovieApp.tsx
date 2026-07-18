@@ -45,6 +45,7 @@ import { ProjectSwitcher } from "./ProjectSwitcher";
 import { ProjectTabs } from "./ProjectTabs";
 import { AgentProgressPanel } from "./AgentProgressPanel";
 import { ChatPanel } from "./ChatPanel";
+import { ToastContainer } from "./ToastContainer";
 import { useChatStore } from "@/stores/chat-store";
 import QRCode from "react-qr-code";
 // import Strands from "../backgrounds/Strands";
@@ -136,6 +137,7 @@ export function MovieApp() {
 
   const chatOpen = useChatStore((s) => s.isOpen);
   const isSending = useChatStore((s) => s.isSending);
+  const addToast = useChatStore((s) => s.addToast);
 
   const isGenerating =
     generatingCharacters ||
@@ -443,7 +445,9 @@ export function MovieApp() {
         characters.map((c) => c.imageUrl).filter(Boolean) as string[],
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Generation failed");
+      const msg = err instanceof Error ? err.message : "Generation failed";
+      setError(msg);
+      addToast({ title: "Character Images Failed", message: msg, toolName: "generate_character_images" });
     } finally {
       setGeneratingCharacters(false);
     }
@@ -500,7 +504,9 @@ export function MovieApp() {
       } else {
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Regeneration failed");
+      const msg = err instanceof Error ? err.message : "Regeneration failed";
+      setError(msg);
+      addToast({ title: "Character Image Failed", message: msg, toolName: "generate_character_image" });
     } finally {
       setRegeneratingIds((prev) => {
         const next = new Set(prev);
@@ -556,11 +562,9 @@ export function MovieApp() {
       );
       updateCharacter(id, { videoUrl: localUrl, videoFilename });
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Reference video generation failed",
-      );
+      const msg = err instanceof Error ? err.message : "Reference video generation failed";
+      setError(msg);
+      addToast({ title: "Character Reference Video Failed", message: msg, toolName: "generate_character_reference_video" });
     } finally {
       setReferenceVideoGeneratingIds((prev) => {
         const next = new Set(prev);
@@ -682,7 +686,9 @@ export function MovieApp() {
         });
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Image generation failed");
+      const msg = err instanceof Error ? err.message : "Image generation failed";
+      setError(msg);
+      addToast({ title: "Scene Image Failed", message: msg, toolName: "generate_scene_image" });
     } finally {
       setImageRegenId(null);
     }
@@ -1507,7 +1513,9 @@ export function MovieApp() {
       );
       updateScene(id, { videoUrl: localUrl, videoFilename });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Video generation failed");
+      const msg = err instanceof Error ? err.message : "Video generation failed";
+      setError(msg);
+      addToast({ title: "Scene Video Failed", message: msg, toolName: "generate_scene_video" });
     } finally {
       setGeneratingVideoId(null);
     }
@@ -1603,7 +1611,9 @@ export function MovieApp() {
         }),
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Generation failed");
+      const msg = err instanceof Error ? err.message : "Generation failed";
+      setError(msg);
+      addToast({ title: "Scene Images Failed", message: msg, toolName: "generate_scene_images" });
     } finally {
       setGeneratingSelectedImages(false);
       setSelectedProgress(null);
@@ -1690,7 +1700,9 @@ export function MovieApp() {
         }),
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Video generation failed");
+      const msg = err instanceof Error ? err.message : "Video generation failed";
+      setError(msg);
+      addToast({ title: "Scene Videos Failed", message: msg, toolName: "generate_scene_video" });
     } finally {
       setGeneratingSelectedVideos(false);
       setSelectedProgress(null);
@@ -1749,6 +1761,7 @@ export function MovieApp() {
   return (
     <div className="h-full overflow-y-auto blender-scrollbar">
       <ChatPanel />
+      <ToastContainer />
       {isGenerating && (
         <div className="fixed top-[50px] left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-lg bg-amber-500/10 border border-amber-500/30 backdrop-blur-sm px-4 py-2 text-sm text-amber-200 shadow-lg shadow-amber-500/5">
           <svg

@@ -1,6 +1,14 @@
 import { create } from "zustand";
 import { writeChatJson } from "@/lib/fs-helpers";
 
+export interface Toast {
+  id: string;
+  title: string;
+  message: string;
+  toolName: string;
+  timestamp: number;
+}
+
 export interface ToolCall {
   id: string;
   name: string;
@@ -24,6 +32,7 @@ interface ChatState {
   isOpen: boolean;
   isSending: boolean;
   error: string | null;
+  toasts: Toast[];
   saveHandle: {
     folderHandle: FileSystemDirectoryHandle;
     projectId: string;
@@ -42,6 +51,8 @@ interface ChatState {
   pushToolCall: (messageId: string, tc: ToolCall) => void;
   setIsSending: (sending: boolean) => void;
   setError: (error: string | null) => void;
+  addToast: (toast: Omit<Toast, "id" | "timestamp">) => void;
+  removeToast: (id: string) => void;
   clearMessages: () => void;
   setMessages: (messages: ChatMessage[]) => void;
   setSaveHandle: (handle: { folderHandle: FileSystemDirectoryHandle; projectId: string } | null) => void;
@@ -54,6 +65,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   isOpen: false,
   isSending: false,
   error: null,
+  toasts: [],
   saveHandle: null,
 
   setInput: (input) => set({ input }),
@@ -94,6 +106,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
   setIsSending: (isSending) => set({ isSending }),
 
   setError: (error) => set({ error }),
+
+  addToast: (toast) =>
+    set((s) => ({
+      toasts: [
+        ...s.toasts,
+        { ...toast, id: crypto.randomUUID(), timestamp: Date.now() },
+      ],
+    })),
+
+  removeToast: (id) =>
+    set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
 
   clearMessages: () => set({ messages: [], error: null }),
 

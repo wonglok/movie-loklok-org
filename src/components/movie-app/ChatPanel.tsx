@@ -7,6 +7,23 @@ import { useChatStore, type ChatMessage, type ToolCall } from "@/stores/chat-sto
 import { useFolderStore } from "@/stores/folder-store";
 import { sendChatMessage } from "@/lib/chat-agent";
 
+function toolLabel(name: string): string {
+  switch (name) {
+    case "generate_character_images":
+    case "generate_character_image":
+      return "Character Image";
+    case "generate_character_reference_video":
+      return "Character Reference Video";
+    case "generate_scene_images":
+    case "generate_scene_image":
+      return "Scene Image";
+    case "generate_scene_video":
+      return "Scene Video";
+    default:
+      return name;
+  }
+}
+
 function ToolCallBubble({ tc }: { tc: ToolCall }) {
   const [expanded, setExpanded] = useState(false);
   const isError = tc.status === "error";
@@ -216,7 +233,17 @@ export function ChatPanel() {
   const pushToolCall = useChatStore((s) => s.pushToolCall);
   const setIsSending = useChatStore((s) => s.setIsSending);
   const setError = useChatStore((s) => s.setError);
+  const addToast = useChatStore((s) => s.addToast);
   const clearMessages = useChatStore((s) => s.clearMessages);
+
+  const GENERATION_TOOLS = [
+    "generate_character_images",
+    "generate_character_image",
+    "generate_character_reference_video",
+    "generate_scene_images",
+    "generate_scene_image",
+    "generate_scene_video",
+  ];
 
   const apiKey = useFolderStore((s) => s.apiKey);
   const isConfigured = useFolderStore((s) => s.isConfigured);
@@ -292,6 +319,13 @@ export function ChatPanel() {
             error: progress.error,
             status: progress.status as "done" | "error",
           });
+          if (progress.status === "error" && GENERATION_TOOLS.includes(progress.name)) {
+            addToast({
+              title: `${toolLabel(progress.name)} Failed`,
+              message: progress.error || "Unknown error",
+              toolName: progress.name,
+            });
+          }
         }
       });
 
